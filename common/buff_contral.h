@@ -92,16 +92,16 @@ namespace FXNET
 						m_dSendWindowThreshhold = m_SendWindowControl / 2;
 						if (m_dSendWindowThreshhold < 2) m_dSendWindowThreshhold = 2;
 						m_SendWindowControl = m_dSendWindowThreshhold + m_dwAckSameCount - 1;
-						if (m_SendWindowControl > send_window.window_size)
-							m_SendWindowControl = send_window.window_size;
+						if (m_SendWindowControl > m_oSendWindow.window_size)
+							m_SendWindowControl = m_oSendWindow.window_size;
 					}
 					else
 					{
 						// in quick retry
 						// m_SendWindowControl increase 1 when get same ack 
 						m_SendWindowControl += 1;
-						if (m_SendWindowControl > send_window.window_size)
-							m_SendWindowControl = send_window.window_size;
+						if (m_SendWindowControl > m_oSendWindow.window_size)
+							m_SendWindowControl = m_oSendWindow.window_size;
 					}
 				}
 				else
@@ -115,13 +115,13 @@ namespace FXNET
 				}
 
 				// enter slow start when send data timeout 
-				for (byte i = send_window.begin; i != send_window.end; i++)
+				for (byte i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
 				{
-					byte id = i % send_window.window_size;
-					ushort size = send_window.seq_size[id];
+					byte id = i % m_oSendWindow.window_size;
+					ushort size = m_oSendWindow.seq_size[id];
 
-					if (send_window.seq_retry_count[id] > 0
-						&& time >= send_window.seq_retry[id])
+					if (m_oSendWindow.seq_retry_count[id] > 0
+						&& time >= m_oSendWindow.seq_retry[id])
 					{
 						m_dSendWindowThreshhold = m_SendWindowControl / 2;
 						if (m_dSendWindowThreshhold < 2) m_dSendWindowThreshhold = 2;
@@ -140,31 +140,31 @@ namespace FXNET
 				char* send_buffer = stream->send_buffer;
 
 				// put buffer to send window
-				while ((send_window.free_buffer_id < send_window.window_size) &&	// there is a free buffer
+				while ((m_oSendWindow.free_buffer_id < m_oSendWindow.window_size) &&	// there is a free buffer
 					(size > 0))
 				{
 					// if send window more than m_SendWindowControl, break
-					if (send_window.end - send_window.begin > m_SendWindowControl)
+					if (m_oSendWindow.end - m_oSendWindow.begin > m_SendWindowControl)
 						break;
 
-					byte id = send_window.end % send_window.window_size;
+					byte id = m_oSendWindow.end % m_oSendWindow.window_size;
 
 					// allocate buffer
-					byte buffer_id = send_window.free_buffer_id;
-					send_window.free_buffer_id = send_window.buffer[buffer_id][0];
+					byte buffer_id = m_oSendWindow.free_buffer_id;
+					m_oSendWindow.free_buffer_id = m_oSendWindow.buffer[buffer_id][0];
 
 					// send window buffer
-					byte* buffer = send_window.buffer[buffer_id];
+					byte* buffer = m_oSendWindow.buffer[buffer_id];
 
 					// packet header
 					PacketHeader& packet = *(PacketHeader*)buffer;
 					packet.m_btStatus = m_dwStatus;
-					packet.m_btSyn = send_window.end;
-					packet.m_btAck = recv_window.begin - 1;
+					packet.m_btSyn = m_oSendWindow.end;
+					packet.m_btAck = m_oRecvWindow.begin - 1;
 
 					// copy data
 					uint copy_offset = sizeof(packet);
-					uint copy_size = send_window.buffer_size - copy_offset;
+					uint copy_size = m_oSendWindow.buffer_size - copy_offset;
 					if (copy_size > size)
 						copy_size = size;
 
@@ -177,13 +177,13 @@ namespace FXNET
 					}
 
 					// add to send window
-					send_window.seq_buffer_id[id] = buffer_id;
-					send_window.seq_size[id] = copy_size + copy_offset;
-					send_window.seq_time[id] = time;
-					send_window.seq_retry[id] = time;
-					send_window.seq_retry_time[id] = m_dRetryTime;
-					send_window.seq_retry_count[id] = 0;
-					send_window.end++;
+					m_oSendWindow.seq_buffer_id[id] = buffer_id;
+					m_oSendWindow.seq_size[id] = copy_size + copy_offset;
+					m_oSendWindow.seq_time[id] = time;
+					m_oSendWindow.seq_retry[id] = time;
+					m_oSendWindow.seq_retry_time[id] = m_dRetryTime;
+					m_oSendWindow.seq_retry_count[id] = 0;
+					m_oSendWindow.end++;
 				}
 
 				// remove data from send buffer.
@@ -195,35 +195,35 @@ namespace FXNET
 			}
 
 			// if there is no data to send, make an empty one
-			if (send_window.begin == send_window.end)
+			if (m_oSendWindow.begin == m_oSendWindow.end)
 			{
 				if (time >= m_dSendDataTime)
 				{
-					if (send_window.free_buffer_id < send_window.window_size)
+					if (m_oSendWindow.free_buffer_id < m_oSendWindow.window_size)
 					{
-						byte id = send_window.end % send_window.window_size;
+						byte id = m_oSendWindow.end % m_oSendWindow.window_size;
 
 						// allocate buffer
-						byte buffer_id = send_window.free_buffer_id;
-						send_window.free_buffer_id = send_window.buffer[buffer_id][0];
+						byte buffer_id = m_oSendWindow.free_buffer_id;
+						m_oSendWindow.free_buffer_id = m_oSendWindow.buffer[buffer_id][0];
 
 						// send window buffer
-						byte* buffer = send_window.buffer[buffer_id];
+						byte* buffer = m_oSendWindow.buffer[buffer_id];
 
 						// packet header
 						PacketHeader& packet = *(PacketHeader*)buffer;
 						packet.m_btStatus = m_dwStatus;
-						packet.m_btSyn = send_window.end;
-						packet.m_btAck = recv_window.begin - 1;
+						packet.m_btSyn = m_oSendWindow.end;
+						packet.m_btAck = m_oRecvWindow.begin - 1;
 
 						// add to send window
-						send_window.seq_buffer_id[id] = buffer_id;
-						send_window.seq_size[id] = sizeof(packet);
-						send_window.seq_time[id] = time;
-						send_window.seq_retry[id] = time;
-						send_window.seq_retry_time[id] = m_dRetryTime;
-						send_window.seq_retry_count[id] = 0;
-						send_window.end++;
+						m_oSendWindow.seq_buffer_id[id] = buffer_id;
+						m_oSendWindow.seq_size[id] = sizeof(packet);
+						m_oSendWindow.seq_time[id] = time;
+						m_oSendWindow.seq_retry[id] = time;
+						m_oSendWindow.seq_retry_time[id] = m_dRetryTime;
+						m_oSendWindow.seq_retry_count[id] = 0;
+						m_oSendWindow.end++;
 					}
 				}
 			}
@@ -231,27 +231,27 @@ namespace FXNET
 				m_dSendDataTime = time + m_dSendDataFrequency;
 
 			// send packets
-			for (byte i = send_window.begin; i != send_window.end; i++)
+			for (byte i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
 			{
 				// if send packets more than m_SendWindowControl, break
-				if (i - send_window.begin >= m_SendWindowControl)
+				if (i - m_oSendWindow.begin >= m_SendWindowControl)
 					break;
 
-				byte id = i % send_window.window_size;
-				ushort size = send_window.seq_size[id];
+				byte id = i % m_oSendWindow.window_size;
+				ushort size = m_oSendWindow.seq_size[id];
 
 				// send packet
-				if (time >= send_window.seq_retry[id] || force_retry)
+				if (time >= m_oSendWindow.seq_retry[id] || force_retry)
 				{
 					force_retry = false;
 
-					byte* buffer = send_window.buffer[send_window.seq_buffer_id[id]];
+					byte* buffer = m_oSendWindow.buffer[m_oSendWindow.seq_buffer_id[id]];
 
 					// packet header
 					PacketHeader& packet = *(PacketHeader*)buffer;
 					packet.m_btStatus = m_dwStatus;
 					packet.m_btSyn = i;
-					packet.m_btAck = recv_window.begin - 1;
+					packet.m_btAck = m_oRecvWindow.begin - 1;
 
 					int n = send(connected_socket, buffer, size, 0);
 
@@ -267,18 +267,18 @@ namespace FXNET
 					m_dwNumPacketsSend++;
 
 					// num retry send
-					if (time != send_window.seq_time[id])
+					if (time != m_oSendWindow.seq_time[id])
 						m_dwNumPacketsRetry++;
 
 					m_dSendTime = time + m_dSendFrequency;
 					m_dSendDataTime = time + m_dSendDataFrequency;
 					m_bSendAck = false;
 
-					send_window.seq_retry_count[id]++;
-					//send_window.seq_retry_time[id] *= 2;
-					send_window.seq_retry_time[id] = 1.5 * m_dRetryTime;
-					if (send_window.seq_retry_time[id] > 0.2) send_window.seq_retry_time[id] = 0.2;
-					send_window.seq_retry[id] = time + send_window.seq_retry_time[id];
+					m_oSendWindow.seq_retry_count[id]++;
+					//m_oSendWindow.seq_retry_time[id] *= 2;
+					m_oSendWindow.seq_retry_time[id] = 1.5 * m_dRetryTime;
+					if (m_oSendWindow.seq_retry_time[id] > 0.2) m_oSendWindow.seq_retry_time[id] = 0.2;
+					m_oSendWindow.seq_retry[id] = time + m_oSendWindow.seq_retry_time[id];
 				}
 			}
 
@@ -287,8 +287,8 @@ namespace FXNET
 			{
 				PacketHeader packet;
 				packet.m_btStatus = m_dwStatus;
-				packet.m_btSyn = send_window.begin - 1;
-				packet.m_btAck = recv_window.begin - 1;
+				packet.m_btSyn = m_oSendWindow.begin - 1;
+				packet.m_btAck = m_oRecvWindow.begin - 1;
 
 				int n = send(connected_socket, &packet, sizeof(packet), 0);
 
@@ -319,19 +319,19 @@ namespace FXNET
 			while (readable)
 			{
 				// allocate buffer
-				byte buffer_id = recv_window.free_buffer_id;
-				byte* buffer = recv_window.buffer[buffer_id];
-				recv_window.free_buffer_id = buffer[0];
+				byte buffer_id = m_oRecvWindow.free_buffer_id;
+				byte* buffer = m_oRecvWindow.buffer[buffer_id];
+				m_oRecvWindow.free_buffer_id = buffer[0];
 
 				// can't allocate buffer, disconnect.
-				if (buffer_id >= recv_window.window_size)
+				if (buffer_id >= m_oRecvWindow.window_size)
 				{
 					Disconnect();
 					return;
 				}
 
 				// receive packet
-				int n = recv(connected_socket, buffer, recv_window.buffer_size, 0);
+				int n = recv(connected_socket, buffer, m_oRecvWindow.buffer_size, 0);
 
 				if (n == 0)
 				{
@@ -341,8 +341,8 @@ namespace FXNET
 				else if (n < (int)sizeof(PacketHeader))
 				{
 					// free buffer
-					buffer[0] = recv_window.free_buffer_id;
-					recv_window.free_buffer_id = buffer_id;
+					buffer[0] = m_oRecvWindow.free_buffer_id;
+					m_oRecvWindow.free_buffer_id = buffer_id;
 
 					if (n < 0)
 						readable = false;
@@ -362,17 +362,17 @@ namespace FXNET
 					// recv side wait for syn_send, send ack and syn_recv_wait
 					if (packet.m_btStatus == ST_SYN_SEND)
 					{
-						if (packet.m_btAck == send_window.begin - 1)
+						if (packet.m_btAck == m_oSendWindow.begin - 1)
 						{
 							// initialize recv window
-							for (byte i = recv_window.begin; i != recv_window.end; i++)
+							for (byte i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
 							{
-								byte id = i % recv_window.window_size;
-								recv_window.seq_buffer_id[id] = recv_window.window_size;
-								recv_window.seq_size[id] = 0;
-								recv_window.seq_time[id] = 0;
-								recv_window.seq_retry[id] = 0;
-								recv_window.seq_retry_count[id] = 0;
+								byte id = i % m_oRecvWindow.window_size;
+								m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
+								m_oRecvWindow.seq_size[id] = 0;
+								m_oRecvWindow.seq_time[id] = 0;
+								m_oRecvWindow.seq_retry[id] = 0;
+								m_oRecvWindow.seq_retry_count[id] = 0;
 							}
 
 							m_dwStatus = ST_SYN_RECV_WAIT;
@@ -388,7 +388,7 @@ namespace FXNET
 					// send side wait for syn_recv_wait, send ack
 					if (packet.m_btStatus == ST_SYN_RECV_WAIT)
 					{
-						if (packet.m_btAck == send_window.begin)
+						if (packet.m_btAck == m_oSendWindow.begin)
 						{
 							connect_success = true;
 						}
@@ -403,7 +403,7 @@ namespace FXNET
 					// recv side wait for ack
 					if (packet.m_btStatus == ST_ESTABLISHED)
 					{
-						if (packet.m_btAck == send_window.begin)
+						if (packet.m_btAck == m_oSendWindow.begin)
 						{
 							connect_success = true;
 						}
@@ -416,14 +416,14 @@ namespace FXNET
 
 				if (connect_success)
 				{
-					for (byte i = recv_window.begin; i != recv_window.end; i++)
+					for (byte i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
 					{
-						byte id = i % recv_window.window_size;
-						recv_window.seq_buffer_id[id] = recv_window.window_size;
-						recv_window.seq_size[id] = 0;
-						recv_window.seq_time[id] = 0;
-						recv_window.seq_retry[id] = 0;
-						recv_window.seq_retry_count[id] = 0;
+						byte id = i % m_oRecvWindow.window_size;
+						m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
+						m_oRecvWindow.seq_size[id] = 0;
+						m_oRecvWindow.seq_time[id] = 0;
+						m_oRecvWindow.seq_retry[id] = 0;
+						m_oRecvWindow.seq_retry_count[id] = 0;
 					}
 
 					m_dwStatus = ST_ESTABLISHED;
@@ -446,7 +446,7 @@ namespace FXNET
 					|| m_dwStatus == ST_FIN_WAIT_1)
 				{
 					// receive ack, process send buffer.
-					if (send_window.IsValidIndex(packet.m_btAck))
+					if (m_oSendWindow.IsValidIndex(packet.m_btAck))
 					{
 						// got a valid packet
 						m_dAckRecvTime = time;
@@ -462,19 +462,19 @@ namespace FXNET
 
 						// m_SendWindowControl not more than double m_SendWindowControl 
 						double send_window_control_max = m_SendWindowControl * 2;
-						if (send_window_control_max > send_window.window_size)
-							send_window_control_max = send_window.window_size;
+						if (send_window_control_max > m_oSendWindow.window_size)
+							send_window_control_max = m_oSendWindow.window_size;
 
-						while (send_window.begin != (byte)(packet.m_btAck + 1))
+						while (m_oSendWindow.begin != (byte)(packet.m_btAck + 1))
 						{
-							byte id = send_window.begin % send_window.window_size;
-							byte buffer_id = send_window.seq_buffer_id[id];
+							byte id = m_oSendWindow.begin % m_oSendWindow.window_size;
+							byte buffer_id = m_oSendWindow.seq_buffer_id[id];
 
 							// calculate delay only use no retry packet
-							if (send_window.seq_retry_count[id] == 1)
+							if (m_oSendWindow.seq_retry_count[id] == 1)
 							{
 								// rtt(packet delay)
-								rtt = time - send_window.seq_time[id];
+								rtt = time - m_oSendWindow.seq_time[id];
 								// err_time(difference between rtt and m_dDelayTime)
 								err_time = rtt - m_dDelayTime;
 								// revise m_dDelayTime with err_time 
@@ -484,9 +484,9 @@ namespace FXNET
 							}
 
 							// free buffer
-							send_window.buffer[buffer_id][0] = send_window.free_buffer_id;
-							send_window.free_buffer_id = buffer_id;
-							send_window.begin++;
+							m_oSendWindow.buffer[buffer_id][0] = m_oSendWindow.free_buffer_id;
+							m_oSendWindow.free_buffer_id = buffer_id;
+							m_oSendWindow.begin++;
 
 							// get new ack
 							// if m_SendWindowControl more than m_dSendWindowThreshhold in congestion avoidance,
@@ -508,24 +508,24 @@ namespace FXNET
 					}
 
 					// get same ack
-					if (m_btAckLast == send_window.begin - 1)
+					if (m_btAckLast == m_oSendWindow.begin - 1)
 						m_dwAckSameCount++;
 					else
 						m_dwAckSameCount = 0;
 
 					// packet is valid
-					if (recv_window.IsValidIndex(packet.m_btSyn))
+					if (m_oRecvWindow.IsValidIndex(packet.m_btSyn))
 					{
-						byte id = packet.m_btSyn % recv_window.window_size;
+						byte id = packet.m_btSyn % m_oRecvWindow.window_size;
 
-						if (recv_window.seq_buffer_id[id] >= recv_window.window_size)
+						if (m_oRecvWindow.seq_buffer_id[id] >= m_oRecvWindow.window_size)
 						{
-							recv_window.seq_buffer_id[id] = buffer_id;
-							recv_window.seq_size[id] = n;
+							m_oRecvWindow.seq_buffer_id[id] = buffer_id;
+							m_oRecvWindow.seq_size[id] = n;
 							packet_received = true;
 
 							// no more buffer, try parse first.
-							if (recv_window.free_buffer_id >= recv_window.window_size)
+							if (m_oRecvWindow.free_buffer_id >= m_oRecvWindow.window_size)
 								break;
 							else
 								continue;
@@ -534,28 +534,28 @@ namespace FXNET
 				}
 
 				// free buffer.
-				buffer[0] = recv_window.free_buffer_id;
-				recv_window.free_buffer_id = buffer_id;
+				buffer[0] = m_oRecvWindow.free_buffer_id;
+				m_oRecvWindow.free_buffer_id = buffer_id;
 			}
 
-			if (send_window.begin == send_window.end)
+			if (m_oSendWindow.begin == m_oSendWindow.end)
 				m_dwAckSameCount = 0;
 
 			// record ack last
-			m_btAckLast = send_window.begin - 1;
+			m_btAckLast = m_oSendWindow.begin - 1;
 
 			// update recv window
 			if (packet_received)
 			{
-				byte last_ack = recv_window.begin - 1;
+				byte last_ack = m_oRecvWindow.begin - 1;
 				byte new_ack = last_ack;
 				bool parse_message = false;
 
 				// calculate new ack
-				for (byte i = recv_window.begin; i != recv_window.end; i++)
+				for (byte i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
 				{
 					// recv buffer is invalid
-					if (recv_window.seq_buffer_id[i % recv_window.window_size] >= recv_window.window_size)
+					if (m_oRecvWindow.seq_buffer_id[i % m_oRecvWindow.window_size] >= m_oRecvWindow.window_size)
 						break;
 
 					new_ack = i;
@@ -564,13 +564,13 @@ namespace FXNET
 				// ack changed
 				if (new_ack != last_ack)
 				{
-					while (recv_window.begin != (byte)(new_ack + 1))
+					while (m_oRecvWindow.begin != (byte)(new_ack + 1))
 					{
 						const byte head_size = sizeof(PacketHeader);
-						byte id = recv_window.begin % recv_window.window_size;
-						byte buffer_id = recv_window.seq_buffer_id[id];
-						byte* buffer = recv_window.buffer[buffer_id] + head_size;
-						ushort size = recv_window.seq_size[id] - head_size;
+						byte id = m_oRecvWindow.begin % m_oRecvWindow.window_size;
+						byte buffer_id = m_oRecvWindow.seq_buffer_id[id];
+						byte* buffer = m_oRecvWindow.buffer[buffer_id] + head_size;
+						ushort size = m_oRecvWindow.seq_size[id] - head_size;
 
 						// copy buffer
 						if (stream->recv_offset + size < stream->recv_buffer_size)
@@ -580,14 +580,14 @@ namespace FXNET
 							stream->recv_offset += size;
 
 							// free buffer
-							recv_window.buffer[buffer_id][0] = recv_window.free_buffer_id;
-							recv_window.free_buffer_id = buffer_id;
+							m_oRecvWindow.buffer[buffer_id][0] = m_oRecvWindow.free_buffer_id;
+							m_oRecvWindow.free_buffer_id = buffer_id;
 
 							// remove sequence
-							recv_window.seq_size[id] = 0;
-							recv_window.seq_buffer_id[id] = recv_window.window_size;
-							recv_window.begin++;
-							recv_window.end++;
+							m_oRecvWindow.seq_size[id] = 0;
+							m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
+							m_oRecvWindow.begin++;
+							m_oRecvWindow.end++;
 
 							// mark for parse message
 							parse_message = true;
@@ -604,7 +604,7 @@ namespace FXNET
 				}
 
 				// record receive syn last
-				m_btSynLast = recv_window.begin - 1;
+				m_btSynLast = m_oRecvWindow.begin - 1;
 
 				// parse message
 				if (parse_message)
