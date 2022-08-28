@@ -34,4 +34,16 @@
  */
 #define UDP_RECV_WINDOW_BUFF_SIZE 512
 
+class OnRecvOperator
+{
+public:
+	virtual void operator() (char* szBuff, unsigned int dwSize) = 0;
+};
+
+class SendOperator
+{
+public:
+	virtual void operator() (char* szBuff, unsigned int dwSize) = 0;
+};
+
 #endif	//! __SLIDING_WINDOW_H__
