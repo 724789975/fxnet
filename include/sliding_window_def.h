@@ -1,5 +1,5 @@
-#ifndef __SLIDING_WINDOW_H__
-#define __SLIDING_WINDOW_H__
+#ifndef __SLIDING_WINDOW_DEF_H__
+#define __SLIDING_WINDOW_DEF_H__
 
 /**
  * @brief 发送缓存帧数量
@@ -46,4 +46,4 @@ public:
 	virtual void operator() (char* szBuff, unsigned int dwSize) = 0;
 };
 
-#endif	//! __SLIDING_WINDOW_H__
+#endif	//! __SLIDING_WINDOW_DEF_H__

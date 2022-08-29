@@ -40,6 +40,8 @@ namespace FXNET
 
 			return *this;
 		}
+
+		// TUDO是否需要 不需要后面删掉
 		BUFF_CONTRAL& SetSendOperator(SendOperator* p)
 		{
 			m_pSendOperator = p;
@@ -47,30 +49,77 @@ namespace FXNET
 			return *this;
 		}
 
-		void SendMessages()
+		/**
+		 * @brief 将数据放入发送缓冲区
+		 * 
+		 * @param pSendBuffer 待发送数据
+		 * @param wSize 要发送的长度
+		 * @return unsigned short 放入发送缓冲的长度 <= wSize
+		 */
+		unsigned short Send(const char* pSendBuffer, unsigned short wSize, double dTime)
 		{
-			if (stream == NULL)
-				return;
-
-			if (m_dwStatus == ST_IDLE)
-				return;
-
-			double time = Event::GetTime();
-
-			// check ack received time
-			if (time - m_dAckRecvTime > 5)
+			unsigned short wSendSize = 0;
+			// put buffer to send window
+			while ((m_oSendWindow.m_btFreeBufferId < m_oSendWindow::window_size) && // there is a free buffer
+				   (wSize > 0))
 			{
-				m_dAckRecvTime = time;
+				// if send window more than m_SendWindowControl, break
+				if (m_oSendWindow.m_btEnd - m_oSendWindow.m_btBegin > m_SendWindowControl)
+					break;
+
+				unsigned char id = m_oSendWindow.m_btEnd % m_oSendWindow::window_size;
+
+				// 获取一个帧
+				unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
+				m_oSendWindow.m_btFreeBufferId = m_oSendWindow.m_btarrBuffer[btBufferId][0];
+
+				// 发送的缓存
+				unsigned char *pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
+
+				// 处理数据头
+				PacketHeader &oPacket = *(PacketHeader *)pBuffer;
+				oPacket.m_btStatus = m_dwStatus;
+				oPacket.m_btSyn = m_oSendWindow.m_btEnd;
+				oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
+
+				// 复制数据
+				unsigned int dwCopyOffset = sizeof(oPacket);
+				unsigned int dwCopySize = m_oSendWindow::buffer_size - dwCopyOffset;
+				if (dwCopySize > wSize)
+					dwCopySize = wSize;
+
+				if (dwCopySize > 0)
+				{
+					memcpy(pBuffer + dwCopyOffset, pSendBuffer, dwCopySize);
+
+					wSize -= dwCopySize;
+					wSendSize += dwCopySize;
+				}
+
+				// 添加到发送窗口
+				m_oSendWindow.Add2SendWindow(btBufferId, btBufferId, dwCopySize + dwCopyOffset, dTime, m_dRetryTime);
+			}
+
+			return wSendSize;
+		}
+
+		//TCP不需要?
+		void SendMessages(double dTime)
+		{
+			// check ack received time
+			if (dTime - m_dAckRecvTime > 5)
+			{
+				m_dAckRecvTime = dTime;
 
 				if (--m_dwAckTimeoutRetry <= 0)
 				{
-					log_write(LOG_DEBUG1, "connection timeout.");
+					//TODO
 					OnClose();
 					return;
 				}
 			}
 
-			if (time < m_dSendTime)
+			if (dTime < m_dSendTime)
 				return;
 
 			if (m_dwStatus == ST_SYN_RECV)
@@ -115,13 +164,13 @@ namespace FXNET
 				}
 
 				// enter slow start when send data timeout 
-				for (byte i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
+				for (unsigned char i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
 				{
-					byte id = i % m_oSendWindow.window_size;
+					unsigned char id = i % m_oSendWindow.window_size;
 					ushort size = m_oSendWindow.seq_size[id];
 
 					if (m_oSendWindow.seq_retry_count[id] > 0
-						&& time >= m_oSendWindow.seq_retry[id])
+						&& dTime >= m_oSendWindow.seq_retry[id])
 					{
 						m_dSendWindowThreshhold = m_SendWindowControl / 2;
 						if (m_dSendWindowThreshhold < 2) m_dSendWindowThreshhold = 2;
@@ -147,14 +196,14 @@ namespace FXNET
 					if (m_oSendWindow.end - m_oSendWindow.begin > m_SendWindowControl)
 						break;
 
-					byte id = m_oSendWindow.end % m_oSendWindow.window_size;
+					unsigned char id = m_oSendWindow.end % m_oSendWindow.window_size;
 
 					// allocate buffer
-					byte buffer_id = m_oSendWindow.free_buffer_id;
+					unsigned char buffer_id = m_oSendWindow.free_buffer_id;
 					m_oSendWindow.free_buffer_id = m_oSendWindow.buffer[buffer_id][0];
 
 					// send window buffer
-					byte* buffer = m_oSendWindow.buffer[buffer_id];
+					unsigned char* buffer = m_oSendWindow.buffer[buffer_id];
 
 					// packet header
 					PacketHeader& packet = *(PacketHeader*)buffer;
@@ -179,8 +228,8 @@ namespace FXNET
 					// add to send window
 					m_oSendWindow.seq_buffer_id[id] = buffer_id;
 					m_oSendWindow.seq_size[id] = copy_size + copy_offset;
-					m_oSendWindow.seq_time[id] = time;
-					m_oSendWindow.seq_retry[id] = time;
+					m_oSendWindow.seq_time[id] = dTime;
+					m_oSendWindow.seq_retry[id] = dTime;
 					m_oSendWindow.seq_retry_time[id] = m_dRetryTime;
 					m_oSendWindow.seq_retry_count[id] = 0;
 					m_oSendWindow.end++;
@@ -197,18 +246,18 @@ namespace FXNET
 			// if there is no data to send, make an empty one
 			if (m_oSendWindow.begin == m_oSendWindow.end)
 			{
-				if (time >= m_dSendDataTime)
+				if (dTime >= m_dSendDataTime)
 				{
 					if (m_oSendWindow.free_buffer_id < m_oSendWindow.window_size)
 					{
-						byte id = m_oSendWindow.end % m_oSendWindow.window_size;
+						unsigned char id = m_oSendWindow.end % m_oSendWindow.window_size;
 
 						// allocate buffer
-						byte buffer_id = m_oSendWindow.free_buffer_id;
+						unsigned char buffer_id = m_oSendWindow.free_buffer_id;
 						m_oSendWindow.free_buffer_id = m_oSendWindow.buffer[buffer_id][0];
 
 						// send window buffer
-						byte* buffer = m_oSendWindow.buffer[buffer_id];
+						unsigned char* buffer = m_oSendWindow.buffer[buffer_id];
 
 						// packet header
 						PacketHeader& packet = *(PacketHeader*)buffer;
@@ -219,8 +268,8 @@ namespace FXNET
 						// add to send window
 						m_oSendWindow.seq_buffer_id[id] = buffer_id;
 						m_oSendWindow.seq_size[id] = sizeof(packet);
-						m_oSendWindow.seq_time[id] = time;
-						m_oSendWindow.seq_retry[id] = time;
+						m_oSendWindow.seq_time[id] = dTime;
+						m_oSendWindow.seq_retry[id] = dTime;
 						m_oSendWindow.seq_retry_time[id] = m_dRetryTime;
 						m_oSendWindow.seq_retry_count[id] = 0;
 						m_oSendWindow.end++;
@@ -228,24 +277,24 @@ namespace FXNET
 				}
 			}
 			else
-				m_dSendDataTime = time + m_dSendDataFrequency;
+				m_dSendDataTime = dTime + m_dSendDataFrequency;
 
 			// send packets
-			for (byte i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
+			for (unsigned char i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
 			{
 				// if send packets more than m_SendWindowControl, break
 				if (i - m_oSendWindow.begin >= m_SendWindowControl)
 					break;
 
-				byte id = i % m_oSendWindow.window_size;
+				unsigned char id = i % m_oSendWindow.window_size;
 				ushort size = m_oSendWindow.seq_size[id];
 
 				// send packet
-				if (time >= m_oSendWindow.seq_retry[id] || force_retry)
+				if (dTime >= m_oSendWindow.seq_retry[id] || force_retry)
 				{
 					force_retry = false;
 
-					byte* buffer = m_oSendWindow.buffer[m_oSendWindow.seq_buffer_id[id]];
+					unsigned char* buffer = m_oSendWindow.buffer[m_oSendWindow.seq_buffer_id[id]];
 
 					// packet header
 					PacketHeader& packet = *(PacketHeader*)buffer;
@@ -261,24 +310,24 @@ namespace FXNET
 						break;
 					}
 					else
-						m_dwNumBytesSend += n + 28;
+						m_dwNumunsigned charsSend += n + 28;
 
 					// num send
 					m_dwNumPacketsSend++;
 
 					// num retry send
-					if (time != m_oSendWindow.seq_time[id])
+					if (dTime != m_oSendWindow.seq_time[id])
 						m_dwNumPacketsRetry++;
 
-					m_dSendTime = time + m_dSendFrequency;
-					m_dSendDataTime = time + m_dSendDataFrequency;
+					m_dSendTime = dTime + m_dSendFrequency;
+					m_dSendDataTime = dTime + m_dSendDataFrequency;
 					m_bSendAck = false;
 
 					m_oSendWindow.seq_retry_count[id]++;
 					//m_oSendWindow.seq_retry_time[id] *= 2;
 					m_oSendWindow.seq_retry_time[id] = 1.5 * m_dRetryTime;
 					if (m_oSendWindow.seq_retry_time[id] > 0.2) m_oSendWindow.seq_retry_time[id] = 0.2;
-					m_oSendWindow.seq_retry[id] = time + m_oSendWindow.seq_retry_time[id];
+					m_oSendWindow.seq_retry[id] = dTime + m_oSendWindow.seq_retry_time[id];
 				}
 			}
 
@@ -295,7 +344,7 @@ namespace FXNET
 				if (n < 0)
 					log_write(LOG_DEBUG1, "send error(%m)");
 
-				m_dSendTime = time + m_dSendFrequency;
+				m_dSendTime = dTime + m_dSendFrequency;
 				m_bSendAck = false;
 			}
 		}
@@ -319,8 +368,8 @@ namespace FXNET
 			while (readable)
 			{
 				// allocate buffer
-				byte buffer_id = m_oRecvWindow.free_buffer_id;
-				byte* buffer = m_oRecvWindow.buffer[buffer_id];
+				unsigned char buffer_id = m_oRecvWindow.free_buffer_id;
+				unsigned char* buffer = m_oRecvWindow.buffer[buffer_id];
 				m_oRecvWindow.free_buffer_id = buffer[0];
 
 				// can't allocate buffer, disconnect.
@@ -350,7 +399,7 @@ namespace FXNET
 					continue;
 				}
 
-				// num bytes received
+				// num unsigned chars received
 				m_dwNumBytesReceived += n + 28;
 
 				// packet header
@@ -365,9 +414,9 @@ namespace FXNET
 						if (packet.m_btAck == m_oSendWindow.begin - 1)
 						{
 							// initialize recv window
-							for (byte i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
+							for (unsigned char i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
 							{
-								byte id = i % m_oRecvWindow.window_size;
+								unsigned char id = i % m_oRecvWindow.window_size;
 								m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
 								m_oRecvWindow.seq_size[id] = 0;
 								m_oRecvWindow.seq_time[id] = 0;
@@ -416,9 +465,9 @@ namespace FXNET
 
 				if (connect_success)
 				{
-					for (byte i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
+					for (unsigned char i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
 					{
-						byte id = i % m_oRecvWindow.window_size;
+						unsigned char id = i % m_oRecvWindow.window_size;
 						m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
 						m_oRecvWindow.seq_size[id] = 0;
 						m_oRecvWindow.seq_time[id] = 0;
@@ -465,10 +514,10 @@ namespace FXNET
 						if (send_window_control_max > m_oSendWindow.window_size)
 							send_window_control_max = m_oSendWindow.window_size;
 
-						while (m_oSendWindow.begin != (byte)(packet.m_btAck + 1))
+						while (m_oSendWindow.begin != (unsigned char)(packet.m_btAck + 1))
 						{
-							byte id = m_oSendWindow.begin % m_oSendWindow.window_size;
-							byte buffer_id = m_oSendWindow.seq_buffer_id[id];
+							unsigned char id = m_oSendWindow.begin % m_oSendWindow.window_size;
+							unsigned char buffer_id = m_oSendWindow.seq_buffer_id[id];
 
 							// calculate delay only use no retry packet
 							if (m_oSendWindow.seq_retry_count[id] == 1)
@@ -516,7 +565,7 @@ namespace FXNET
 					// packet is valid
 					if (m_oRecvWindow.IsValidIndex(packet.m_btSyn))
 					{
-						byte id = packet.m_btSyn % m_oRecvWindow.window_size;
+						unsigned char id = packet.m_btSyn % m_oRecvWindow.window_size;
 
 						if (m_oRecvWindow.seq_buffer_id[id] >= m_oRecvWindow.window_size)
 						{
@@ -547,12 +596,12 @@ namespace FXNET
 			// update recv window
 			if (packet_received)
 			{
-				byte last_ack = m_oRecvWindow.begin - 1;
-				byte new_ack = last_ack;
+				unsigned char last_ack = m_oRecvWindow.begin - 1;
+				unsigned char new_ack = last_ack;
 				bool parse_message = false;
 
 				// calculate new ack
-				for (byte i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
+				for (unsigned char i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
 				{
 					// recv buffer is invalid
 					if (m_oRecvWindow.seq_buffer_id[i % m_oRecvWindow.window_size] >= m_oRecvWindow.window_size)
@@ -564,12 +613,12 @@ namespace FXNET
 				// ack changed
 				if (new_ack != last_ack)
 				{
-					while (m_oRecvWindow.begin != (byte)(new_ack + 1))
+					while (m_oRecvWindow.begin != (unsigned char)(new_ack + 1))
 					{
-						const byte head_size = sizeof(PacketHeader);
-						byte id = m_oRecvWindow.begin % m_oRecvWindow.window_size;
-						byte buffer_id = m_oRecvWindow.seq_buffer_id[id];
-						byte* buffer = m_oRecvWindow.buffer[buffer_id] + head_size;
+						const unsigned char head_size = sizeof(PacketHeader);
+						unsigned char id = m_oRecvWindow.begin % m_oRecvWindow.window_size;
+						unsigned char buffer_id = m_oRecvWindow.seq_buffer_id[id];
+						unsigned char* buffer = m_oRecvWindow.buffer[buffer_id] + head_size;
 						ushort size = m_oRecvWindow.seq_size[id] - head_size;
 
 						// copy buffer
@@ -624,7 +673,7 @@ namespace FXNET
 				OnClose();
 		}
 	private:
-		SlidingWindow<SEND_BUFF_SIZE, SEND_WINDOW_SIZE> m_oSendWindow;
+		SendWindow<SEND_BUFF_SIZE, SEND_WINDOW_SIZE> m_oSendWindow;
 		SlidingWindow<RECV_BUFF_SIZE, RECV_WINDOW_SIZE> m_oRecvWindow;
 
 		OnRecvOperator* m_pOnRecvOperator;
