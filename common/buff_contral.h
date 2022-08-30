@@ -207,13 +207,13 @@ namespace FXNET
 						unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
 						// packet header
-						PacketHeader& packet = *(PacketHeader*)pBuffer;
-						packet.m_btStatus = m_dwStatus;
-						packet.m_btSyn = m_oSendWindow.end;
-						packet.m_btAck = m_oRecvWindow.begin - 1;
+						PacketHeader& oPacket = *(PacketHeader*)pBuffer;
+						oPacket.m_btStatus = m_dwStatus;
+						oPacket.m_btSyn = m_oSendWindow.end;
+						oPacket.m_btAck = m_oRecvWindow.begin - 1;
 
 						// 添加到发送窗口
-						m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(packet), dTime, m_dRetryTime);
+						m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(oPacket), dTime, m_dRetryTime);
 					}
 				}
 			}
@@ -227,15 +227,15 @@ namespace FXNET
 				if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl)
 					break;
 
-				unsigned char id = i % m_oSendWindow.window_size;
-				ushort size = m_oSendWindow.seq_size[id];
+				unsigned char btId = i % m_oSendWindow.window_size;
+				ushort size = m_oSendWindow.seq_size[btId];
 
 				// send packet
-				if (dTime >= m_oSendWindow.seq_retry[id] || bForceRetry)
+				if (dTime >= m_oSendWindow.seq_retry[btId] || bForceRetry)
 				{
 					bForceRetry = false;
 
-					unsigned char* buffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[id]];
+					unsigned char* buffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[btId]];
 
 					// packet header
 					PacketHeader& packet = *(PacketHeader*)buffer;
@@ -257,18 +257,18 @@ namespace FXNET
 					m_dwNumPacketsSend++;
 
 					// num retry send
-					if (dTime != m_oSendWindow.seq_time[id])
+					if (dTime != m_oSendWindow.seq_time[btId])
 						m_dwNumPacketsRetry++;
 
 					m_dSendTime = dTime + m_dSendFrequency;
 					m_dSendDataTime = dTime + m_dSendDataFrequency;
 					m_bSendAck = false;
 
-					m_oSendWindow.seq_retry_count[id]++;
+					m_oSendWindow.seq_retry_count[btId]++;
 					//m_oSendWindow.seq_retry_time[id] *= 2;
-					m_oSendWindow.seq_retry_time[id] = 1.5 * m_dRetryTime;
-					if (m_oSendWindow.seq_retry_time[id] > 0.2) m_oSendWindow.seq_retry_time[id] = 0.2;
-					m_oSendWindow.seq_retry[id] = dTime + m_oSendWindow.seq_retry_time[id];
+					m_oSendWindow.seq_retry_time[btId] = 1.5 * m_dRetryTime;
+					if (m_oSendWindow.seq_retry_time[btId] > 0.2) m_oSendWindow.seq_retry_time[btId] = 0.2;
+					m_oSendWindow.seq_retry[btId] = dTime + m_oSendWindow.seq_retry_time[btId];
 				}
 			}
 
