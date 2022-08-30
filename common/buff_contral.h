@@ -49,6 +49,11 @@ namespace FXNET
 			return *this;
 		}
 
+		BUFF_CONTRAL& SetAckOutTime(double dOutTime)
+		{
+			m_dAckOutTime = dOutTime;
+		}
+
 		/**
 		 * @brief 将数据放入发送缓冲区
 		 * 
@@ -64,7 +69,7 @@ namespace FXNET
 				   (wSize > 0))
 			{
 				// if send window more than m_SendWindowControl, break
-				if (m_oSendWindow.m_btEnd - m_oSendWindow.m_btBegin > m_SendWindowControl)
+				if (m_oSendWindow.m_btEnd - m_oSendWindow.m_btBegin > m_dSendWindowControl)
 					break;
 
 				unsigned char id = m_oSendWindow.m_btEnd % m_oSendWindow::window_size;
@@ -97,7 +102,7 @@ namespace FXNET
 				}
 
 				// 添加到发送窗口
-				m_oSendWindow.Add2SendWindow(btBufferId, btBufferId, dwCopySize + dwCopyOffset, dTime, m_dRetryTime);
+				m_oSendWindow.Add2SendWindow(id, btBufferId, dwCopySize + dwCopyOffset, dTime, m_dRetryTime);
 			}
 
 			return wSendSize;
@@ -107,7 +112,7 @@ namespace FXNET
 		void SendMessages(double dTime)
 		{
 			// check ack received time
-			if (dTime - m_dAckRecvTime > 5)
+			if (dTime - m_dAckRecvTime > m_dAckOutTime)
 			{
 				m_dAckRecvTime = dTime;
 
@@ -125,10 +130,9 @@ namespace FXNET
 			if (m_dwStatus == ST_SYN_RECV)
 				return;
 
-			bool force_retry = false;
+			bool bForceRetry = false;
 
-			if (m_dwStatus == ST_ESTABLISHED
-				|| m_dwStatus == ST_FIN_WAIT_1)
+			if (m_dwStatus == ST_ESTABLISHED)
 			{
 				// enter quick retry when get 3 same ack
 				if (m_dwAckSameCount > 3)
@@ -136,21 +140,21 @@ namespace FXNET
 					if (m_bQuickRetry == false)
 					{
 						m_bQuickRetry = true;
-						force_retry = true;
+						bForceRetry = true;
 
-						m_dSendWindowThreshhold = m_SendWindowControl / 2;
+						m_dSendWindowThreshhold = m_dSendWindowControl / 2;
 						if (m_dSendWindowThreshhold < 2) m_dSendWindowThreshhold = 2;
-						m_SendWindowControl = m_dSendWindowThreshhold + m_dwAckSameCount - 1;
-						if (m_SendWindowControl > m_oSendWindow.window_size)
-							m_SendWindowControl = m_oSendWindow.window_size;
+						m_dSendWindowControl = m_dSendWindowThreshhold + m_dwAckSameCount - 1;
+						if (m_dSendWindowControl > m_oSendWindow.window_size)
+							m_dSendWindowControl = m_oSendWindow.window_size;
 					}
 					else
 					{
 						// in quick retry
 						// m_SendWindowControl increase 1 when get same ack 
-						m_SendWindowControl += 1;
-						if (m_SendWindowControl > m_oSendWindow.window_size)
-							m_SendWindowControl = m_oSendWindow.window_size;
+						m_dSendWindowControl += 1;
+						if (m_dSendWindowControl > m_oSendWindow.window_size)
+							m_dSendWindowControl = m_oSendWindow.window_size;
 					}
 				}
 				else
@@ -158,13 +162,13 @@ namespace FXNET
 					// quick retry finished when get new ack
 					if (m_bQuickRetry == true)
 					{
-						m_SendWindowControl = m_dSendWindowThreshhold;
+						m_dSendWindowControl = m_dSendWindowThreshhold;
 						m_bQuickRetry = false;
 					}
 				}
 
 				// enter slow start when send data timeout 
-				for (unsigned char i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
+				for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 				{
 					unsigned char id = i % m_oSendWindow.window_size;
 					ushort size = m_oSendWindow.seq_size[id];
@@ -172,10 +176,10 @@ namespace FXNET
 					if (m_oSendWindow.seq_retry_count[id] > 0
 						&& dTime >= m_oSendWindow.seq_retry[id])
 					{
-						m_dSendWindowThreshhold = m_SendWindowControl / 2;
+						m_dSendWindowThreshhold = m_dSendWindowControl / 2;
 						if (m_dSendWindowThreshhold < 2) m_dSendWindowThreshhold = 2;
 						//m_SendWindowControl = 1;
-						m_SendWindowControl = m_dSendWindowThreshhold;
+						m_dSendWindowControl = m_dSendWindowThreshhold;
 						//break;
 
 						m_bQuickRetry = false;
@@ -184,95 +188,32 @@ namespace FXNET
 					}
 				}
 
-				uint offset = 0;
-				uint size = stream->send_offset;
-				char* send_buffer = stream->send_buffer;
-
-				// put buffer to send window
-				while ((m_oSendWindow.free_buffer_id < m_oSendWindow.window_size) &&	// there is a free buffer
-					(size > 0))
-				{
-					// if send window more than m_SendWindowControl, break
-					if (m_oSendWindow.end - m_oSendWindow.begin > m_SendWindowControl)
-						break;
-
-					unsigned char id = m_oSendWindow.end % m_oSendWindow.window_size;
-
-					// allocate buffer
-					unsigned char buffer_id = m_oSendWindow.free_buffer_id;
-					m_oSendWindow.free_buffer_id = m_oSendWindow.buffer[buffer_id][0];
-
-					// send window buffer
-					unsigned char* buffer = m_oSendWindow.buffer[buffer_id];
-
-					// packet header
-					PacketHeader& packet = *(PacketHeader*)buffer;
-					packet.m_btStatus = m_dwStatus;
-					packet.m_btSyn = m_oSendWindow.end;
-					packet.m_btAck = m_oRecvWindow.begin - 1;
-
-					// copy data
-					uint copy_offset = sizeof(packet);
-					uint copy_size = m_oSendWindow.buffer_size - copy_offset;
-					if (copy_size > size)
-						copy_size = size;
-
-					if (copy_size > 0)
-					{
-						memcpy(buffer + copy_offset, send_buffer + offset, copy_size);
-
-						size -= copy_size;
-						offset += copy_size;
-					}
-
-					// add to send window
-					m_oSendWindow.seq_buffer_id[id] = buffer_id;
-					m_oSendWindow.seq_size[id] = copy_size + copy_offset;
-					m_oSendWindow.seq_time[id] = dTime;
-					m_oSendWindow.seq_retry[id] = dTime;
-					m_oSendWindow.seq_retry_time[id] = m_dRetryTime;
-					m_oSendWindow.seq_retry_count[id] = 0;
-					m_oSendWindow.end++;
-				}
-
-				// remove data from send buffer.
-				if (offset > 0)
-				{
-					memmove(send_buffer, send_buffer + offset, size);
-					stream->send_offset = size;
-				}
 			}
 
 			// if there is no data to send, make an empty one
-			if (m_oSendWindow.begin == m_oSendWindow.end)
+			if (m_oSendWindow.m_btBegin == m_oSendWindow.m_btEnd)
 			{
 				if (dTime >= m_dSendDataTime)
 				{
-					if (m_oSendWindow.free_buffer_id < m_oSendWindow.window_size)
+					if (m_oSendWindow.m_btFreeBufferId < m_oSendWindow.window_size)
 					{
-						unsigned char id = m_oSendWindow.end % m_oSendWindow.window_size;
+						unsigned char btId = m_oSendWindow.m_btEnd % m_oSendWindow.window_size;
 
 						// allocate buffer
-						unsigned char buffer_id = m_oSendWindow.free_buffer_id;
-						m_oSendWindow.free_buffer_id = m_oSendWindow.buffer[buffer_id][0];
+						unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
+						m_oSendWindow.m_btFreeBufferId = m_oSendWindow.buffer[btBufferId][0];
 
 						// send window buffer
-						unsigned char* buffer = m_oSendWindow.buffer[buffer_id];
+						unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
 						// packet header
-						PacketHeader& packet = *(PacketHeader*)buffer;
+						PacketHeader& packet = *(PacketHeader*)pBuffer;
 						packet.m_btStatus = m_dwStatus;
 						packet.m_btSyn = m_oSendWindow.end;
 						packet.m_btAck = m_oRecvWindow.begin - 1;
 
-						// add to send window
-						m_oSendWindow.seq_buffer_id[id] = buffer_id;
-						m_oSendWindow.seq_size[id] = sizeof(packet);
-						m_oSendWindow.seq_time[id] = dTime;
-						m_oSendWindow.seq_retry[id] = dTime;
-						m_oSendWindow.seq_retry_time[id] = m_dRetryTime;
-						m_oSendWindow.seq_retry_count[id] = 0;
-						m_oSendWindow.end++;
+						// 添加到发送窗口
+						m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(packet), dTime, m_dRetryTime);
 					}
 				}
 			}
@@ -280,21 +221,21 @@ namespace FXNET
 				m_dSendDataTime = dTime + m_dSendDataFrequency;
 
 			// send packets
-			for (unsigned char i = m_oSendWindow.begin; i != m_oSendWindow.end; i++)
+			for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 			{
 				// if send packets more than m_SendWindowControl, break
-				if (i - m_oSendWindow.begin >= m_SendWindowControl)
+				if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl)
 					break;
 
 				unsigned char id = i % m_oSendWindow.window_size;
 				ushort size = m_oSendWindow.seq_size[id];
 
 				// send packet
-				if (dTime >= m_oSendWindow.seq_retry[id] || force_retry)
+				if (dTime >= m_oSendWindow.seq_retry[id] || bForceRetry)
 				{
-					force_retry = false;
+					bForceRetry = false;
 
-					unsigned char* buffer = m_oSendWindow.buffer[m_oSendWindow.seq_buffer_id[id]];
+					unsigned char* buffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[id]];
 
 					// packet header
 					PacketHeader& packet = *(PacketHeader*)buffer;
@@ -310,7 +251,7 @@ namespace FXNET
 						break;
 					}
 					else
-						m_dwNumunsigned charsSend += n + 28;
+						m_dwNumBytesSend += n + 28;
 
 					// num send
 					m_dwNumPacketsSend++;
@@ -510,7 +451,7 @@ namespace FXNET
 						double err_time = 0;
 
 						// m_SendWindowControl not more than double m_SendWindowControl 
-						double send_window_control_max = m_SendWindowControl * 2;
+						double send_window_control_max = m_dSendWindowControl * 2;
 						if (send_window_control_max > m_oSendWindow.window_size)
 							send_window_control_max = m_oSendWindow.window_size;
 
@@ -542,13 +483,13 @@ namespace FXNET
 							// else in slow start
 							// in congestion avoidance m_SendWindowControl increase 1
 							// in slow start m_SendWindowControl increase 1 when get m_SendWindowControl count ack
-							if (m_SendWindowControl <= m_dSendWindowThreshhold)
-								m_SendWindowControl += 1;
+							if (m_dSendWindowControl <= m_dSendWindowThreshhold)
+								m_dSendWindowControl += 1;
 							else
-								m_SendWindowControl += 1 / m_SendWindowControl;
+								m_dSendWindowControl += 1 / m_dSendWindowControl;
 
-							if (m_SendWindowControl > send_window_control_max)
-								m_SendWindowControl = send_window_control_max;
+							if (m_dSendWindowControl > send_window_control_max)
+								m_dSendWindowControl = send_window_control_max;
 						}
 
 						// calculate retry with m_dDelayTime and m_dDelayAverage
@@ -689,7 +630,7 @@ namespace FXNET
 		double m_dRetryTime;
 		double m_dSendTime;
 		double m_dSendFrequency;
-		double m_SendWindowControl;
+		double m_dSendWindowControl;
 		double m_dSendWindowThreshhold;
 		double m_dSendDataTime;
 		double m_dSendDataFrequency;
@@ -709,6 +650,8 @@ namespace FXNET
 		bool m_bSendAck;
 		unsigned char m_btAckLast;
 		unsigned char m_btSynLast;
+
+		double m_dAckOutTime;		//默认是5
 	};
 
 
