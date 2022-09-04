@@ -3,6 +3,13 @@
 
 namespace FXNET
 {
+	struct PacketHeader
+	{
+		unsigned char m_btStatus;
+		unsigned char m_btSyn;
+		unsigned char m_btAck;
+	};
+
 	template <unsigned int BUFF_SIZE = 512, unsigned int WINDOW_SIZE = 32>
 	class SlidingWindow
 	{
@@ -94,6 +101,7 @@ namespace FXNET
 		 * @brief 滑动窗口结束位置
 		 */
 		unsigned char m_btEnd;
+		
 	};
 
 	template <unsigned int BUFF_SIZE = 512, unsigned int WINDOW_SIZE = 32>
@@ -121,6 +129,21 @@ namespace FXNET
 
 			return *this;
 		}
+		
+		/**
+		 * @brief 待发送的数据(tcp下才会真正用到)
+		 */
+		unsigned char* m_btpWaitSendBuff;
+		/**
+		 * @brief 待发送的长度(tcp下才会真正用到)
+		 */
+		unsigned int m_dwWaitSendSize;
+
+		/**
+		 * @brief 用来同步ack(tcp下需要缓存) 
+		 */
+		PacketHeader m_oSendAckPacket;
+
 	};
 } // namespace FXNET
 
