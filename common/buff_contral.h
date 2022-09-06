@@ -16,7 +16,9 @@ namespace FXNET
 		enum { recv_buff_size = RECV_BUFF_SIZE };
 		enum { recv_window_size = RECV_WINDOW_SIZE };
 
-		typede BuffContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE> BUFF_CONTRAL;
+		typedef SendWindow<SEND_BUFF_SIZE, SEND_WINDOW_SIZE> SendWindow;
+		typedef SlidingWindow<RECV_BUFF_SIZE, RECV_WINDOW_SIZE> RecvWindow;
+		typedef BuffContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE> BUFF_CONTRAL;
 
 		BuffContral()
 		{
@@ -102,7 +104,7 @@ namespace FXNET
 		}
 
 		//TCP不需要?
-		void SendMessages(double dTime)
+		int SendMessages(double dTime)
 		{
 			// check ack received time
 			if (dTime - m_dAckRecvTime > m_dAckOutTime)
@@ -113,15 +115,15 @@ namespace FXNET
 				{
 					//TODO
 					OnClose();
-					return;
+					return 1;
 				}
 			}
 
 			if (dTime < m_dSendTime)
-				return;
+				return 0;
 
 			if (m_dwStatus == ST_SYN_RECV)
-				return;
+				return 0;
 
 			bool bForceRetry = false;
 
@@ -215,21 +217,21 @@ namespace FXNET
 			//如果有待发送数据 那么 先发送待发送数据
 			if (m_oSendWindow.m_btpWaitSendBuff)
 			{
-				int dwErrorCode = 0;
-				int dwLen = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwErrorCode)
-				if (-1 == dwLen)
+				unsigned short wLen = 0;
+				int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen)
+				if (dwErrorCode)
 				{
 					//TODO 发送出错 断开连接
 				}
 				else
 				{
-					m_oSendWindow.m_btpWaitSendBuff += dwLen;
-					m_oSendWindow.m_dwWaitSendSize -= dwLen;
+					m_oSendWindow.m_btpWaitSendBuff += wLen;
+					m_oSendWindow.m_dwWaitSendSize -= wLen;
 					if (0 == m_oSendWindow.m_dwWaitSendSize)
 					{
 						m_oSendWindow.m_btpWaitSendBuff = NULL;
 					}
-					m_dwNumBytesSend += dwLen;
+					m_dwNumBytesSend += wLen;
 				}
 			}
 			//如果待发送数据已发 那么就继续发送
@@ -258,9 +260,9 @@ namespace FXNET
 						packet.m_btSyn = i;
 						packet.m_btAck = m_oRecvWindow.begin - 1;
 
-						int dwErrorCode = 0;
-						int dwLen = (*m_pSendOperator)(buffer, size, dwErrorCode)
-						if (-1 == dwLen)
+						unsigned short wLen = 0;
+						int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen)
+						if (dwErrorCode)
 						{
 							//TODO 发送出错 断开连接
 
@@ -268,8 +270,8 @@ namespace FXNET
 						}
 						else
 						{
-							m_oSendWindow.m_btpWaitSendBuff = buffer + dwLen;
-							m_oSendWindow.m_dwWaitSendSize = size - dwLen;
+							m_oSendWindow.m_btpWaitSendBuff = buffer + wLen;
+							m_oSendWindow.m_dwWaitSendSize = size - wLen;
 							if (0 == m_oSendWindow.m_dwWaitSendSize)
 							{
 								m_oSendWindow.m_btpWaitSendBuff = NULL;
@@ -279,7 +281,7 @@ namespace FXNET
 								//等待下次发送
 								break;
 							}
-							m_dwNumBytesSend += dwLen;
+							m_dwNumBytesSend += wLen;
 						}
 
 						// num send
@@ -313,16 +315,18 @@ namespace FXNET
 				m_oSendWindow.m_btpWaitSendBuff = (unsigned char*)(&m_oSendWindow.m_oSendAckPacket);
 				m_oSendWindow.m_dwWaitSendSize = sizeof(m_oSendWindow.m_oSendAckPacket);
 
-				int dwErrorCode = 0;
-				int dwLen = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwErrorCode)
-				if (-1 == dwLen)
+				unsigned short wLen = 0;
+				int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen)
+				if (dwErrorCode)
 				{
 					//TODO 发送出错 断开连接
+
+					break;
 				}
 				else
 				{
-					m_oSendWindow.m_btpWaitSendBuff += dwLen;
-					m_oSendWindow.m_dwWaitSendSize -= dwLen;
+					m_oSendWindow.m_btpWaitSendBuff += wLen;
+					m_oSendWindow.m_dwWaitSendSize -= wLen;
 					if (0 == m_oSendWindow.m_dwWaitSendSize)
 					{
 						m_oSendWindow.m_btpWaitSendBuff = NULL;
@@ -332,31 +336,90 @@ namespace FXNET
 				m_dSendTime = dTime + m_dSendFrequency;
 				m_bSendAck = false;
 			}
+
+			return 0;
 		}
 
-		void ReceiveMessages(double dTime)
+		int ReceiveMessages(double dTime)
 		{
 			// packet received
-			bool packet_received = false;
-			bool close_connection = false;
+			bool bPacketReceived = false;
+			bool bCloseConnection = false;
+
+			bool bRecvAble = true;
+			while (bRecvAble)
+			{
+				// allocate buffer
+				unsigned char btBufferId = m_oRecvWindow.m_btFreeBufferId;
+				unsigned char* pBuffer = m_oRecvWindow.buffer[btBufferId];
+				m_oRecvWindow.m_btFreeBufferId = pBuffer[0];
+
+				// can't allocate buffer, disconnect.
+				if (btBufferId >= m_oRecvWindow.window_size)
+				{
+					//TODO
+					Disconnect();
+					return 1;
+				}
+
+				unsigned short wLen = 0;
+				int dwErrorCode = (*m_pRecvOperator)(pBuffer, RecvWindow::buff_size, wLen);
+
+				if (dwErrorCode && (EAGAIN != dwErrorCode))
+				{
+					if (EAGAIN == dwErrorCode)
+					{
+						bRecvAble = false;
+						pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+						m_oRecvWindow.m_btFreeBufferId = btBufferId;
+						break;
+					}
+					
+					//TODO
+					Disconnect();
+					return dwErrorCode;
+				}
+
+				if (0 == wLen)
+				{
+					//TODO
+					Disconnect();
+					return 0;
+				}
+
+				if (wLen < (unsigned short)sizeof(PacketHeader))
+				{
+					bRecvAble = false;
+					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+					m_oRecvWindow.m_btFreeBufferId = btBufferId;
+					break;
+				}
+				
+				// num unsigned chars received
+				m_dwNumBytesReceived += wLen + 28;
+				
+
+			}
+			
+			
 
 			// receive packets
 			while (readable)
 			{
 				// allocate buffer
-				unsigned char buffer_id = m_oRecvWindow.free_buffer_id;
-				unsigned char* buffer = m_oRecvWindow.buffer[buffer_id];
-				m_oRecvWindow.free_buffer_id = buffer[0];
+				unsigned char btBufferId = m_oRecvWindow.m_btFreeBufferId;
+				unsigned char* pBuffer = m_oRecvWindow.buffer[btBufferId];
+				m_oRecvWindow.m_btFreeBufferId = pBuffer[0];
 
 				// can't allocate buffer, disconnect.
-				if (buffer_id >= m_oRecvWindow.window_size)
+				if (btBufferId >= m_oRecvWindow.window_size)
 				{
 					Disconnect();
 					return;
 				}
 
 				// receive packet
-				int n = recv(connected_socket, buffer, m_oRecvWindow.buffer_size, 0);
+				int n = recv(connected_socket, pBuffer, m_oRecvWindow.buffer_size, 0);
 
 				if (n == 0)
 				{
@@ -366,8 +429,8 @@ namespace FXNET
 				else if (n < (int)sizeof(PacketHeader))
 				{
 					// free buffer
-					buffer[0] = m_oRecvWindow.free_buffer_id;
-					m_oRecvWindow.free_buffer_id = buffer_id;
+					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+					m_oRecvWindow.m_btFreeBufferId = btBufferId;
 
 					if (n < 0)
 						readable = false;
@@ -379,7 +442,7 @@ namespace FXNET
 				m_dwNumBytesReceived += n + 28;
 
 				// packet header
-				PacketHeader& packet = *(PacketHeader*)buffer;
+				PacketHeader& packet = *(PacketHeader*)pBuffer;
 
 				bool connect_success = false;
 				if (m_dwStatus == ST_SYN_RECV)
@@ -463,7 +526,7 @@ namespace FXNET
 					if (m_dwStatus == ST_ESTABLISHED)
 						m_dwStatus = ST_FIN_WAIT_2;
 
-					close_connection = true;
+					bCloseConnection = true;
 				}
 
 				if (m_dwStatus == ST_ESTABLISHED
@@ -545,12 +608,12 @@ namespace FXNET
 
 						if (m_oRecvWindow.seq_buffer_id[id] >= m_oRecvWindow.window_size)
 						{
-							m_oRecvWindow.seq_buffer_id[id] = buffer_id;
+							m_oRecvWindow.seq_buffer_id[id] = btBufferId;
 							m_oRecvWindow.seq_size[id] = n;
-							packet_received = true;
+							bPacketReceived = true;
 
 							// no more buffer, try parse first.
-							if (m_oRecvWindow.free_buffer_id >= m_oRecvWindow.window_size)
+							if (m_oRecvWindow.m_btFreeBufferId >= m_oRecvWindow.window_size)
 								break;
 							else
 								continue;
@@ -559,8 +622,8 @@ namespace FXNET
 				}
 
 				// free buffer.
-				buffer[0] = m_oRecvWindow.free_buffer_id;
-				m_oRecvWindow.free_buffer_id = buffer_id;
+				pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+				m_oRecvWindow.m_btFreeBufferId = btBufferId;
 			}
 
 			if (m_oSendWindow.begin == m_oSendWindow.end)
@@ -570,7 +633,7 @@ namespace FXNET
 			m_btAckLast = m_oSendWindow.begin - 1;
 
 			// update recv window
-			if (packet_received)
+			if (bPacketReceived)
 			{
 				unsigned char last_ack = m_oRecvWindow.begin - 1;
 				unsigned char new_ack = last_ack;
@@ -605,8 +668,8 @@ namespace FXNET
 							stream->recv_offset += size;
 
 							// free buffer
-							m_oRecvWindow.buffer[buffer_id][0] = m_oRecvWindow.free_buffer_id;
-							m_oRecvWindow.free_buffer_id = buffer_id;
+							m_oRecvWindow.buffer[buffer_id][0] = m_oRecvWindow.m_btFreeBufferId;
+							m_oRecvWindow.m_btFreeBufferId = buffer_id;
 
 							// remove sequence
 							m_oRecvWindow.seq_size[id] = 0;
@@ -640,12 +703,12 @@ namespace FXNET
 					}
 					catch (...)
 					{
-						close_connection = true;
+						bCloseConnection = true;
 					}
 				}
 			}
 
-			if (close_connection)
+			if (bCloseConnection)
 				OnClose();
 		}
 	private:
@@ -653,6 +716,7 @@ namespace FXNET
 		SlidingWindow<RECV_BUFF_SIZE, RECV_WINDOW_SIZE> m_oRecvWindow;
 
 		OnRecvOperator* m_pOnRecvOperator;
+		RecvOperator* m_pRecvOperator;
 		SendOperator* m_pSendOperator;
 
 		// bytes send and recieved
