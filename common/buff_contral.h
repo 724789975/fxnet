@@ -334,17 +334,8 @@ namespace FXNET
 			}
 		}
 
-		void ReceiveMessages()
+		void ReceiveMessages(double dTime)
 		{
-			if (stream == NULL)
-				return;
-
-			if (m_dwStatus == ST_IDLE)
-				return;
-
-			// current time
-			double time = Event::GetTime();
-
 			// packet received
 			bool packet_received = false;
 			bool close_connection = false;
@@ -483,7 +474,7 @@ namespace FXNET
 					if (m_oSendWindow.IsValidIndex(packet.m_btAck))
 					{
 						// got a valid packet
-						m_dAckRecvTime = time;
+						m_dAckRecvTime = dTime;
 						m_dwAckTimeoutRetry = 3;
 
 						// static value for calculate delay
@@ -508,7 +499,7 @@ namespace FXNET
 							if (m_oSendWindow.seq_retry_count[id] == 1)
 							{
 								// rtt(packet delay)
-								rtt = time - m_oSendWindow.seq_time[id];
+								rtt = dTime - m_oSendWindow.seq_time[id];
 								// err_time(difference between rtt and m_dDelayTime)
 								err_time = rtt - m_dDelayTime;
 								// revise m_dDelayTime with err_time 

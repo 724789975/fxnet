@@ -10,7 +10,7 @@ namespace FXNET
 		unsigned char m_btAck;
 	};
 
-	template <unsigned int BUFF_SIZE = 512, unsigned int WINDOW_SIZE = 32>
+	template <unsigned short BUFF_SIZE = 512, unsigned short WINDOW_SIZE = 32>
 	class SlidingWindow
 	{
 	public:
