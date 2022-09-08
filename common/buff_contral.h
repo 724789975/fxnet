@@ -367,7 +367,7 @@ namespace FXNET
 
 				if (dwErrorCode && (EAGAIN != dwErrorCode))
 				{
-					if (EAGAIN == dwErrorCode)
+					if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
 					{
 						bRecvAble = false;
 						pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
