@@ -397,8 +397,71 @@ namespace FXNET
 				
 				// num unsigned chars received
 				m_dwNumBytesReceived += wLen + 28;
-				
 
+				// packet header
+				PacketHeader& packet = *(PacketHeader*)pBuffer;
+
+				//收到一个有效的ack 那么要更新发送窗口的状态
+				if (m_oSendWindow.IsValidIndex(packet.m_btAck))
+				{
+						// got a valid packet
+						m_dAckRecvTime = dTime;
+						m_dwAckTimeoutRetry = 3;
+
+						// static value for calculate delay
+						static const double err_factor = 0.125;
+						static const double average_factor = 0.25;
+						static const double retry_factor = 2;
+
+						double rtt = m_dDelayTime;
+						double err_time = 0;
+
+						// m_SendWindowControl not more than double m_SendWindowControl 
+						double send_window_control_max = m_dSendWindowControl * 2;
+						if (send_window_control_max > m_oSendWindow.window_size)
+							send_window_control_max = m_oSendWindow.window_size;
+
+						while (m_oSendWindow.begin != (unsigned char)(packet.m_btAck + 1))
+						{
+							unsigned char id = m_oSendWindow.begin % m_oSendWindow.window_size;
+							unsigned char buffer_id = m_oSendWindow.seq_buffer_id[id];
+
+							// calculate delay only use no retry packet
+							if (m_oSendWindow.seq_retry_count[id] == 1)
+							{
+								// rtt(packet delay)
+								rtt = dTime - m_oSendWindow.seq_time[id];
+								// err_time(difference between rtt and m_dDelayTime)
+								err_time = rtt - m_dDelayTime;
+								// revise m_dDelayTime with err_time 
+								m_dDelayTime = m_dDelayTime + err_factor * err_time;
+								// revise m_dDelayAverage with err_time
+								m_dDelayAverage = m_dDelayAverage + average_factor * (fabs(err_time) - m_dDelayAverage);
+							}
+
+							// free buffer
+							m_oSendWindow.buffer[buffer_id][0] = m_oSendWindow.free_buffer_id;
+							m_oSendWindow.free_buffer_id = buffer_id;
+							m_oSendWindow.begin++;
+
+							// get new ack
+							// if m_SendWindowControl more than m_dSendWindowThreshhold in congestion avoidance,
+							// else in slow start
+							// in congestion avoidance m_SendWindowControl increase 1
+							// in slow start m_SendWindowControl increase 1 when get m_SendWindowControl count ack
+							if (m_dSendWindowControl <= m_dSendWindowThreshhold)
+								m_dSendWindowControl += 1;
+							else
+								m_dSendWindowControl += 1 / m_dSendWindowControl;
+
+							if (m_dSendWindowControl > send_window_control_max)
+								m_dSendWindowControl = send_window_control_max;
+						}
+
+						// calculate retry with m_dDelayTime and m_dDelayAverage
+						m_dRetryTime = m_dDelayTime + retry_factor * m_dDelayAverage;
+						if (m_dRetryTime < m_dSendFrequency) m_dRetryTime = m_dSendFrequency;
+				}
 			}
 
 			//TODO
