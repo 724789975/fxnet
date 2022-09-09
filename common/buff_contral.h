@@ -309,7 +309,7 @@ namespace FXNET
 			if (!m_oSendWindow.m_btpWaitSendBuff && m_bSendAck)
 			{
 				m_oSendWindow.m_oSendAckPacket.m_btStatus = m_dwStatus;
-				m_oSendWindow.m_oSendAckPacket.m_btSyn = m_oSendWindow.begin - 1;
+				m_oSendWindow.m_oSendAckPacket.m_btSyn = m_oSendWindow.m_btBegin - 1;
 				m_oSendWindow.m_oSendAckPacket.m_btAck = m_oRecvWindow.begin - 1;
 
 				m_oSendWindow.m_btpWaitSendBuff = (unsigned char*)(&m_oSendWindow.m_oSendAckPacket);
@@ -404,45 +404,47 @@ namespace FXNET
 				//收到一个有效的ack 那么要更新发送窗口的状态
 				if (m_oSendWindow.IsValidIndex(packet.m_btAck))
 				{
-						// got a valid packet
-						m_dAckRecvTime = dTime;
-						m_dwAckTimeoutRetry = 3;
+					// got a valid packet
+					m_dAckRecvTime = dTime;
+					m_dwAckTimeoutRetry = 3;
 
-						// static value for calculate delay
-						static const double err_factor = 0.125;
-						static const double average_factor = 0.25;
-						static const double retry_factor = 2;
+					// static value for calculate delay
+					static const double err_factor = 0.125;
+					static const double average_factor = 0.25;
+					static const double retry_factor = 2;
 
-						double rtt = m_dDelayTime;
-						double err_time = 0;
+					double rtt = m_dDelayTime;
+					double err_time = 0;
 
-						// m_SendWindowControl not more than double m_SendWindowControl 
-						double send_window_control_max = m_dSendWindowControl * 2;
-						if (send_window_control_max > m_oSendWindow.window_size)
-							send_window_control_max = m_oSendWindow.window_size;
+					// m_SendWindowControl not more than double m_SendWindowControl 
+					double send_window_control_max = m_dSendWindowControl * 2;
+					if (send_window_control_max > m_oSendWindow::window_size)
+					{
+						send_window_control_max = m_oSendWindow::window_size;
+					}
 
-						while (m_oSendWindow.begin != (unsigned char)(packet.m_btAck + 1))
+					while (m_oSendWindow.m_btBegin != (unsigned char)(packet.m_btAck + 1))
+					{
+						unsigned char id = m_oSendWindow.m_btBegin % m_oSendWindow::window_size;
+						unsigned char buffer_id = m_oSendWindow.m_btarrSeqBufferId[id];
+
+						//只使用没有重发的包计算延迟
+						if (m_oSendWindow.m_btarrSeqBufferId[id] == 1)
 						{
-							unsigned char id = m_oSendWindow.begin % m_oSendWindow.window_size;
-							unsigned char buffer_id = m_oSendWindow.seq_buffer_id[id];
-
-							// calculate delay only use no retry packet
-							if (m_oSendWindow.seq_retry_count[id] == 1)
-							{
-								// rtt(packet delay)
-								rtt = dTime - m_oSendWindow.seq_time[id];
+							// rtt(packet delay)
+								rtt = dTime - m_oSendWindow.m_darrSeqTime[id];
 								// err_time(difference between rtt and m_dDelayTime)
 								err_time = rtt - m_dDelayTime;
 								// revise m_dDelayTime with err_time 
 								m_dDelayTime = m_dDelayTime + err_factor * err_time;
 								// revise m_dDelayAverage with err_time
 								m_dDelayAverage = m_dDelayAverage + average_factor * (fabs(err_time) - m_dDelayAverage);
-							}
+						}
 
 							// free buffer
 							m_oSendWindow.buffer[buffer_id][0] = m_oSendWindow.free_buffer_id;
 							m_oSendWindow.free_buffer_id = buffer_id;
-							m_oSendWindow.begin++;
+							m_oSendWindow.m_btBegin++;
 
 							// get new ack
 							// if m_SendWindowControl more than m_dSendWindowThreshhold in congestion avoidance,
@@ -515,7 +517,7 @@ namespace FXNET
 					// recv side wait for syn_send, send ack and syn_recv_wait
 					if (packet.m_btStatus == ST_SYN_SEND)
 					{
-						if (packet.m_btAck == m_oSendWindow.begin - 1)
+						if (packet.m_btAck == m_oSendWindow.m_btBegin - 1)
 						{
 							// initialize recv window
 							for (unsigned char i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
@@ -541,7 +543,7 @@ namespace FXNET
 					// send side wait for syn_recv_wait, send ack
 					if (packet.m_btStatus == ST_SYN_RECV_WAIT)
 					{
-						if (packet.m_btAck == m_oSendWindow.begin)
+						if (packet.m_btAck == m_oSendWindow.m_btBegin)
 						{
 							connect_success = true;
 						}
@@ -556,7 +558,7 @@ namespace FXNET
 					// recv side wait for ack
 					if (packet.m_btStatus == ST_ESTABLISHED)
 					{
-						if (packet.m_btAck == m_oSendWindow.begin)
+						if (packet.m_btAck == m_oSendWindow.m_btBegin)
 						{
 							connect_success = true;
 						}
@@ -618,9 +620,9 @@ namespace FXNET
 						if (send_window_control_max > m_oSendWindow.window_size)
 							send_window_control_max = m_oSendWindow.window_size;
 
-						while (m_oSendWindow.begin != (unsigned char)(packet.m_btAck + 1))
+						while (m_oSendWindow.m_btBegin != (unsigned char)(packet.m_btAck + 1))
 						{
-							unsigned char id = m_oSendWindow.begin % m_oSendWindow.window_size;
+							unsigned char id = m_oSendWindow.m_btBegin % m_oSendWindow.window_size;
 							unsigned char buffer_id = m_oSendWindow.seq_buffer_id[id];
 
 							// calculate delay only use no retry packet
@@ -639,7 +641,7 @@ namespace FXNET
 							// free buffer
 							m_oSendWindow.buffer[buffer_id][0] = m_oSendWindow.free_buffer_id;
 							m_oSendWindow.free_buffer_id = buffer_id;
-							m_oSendWindow.begin++;
+							m_oSendWindow.m_btBegin++;
 
 							// get new ack
 							// if m_SendWindowControl more than m_dSendWindowThreshhold in congestion avoidance,
@@ -661,7 +663,7 @@ namespace FXNET
 					}
 
 					// get same ack
-					if (m_btAckLast == m_oSendWindow.begin - 1)
+					if (m_btAckLast == m_oSendWindow.m_btBegin - 1)
 						m_dwAckSameCount++;
 					else
 						m_dwAckSameCount = 0;
@@ -691,11 +693,11 @@ namespace FXNET
 				m_oRecvWindow.m_btFreeBufferId = btBufferId;
 			}
 
-			if (m_oSendWindow.begin == m_oSendWindow.end)
+			if (m_oSendWindow.m_btBegin == m_oSendWindow.end)
 				m_dwAckSameCount = 0;
 
 			// record ack last
-			m_btAckLast = m_oSendWindow.begin - 1;
+			m_btAckLast = m_oSendWindow.m_btBegin - 1;
 
 			// update recv window
 			if (bPacketReceived)
