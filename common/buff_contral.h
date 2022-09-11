@@ -6,9 +6,9 @@
 
 namespace FXNET
 {
-	template <unsigned int SEND_BUFF_SIZE = 512, unsigned int SEND_WINDOW_SIZE = 32
-		, unsigned int RECV_BUFF_SIZE = 512, unsigned int RECV_WINDOW_SIZE = 32>
-	class BuffContral
+	template <unsigned short SEND_BUFF_SIZE = 512, unsigned short SEND_WINDOW_SIZE = 32
+		, unsigned short RECV_BUFF_SIZE = 512, unsigned short RECV_WINDOW_SIZE = 32>
+	class BufferContral
 	{
 	public:
 		enum { send_buff_size = SEND_BUFF_SIZE };
@@ -18,18 +18,18 @@ namespace FXNET
 
 		typedef SendWindow<SEND_BUFF_SIZE, SEND_WINDOW_SIZE> SendWindow;
 		typedef SlidingWindow<RECV_BUFF_SIZE, RECV_WINDOW_SIZE> RecvWindow;
-		typedef BuffContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE> BUFF_CONTRAL;
+		typedef BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE> BUFF_CONTRAL;
 
-		BuffContral()
+		BufferContral()
 		{
 			//TODO
 		}
-		~BuffContral()
+		~BufferContral()
 		{
 			//TODO
 		}
 
-		BUFF_CONTRAL& SetOnRecvOperator(OnRecvOperator* p)
+		BufferContral& SetOnRecvOperator(OnRecvOperator* p)
 		{
 			m_pOnRecvOperator = p;
 
@@ -37,21 +37,21 @@ namespace FXNET
 		}
 
 		// TODO是否需要 不需要后面删掉
-		BUFF_CONTRAL& SetSendOperator(SendOperator* p)
+		BufferContral& SetSendOperator(SendOperator* p)
 		{
 			m_pSendOperator = p;
 
 			return *this;
 		}
 
-		BUFF_CONTRAL& SetAckOutTime(double dOutTime)
+		BufferContral& SetAckOutTime(double dOutTime)
 		{
 			m_dAckOutTime = dOutTime;
 		}
 
 		/**
 		 * @brief 将数据放入发送缓冲区
-		 * 
+		 *
 		 * @param pSendBuffer 待发送数据
 		 * @param wSize 要发送的长度
 		 * @return unsigned short 放入发送缓冲的长度 <= wSize
@@ -59,25 +59,23 @@ namespace FXNET
 		unsigned short Send(const char* pSendBuffer, unsigned short wSize, double dTime)
 		{
 			unsigned short wSendSize = 0;
-			// put buffer to send window
 			while ((m_oSendWindow.m_btFreeBufferId < m_oSendWindow::window_size) && // there is a free buffer
-				   (wSize > 0))
+				(wSize > 0))
 			{
-				// if send window more than m_SendWindowControl, break
-				if (m_oSendWindow.m_btEnd - m_oSendWindow.m_btBegin > m_dSendWindowControl)
-					break;
+				//长度不会大于拥塞窗口
+				if (m_oSendWindow.m_btEnd - m_oSendWindow.m_btBegin > m_dSendWindowControl) break;
 
-				unsigned char id = m_oSendWindow.m_btEnd % m_oSendWindow::window_size;
+				unsigned char btId = m_oSendWindow.m_btEnd % m_oSendWindow::window_size;
 
 				// 获取一个帧
 				unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
 				m_oSendWindow.m_btFreeBufferId = m_oSendWindow.m_btarrBuffer[btBufferId][0];
 
 				// 发送的缓存
-				unsigned char *pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
+				unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
 				// 处理数据头
-				PacketHeader &oPacket = *(PacketHeader *)pBuffer;
+				PacketHeader& oPacket = *(PacketHeader*)pBuffer;
 				oPacket.m_btStatus = m_dwStatus;
 				oPacket.m_btSyn = m_oSendWindow.m_btEnd;
 				oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
@@ -97,7 +95,7 @@ namespace FXNET
 				}
 
 				// 添加到发送窗口
-				m_oSendWindow.Add2SendWindow(id, btBufferId, dwCopySize + dwCopyOffset, dTime, m_dRetryTime);
+				m_oSendWindow.Add2SendWindow(btId, btBufferId, dwCopySize + dwCopyOffset, dTime, m_dRetryTime);
 			}
 
 			return wSendSize;
@@ -114,20 +112,18 @@ namespace FXNET
 				if (--m_dwAckTimeoutRetry <= 0)
 				{
 					//TODO
-					OnClose();
+					// OnClose();
 					return 1;
 				}
 			}
 
-			if (dTime < m_dSendTime)
-				return 0;
+			if (dTime < m_dSendTime) {return 0;}
 
-			if (m_dwStatus == ST_SYN_RECV)
-				return 0;
+			// if (m_dwStatus == ST_SYN_RECV) {return 0;}
 
 			bool bForceRetry = false;
 
-			if (m_dwStatus == ST_ESTABLISHED)
+			// if (m_dwStatus == ST_ESTABLISHED)
 			{
 				//3次相同ack 开始快速重传
 				if (m_dwAckSameCount > 3)
@@ -138,17 +134,22 @@ namespace FXNET
 						bForceRetry = true;
 
 						m_dSendWindowThreshhold = m_dSendWindowControl / 2;
-						if (m_dSendWindowThreshhold < 2) m_dSendWindowThreshhold = 2;
+						if (m_dSendWindowThreshhold < 2) {m_dSendWindowThreshhold = 2;}
+
 						m_dSendWindowControl = m_dSendWindowThreshhold + m_dwAckSameCount - 1;
 						if (m_dSendWindowControl > m_oSendWindow.window_size)
+						{
 							m_dSendWindowControl = m_oSendWindow.window_size;
+						}
 					}
 					else
 					{
 						//相同ack时 拥塞控制窗口+1
 						m_dSendWindowControl += 1;
 						if (m_dSendWindowControl > m_oSendWindow.window_size)
+						{
 							m_dSendWindowControl = m_oSendWindow.window_size;
+						}
 					}
 				}
 				else
@@ -164,14 +165,14 @@ namespace FXNET
 				//如果超时(超过rto) 那么重新进入慢启动
 				for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 				{
-					unsigned char id = i % m_oSendWindow.window_size;
-					ushort size = m_oSendWindow.seq_size[id];
+					unsigned char btId = i % m_oSendWindow::window_size;
+					ushort size = m_oSendWindow.m_warrSeqSize[btId];
 
-					if (m_oSendWindow.seq_retry_count[id] > 0
-						&& dTime >= m_oSendWindow.seq_retry[id])
+					if (m_oSendWindow.m_dwarrSeqRetryCount[btId] > 0
+						&& dTime >= m_oSendWindow.m_warrSeqSize[btId])
 					{
 						m_dSendWindowThreshhold = m_dSendWindowControl / 2;
-						if (m_dSendWindowThreshhold < 2) m_dSendWindowThreshhold = 2;
+						if (m_dSendWindowThreshhold < 2) {m_dSendWindowThreshhold = 2;}
 						//m_SendWindowControl = 1;
 						m_dSendWindowControl = m_dSendWindowThreshhold;
 						//break;
@@ -193,11 +194,9 @@ namespace FXNET
 					{
 						unsigned char btId = m_oSendWindow.m_btEnd % m_oSendWindow.window_size;
 
-						// allocate buffer
+						// 获取缓存
 						unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
 						m_oSendWindow.m_btFreeBufferId = m_oSendWindow.buffer[btBufferId][0];
-
-						// send window buffer
 						unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
 						// packet header
@@ -211,17 +210,17 @@ namespace FXNET
 					}
 				}
 			}
-			else
-				m_dSendDataTime = dTime + m_dSendDataFrequency;
+			else {m_dSendDataTime = dTime + m_dSendDataFrequency;}
 
 			//如果有待发送数据 那么 先发送待发送数据
 			if (m_oSendWindow.m_btpWaitSendBuff)
 			{
 				unsigned short wLen = 0;
-				int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen)
+				int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
 				if (dwErrorCode)
 				{
 					//TODO 发送出错 断开连接
+					return dwErrorCode;
 				}
 				else
 				{
@@ -237,41 +236,43 @@ namespace FXNET
 			//如果待发送数据已发 那么就继续发送
 			if (!m_oSendWindow.m_btpWaitSendBuff)
 			{
-				// send packets
+				//开始发送
 				for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 				{
-					// if send packets more than m_SendWindowControl, break
-					if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl)
-						break;
+					//如果发送长度超过拥塞窗口 就停止
+					if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl) {break;}
 
-					unsigned char btId = i % m_oSendWindow.window_size;
-					ushort size = m_oSendWindow.seq_size[btId];
+					unsigned char btId = i % m_oSendWindow::window_size;
+					ushort wSize = m_oSendWindow.m_warrSeqSize[btId];
 
-					// send packet
-					if (dTime >= m_oSendWindow.seq_retry[btId] || bForceRetry)
+	 				//开始发送 或者 重传
+					if (dTime >= m_oSendWindow.m_darrSeqRetry[btId] || bForceRetry)
 					{
 						bForceRetry = false;
 
-						unsigned char* buffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[btId]];
+						unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[btId]];
 
 						// packet header
-						PacketHeader& packet = *(PacketHeader*)buffer;
+						PacketHeader& packet = *(PacketHeader*)pBuffer;
 						packet.m_btStatus = m_dwStatus;
 						packet.m_btSyn = i;
-						packet.m_btAck = m_oRecvWindow.begin - 1;
+						packet.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
 						unsigned short wLen = 0;
-						int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen)
+						int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
 						if (dwErrorCode)
 						{
+							if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
+							{
+								break;
+							}
 							//TODO 发送出错 断开连接
-
-							break;
+							return dwErrorCode;
 						}
 						else
 						{
-							m_oSendWindow.m_btpWaitSendBuff = buffer + wLen;
-							m_oSendWindow.m_dwWaitSendSize = size - wLen;
+							m_oSendWindow.m_btpWaitSendBuff = pBuffer + wLen;
+							m_oSendWindow.m_dwWaitSendSize = wSize - wLen;
 							if (0 == m_oSendWindow.m_dwWaitSendSize)
 							{
 								m_oSendWindow.m_btpWaitSendBuff = NULL;
@@ -284,26 +285,25 @@ namespace FXNET
 							m_dwNumBytesSend += wLen;
 						}
 
-						// num send
+						// 发送包数量
 						m_dwNumPacketsSend++;
 
-						// num retry send
-						if (dTime != m_oSendWindow.seq_time[btId])
-							m_dwNumPacketsRetry++;
+						// 重试次数
+						if (dTime != m_oSendWindow.m_darrSeqTime[btId]) { m_dwNumPacketsRetry++; }
 
 						m_dSendTime = dTime + m_dSendFrequency;
 						m_dSendDataTime = dTime + m_dSendDataFrequency;
 						m_bSendAck = false;
 
-						m_oSendWindow.seq_retry_count[btId]++;
-						//m_oSendWindow.seq_retry_time[id] *= 2;
-						m_oSendWindow.seq_retry_time[btId] = 1.5 * m_dRetryTime;
-						if (m_oSendWindow.seq_retry_time[btId] > 0.2) m_oSendWindow.seq_retry_time[btId] = 0.2;
-						m_oSendWindow.seq_retry[btId] = dTime + m_oSendWindow.seq_retry_time[btId];
+						m_oSendWindow.m_dwarrSeqRetryCount[btId]++;
+						//m_oSendWindow.m_darrSeqRetryTime[id] *= 2;
+						m_oSendWindow.m_darrSeqRetryTime[btId] = 1.5 * m_dRetryTime;
+						if (m_oSendWindow.m_darrSeqRetryTime[btId] > 0.2) m_oSendWindow.m_darrSeqRetryTime[btId] = 0.2;
+						m_oSendWindow.m_darrSeqRetry[btId] = dTime + m_oSendWindow.m_darrSeqRetryTime[btId];
 					}
 				}
 			}
-			
+
 
 			// send ack
 			if (!m_oSendWindow.m_btpWaitSendBuff && m_bSendAck)
@@ -316,7 +316,7 @@ namespace FXNET
 				m_oSendWindow.m_dwWaitSendSize = sizeof(m_oSendWindow.m_oSendAckPacket);
 
 				unsigned short wLen = 0;
-				int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen)
+				int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
 				if (dwErrorCode)
 				{
 					//TODO 发送出错 断开连接
@@ -358,7 +358,6 @@ namespace FXNET
 				if (btBufferId >= m_oRecvWindow.window_size)
 				{
 					//TODO
-					Disconnect();
 					return 1;
 				}
 
@@ -367,23 +366,32 @@ namespace FXNET
 
 				if (dwErrorCode && (EAGAIN != dwErrorCode))
 				{
-					if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
+					if (EINTR == dwErrorCode)
+					{
+						pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+						m_oRecvWindow.m_btFreeBufferId = btBufferId;
+						continue;
+					}
+
+#ifdef _WIN32
+					if (WSA_IO_PENDING == dwErrorCode)
+#else
+					if (EAGAIN == dwErrorCode || EWOULDBLOCK == dwErrorCode)
+#endif	//_WIN32	
 					{
 						bRecvAble = false;
 						pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 						m_oRecvWindow.m_btFreeBufferId = btBufferId;
 						break;
 					}
-					
+
 					//TODO
-					Disconnect();
 					return dwErrorCode;
 				}
 
 				if (0 == wLen)
 				{
 					//TODO
-					Disconnect();
 					return 0;
 				}
 
@@ -394,7 +402,7 @@ namespace FXNET
 					m_oRecvWindow.m_btFreeBufferId = btBufferId;
 					break;
 				}
-				
+
 				// num unsigned chars received
 				m_dwNumBytesReceived += wLen + 28;
 
@@ -404,7 +412,7 @@ namespace FXNET
 				//收到一个有效的ack 那么要更新发送窗口的状态
 				if (m_oSendWindow.IsValidIndex(packet.m_btAck))
 				{
-					// got a valid packet
+					// 获得到的是一个有效的包
 					m_dAckRecvTime = dTime;
 					m_dwAckTimeoutRetry = 3;
 
@@ -414,7 +422,7 @@ namespace FXNET
 					static const double retry_factor = 2;
 
 					double rtt = m_dDelayTime;
-					double err_time = 0;
+					double dErrTime = 0;
 
 					// m_SendWindowControl not more than double m_SendWindowControl 
 					double send_window_control_max = m_dSendWindowControl * 2;
@@ -426,357 +434,143 @@ namespace FXNET
 					while (m_oSendWindow.m_btBegin != (unsigned char)(packet.m_btAck + 1))
 					{
 						unsigned char id = m_oSendWindow.m_btBegin % m_oSendWindow::window_size;
-						unsigned char buffer_id = m_oSendWindow.m_btarrSeqBufferId[id];
+						unsigned char btBufferId = m_oSendWindow.m_btarrSeqBufferId[id];
 
 						//只使用没有重发的包计算延迟
 						if (m_oSendWindow.m_btarrSeqBufferId[id] == 1)
 						{
-							// rtt(packet delay)
-								rtt = dTime - m_oSendWindow.m_darrSeqTime[id];
-								// err_time(difference between rtt and m_dDelayTime)
-								err_time = rtt - m_dDelayTime;
-								// revise m_dDelayTime with err_time 
-								m_dDelayTime = m_dDelayTime + err_factor * err_time;
-								// revise m_dDelayAverage with err_time
-								m_dDelayAverage = m_dDelayAverage + average_factor * (fabs(err_time) - m_dDelayAverage);
+							// rtt(收包延迟时间)
+							rtt = dTime - m_oSendWindow.m_darrSeqTime[id];
+							//使用 rtt 与 m_dDelayTime 获取 dErrTime
+							dErrTime = rtt - m_dDelayTime;
+							//使用 dErrTime 重新计算 m_dDelayTime
+							m_dDelayTime = m_dDelayTime + err_factor * dErrTime;
+							//使用 dErrTime 重新计算 m_dDelayAverage
+							m_dDelayAverage = m_dDelayAverage + average_factor * (fabs(dErrTime) - m_dDelayAverage);
 						}
 
-							// free buffer
-							m_oSendWindow.buffer[buffer_id][0] = m_oSendWindow.free_buffer_id;
-							m_oSendWindow.free_buffer_id = buffer_id;
-							m_oSendWindow.m_btBegin++;
+						// 释放缓存
+						m_oSendWindow.buffer[btBufferId][0] = m_oSendWindow.m_btFreeBufferId;
+						m_oSendWindow.m_btFreeBufferId = btBufferId;
+						m_oSendWindow.m_btBegin++;
 
-							// get new ack
-							// if m_SendWindowControl more than m_dSendWindowThreshhold in congestion avoidance,
-							// else in slow start
-							// in congestion avoidance m_SendWindowControl increase 1
-							// in slow start m_SendWindowControl increase 1 when get m_SendWindowControl count ack
-							if (m_dSendWindowControl <= m_dSendWindowThreshhold)
-								m_dSendWindowControl += 1;
-							else
-								m_dSendWindowControl += 1 / m_dSendWindowControl;
-
-							if (m_dSendWindowControl > send_window_control_max)
-								m_dSendWindowControl = send_window_control_max;
-						}
-
-						// calculate retry with m_dDelayTime and m_dDelayAverage
-						m_dRetryTime = m_dDelayTime + retry_factor * m_dDelayAverage;
-						if (m_dRetryTime < m_dSendFrequency) m_dRetryTime = m_dSendFrequency;
-				}
-			}
-
-			//TODO
-			
-			
-
-			// receive packets
-			while (readable)
-			{
-				// allocate buffer
-				unsigned char btBufferId = m_oRecvWindow.m_btFreeBufferId;
-				unsigned char* pBuffer = m_oRecvWindow.buffer[btBufferId];
-				m_oRecvWindow.m_btFreeBufferId = pBuffer[0];
-
-				// can't allocate buffer, disconnect.
-				if (btBufferId >= m_oRecvWindow.window_size)
-				{
-					Disconnect();
-					return;
-				}
-
-				// receive packet
-				int n = recv(connected_socket, pBuffer, m_oRecvWindow.buffer_size, 0);
-
-				if (n == 0)
-				{
-					Disconnect();
-					return;
-				}
-				else if (n < (int)sizeof(PacketHeader))
-				{
-					// free buffer
-					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
-					m_oRecvWindow.m_btFreeBufferId = btBufferId;
-
-					if (n < 0)
-						readable = false;
-
-					continue;
-				}
-
-				// num unsigned chars received
-				m_dwNumBytesReceived += n + 28;
-
-				// packet header
-				PacketHeader& packet = *(PacketHeader*)pBuffer;
-
-				bool connect_success = false;
-				if (m_dwStatus == ST_SYN_RECV)
-				{
-					// recv side wait for syn_send, send ack and syn_recv_wait
-					if (packet.m_btStatus == ST_SYN_SEND)
-					{
-						if (packet.m_btAck == m_oSendWindow.m_btBegin - 1)
+						//收到新的ack
+						//如果 m_SendWindowControl 比 m_dSendWindowThreshhold 大 为拥塞避免
+						//否则为慢启动
+						//拥塞避免中 m_SendWindowControl 每次增加 1 / m_dSendWindowControl
+						//慢启动中 m_SendWindowControl 每次增加 1
+						if (m_dSendWindowControl <= m_dSendWindowThreshhold)
 						{
-							// initialize recv window
-							for (unsigned char i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
-							{
-								unsigned char id = i % m_oRecvWindow.window_size;
-								m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
-								m_oRecvWindow.seq_size[id] = 0;
-								m_oRecvWindow.seq_time[id] = 0;
-								m_oRecvWindow.seq_retry[id] = 0;
-								m_oRecvWindow.seq_retry_count[id] = 0;
-							}
-
-							m_dwStatus = ST_SYN_RECV_WAIT;
+							m_dSendWindowControl += 1;
 						}
 						else
-							continue;
-					}
-					else
-						continue;
-				}
-				else if (m_dwStatus == ST_SYN_SEND)
-				{
-					// send side wait for syn_recv_wait, send ack
-					if (packet.m_btStatus == ST_SYN_RECV_WAIT)
-					{
-						if (packet.m_btAck == m_oSendWindow.m_btBegin)
 						{
-							connect_success = true;
-						}
-						else
-							continue;
-					}
-					else
-						continue;
-				}
-				else if (m_dwStatus == ST_SYN_RECV_WAIT)
-				{
-					// recv side wait for ack
-					if (packet.m_btStatus == ST_ESTABLISHED)
-					{
-						if (packet.m_btAck == m_oSendWindow.m_btBegin)
-						{
-							connect_success = true;
-						}
-						else
-							continue;
-					}
-					else
-						continue;
-				}
-
-				if (connect_success)
-				{
-					for (unsigned char i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
-					{
-						unsigned char id = i % m_oRecvWindow.window_size;
-						m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
-						m_oRecvWindow.seq_size[id] = 0;
-						m_oRecvWindow.seq_time[id] = 0;
-						m_oRecvWindow.seq_retry[id] = 0;
-						m_oRecvWindow.seq_retry_count[id] = 0;
-					}
-
-					m_dwStatus = ST_ESTABLISHED;
-
-					// on connected
-					stream->OnConnected();
-				}
-
-				// close connection
-				if (packet.m_btStatus == ST_FIN_WAIT_1)
-				{
-					if (m_dwStatus == ST_ESTABLISHED)
-						m_dwStatus = ST_FIN_WAIT_2;
-
-					bCloseConnection = true;
-				}
-
-				if (m_dwStatus == ST_ESTABLISHED
-					|| m_dwStatus == ST_SYN_RECV_WAIT
-					|| m_dwStatus == ST_FIN_WAIT_1)
-				{
-					// receive ack, process send buffer.
-					if (m_oSendWindow.IsValidIndex(packet.m_btAck))
-					{
-						// got a valid packet
-						m_dAckRecvTime = dTime;
-						m_dwAckTimeoutRetry = 3;
-
-						// static value for calculate delay
-						static const double err_factor = 0.125;
-						static const double average_factor = 0.25;
-						static const double retry_factor = 2;
-
-						double rtt = m_dDelayTime;
-						double err_time = 0;
-
-						// m_SendWindowControl not more than double m_SendWindowControl 
-						double send_window_control_max = m_dSendWindowControl * 2;
-						if (send_window_control_max > m_oSendWindow.window_size)
-							send_window_control_max = m_oSendWindow.window_size;
-
-						while (m_oSendWindow.m_btBegin != (unsigned char)(packet.m_btAck + 1))
-						{
-							unsigned char id = m_oSendWindow.m_btBegin % m_oSendWindow.window_size;
-							unsigned char buffer_id = m_oSendWindow.seq_buffer_id[id];
-
-							// calculate delay only use no retry packet
-							if (m_oSendWindow.seq_retry_count[id] == 1)
-							{
-								// rtt(packet delay)
-								rtt = dTime - m_oSendWindow.seq_time[id];
-								// err_time(difference between rtt and m_dDelayTime)
-								err_time = rtt - m_dDelayTime;
-								// revise m_dDelayTime with err_time 
-								m_dDelayTime = m_dDelayTime + err_factor * err_time;
-								// revise m_dDelayAverage with err_time
-								m_dDelayAverage = m_dDelayAverage + average_factor * (fabs(err_time) - m_dDelayAverage);
-							}
-
-							// free buffer
-							m_oSendWindow.buffer[buffer_id][0] = m_oSendWindow.free_buffer_id;
-							m_oSendWindow.free_buffer_id = buffer_id;
-							m_oSendWindow.m_btBegin++;
-
-							// get new ack
-							// if m_SendWindowControl more than m_dSendWindowThreshhold in congestion avoidance,
-							// else in slow start
-							// in congestion avoidance m_SendWindowControl increase 1
-							// in slow start m_SendWindowControl increase 1 when get m_SendWindowControl count ack
-							if (m_dSendWindowControl <= m_dSendWindowThreshhold)
-								m_dSendWindowControl += 1;
-							else
-								m_dSendWindowControl += 1 / m_dSendWindowControl;
-
-							if (m_dSendWindowControl > send_window_control_max)
-								m_dSendWindowControl = send_window_control_max;
+							m_dSendWindowControl += 1 / m_dSendWindowControl;
 						}
 
-						// calculate retry with m_dDelayTime and m_dDelayAverage
-						m_dRetryTime = m_dDelayTime + retry_factor * m_dDelayAverage;
-						if (m_dRetryTime < m_dSendFrequency) m_dRetryTime = m_dSendFrequency;
+						if (m_dSendWindowControl > send_window_control_max)
+						{
+							m_dSendWindowControl = send_window_control_max;
+						}
 					}
 
-					// get same ack
-					if (m_btAckLast == m_oSendWindow.m_btBegin - 1)
-						m_dwAckSameCount++;
-					else
-						m_dwAckSameCount = 0;
+					//使用 m_dDelayTime 和 m_dDelayAverage 计算重试的时间
+					m_dRetryTime = m_dDelayTime + retry_factor * m_dDelayAverage;
+					if (m_dRetryTime < m_dSendFrequency) m_dRetryTime = m_dSendFrequency;
+				}
 
-					// packet is valid
-					if (m_oRecvWindow.IsValidIndex(packet.m_btSyn))
+				//收到相同ack(超过3次要开始选择重传)
+				if (m_btAckLast == m_oSendWindow.m_btBegin - 1)
+				{
+					m_dwAckSameCount++;
+				}
+				else
+				{
+					m_dwAckSameCount = 0;
+				}
+
+				//接收到的是一个有效的包
+				if (m_oRecvWindow.IsValidIndex(packet.m_btSyn))
+				{
+					unsigned char btId = packet.m_btSyn % m_oRecvWindow::window_size;
+
+					if (m_oRecvWindow.m_btarrSeqBufferId[btId] >= m_oRecvWindow::window_size)
 					{
-						unsigned char id = packet.m_btSyn % m_oRecvWindow.window_size;
+						m_oRecvWindow.m_btarrSeqBufferId[btId] = btBufferId;
+						m_oRecvWindow.m_warrSeqSize[btId] = wLen;
+						bPacketReceived = true;
 
-						if (m_oRecvWindow.seq_buffer_id[id] >= m_oRecvWindow.window_size)
-						{
-							m_oRecvWindow.seq_buffer_id[id] = btBufferId;
-							m_oRecvWindow.seq_size[id] = n;
-							bPacketReceived = true;
-
-							// no more buffer, try parse first.
-							if (m_oRecvWindow.m_btFreeBufferId >= m_oRecvWindow.window_size)
-								break;
-							else
-								continue;
-						}
+						// 没有更多的接收缓冲 那么先处理接收
+						if (m_oRecvWindow.m_btFreeBufferId >= m_oRecvWindow.window_size) { break; }
+						else { continue; }
 					}
 				}
 
-				// free buffer.
+				// 释放buffer
 				pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 				m_oRecvWindow.m_btFreeBufferId = btBufferId;
 			}
 
-			if (m_oSendWindow.m_btBegin == m_oSendWindow.end)
-				m_dwAckSameCount = 0;
+			if (m_oSendWindow.m_btBegin == m_oSendWindow.m_btEnd) { m_dwAckSameCount = 0; }
 
-			// record ack last
+			// 记录最后一个ack
 			m_btAckLast = m_oSendWindow.m_btBegin - 1;
 
-			// update recv window
+			// 更新接收窗口
 			if (bPacketReceived)
 			{
-				unsigned char last_ack = m_oRecvWindow.begin - 1;
-				unsigned char new_ack = last_ack;
-				bool parse_message = false;
+				unsigned char btLastAck = m_oRecvWindow.m_btBegin - 1;
+				unsigned char btNewAck = btLastAck;
+				bool bParseMessage = false;
 
-				// calculate new ack
-				for (unsigned char i = m_oRecvWindow.begin; i != m_oRecvWindow.end; i++)
+	 			//计算新的ack
+				for (unsigned char i = m_oRecvWindow.m_btBegin; i != m_oRecvWindow.m_btEnd; i++)
 				{
-					// recv buffer is invalid
-					if (m_oRecvWindow.seq_buffer_id[i % m_oRecvWindow.window_size] >= m_oRecvWindow.window_size)
+					// 接收到的buff是否有效
+					if (m_oRecvWindow.m_btarrSeqBufferId[i % m_oRecvWindow::window_size] >= m_oRecvWindow::window_size)
 						break;
 
-					new_ack = i;
+					btNewAck = i;
 				}
 
-				// ack changed
-				if (new_ack != last_ack)
+				// 有新的ack
+				if (btNewAck != btLastAck)
 				{
-					while (m_oRecvWindow.begin != (unsigned char)(new_ack + 1))
+					while (m_oRecvWindow.m_btBegin != (unsigned char)(btNewAck + 1))
 					{
-						const unsigned char head_size = sizeof(PacketHeader);
-						unsigned char id = m_oRecvWindow.begin % m_oRecvWindow.window_size;
-						unsigned char buffer_id = m_oRecvWindow.seq_buffer_id[id];
-						unsigned char* buffer = m_oRecvWindow.buffer[buffer_id] + head_size;
-						ushort size = m_oRecvWindow.seq_size[id] - head_size;
+						const unsigned char cbtHeadSize = sizeof(PacketHeader);
+						unsigned char btId = m_oRecvWindow.m_btBegin % m_oRecvWindow::window_size;
+						unsigned char btBufferId = m_oRecvWindow.m_btarrSeqBufferId[btId];
+						unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
+						ushort wSize = m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
 
-						// copy buffer
-						if (stream->recv_offset + size < stream->recv_buffer_size)
+						if ((*m_pOnRecvOperator)(pBuffer, wSize))
 						{
-							// add data to receive buffer
-							memcpy(stream->recv_buffer + stream->recv_offset, buffer, size);
-							stream->recv_offset += size;
-
-							// free buffer
-							m_oRecvWindow.buffer[buffer_id][0] = m_oRecvWindow.m_btFreeBufferId;
-							m_oRecvWindow.m_btFreeBufferId = buffer_id;
-
-							// remove sequence
-							m_oRecvWindow.seq_size[id] = 0;
-							m_oRecvWindow.seq_buffer_id[id] = m_oRecvWindow.window_size;
-							m_oRecvWindow.begin++;
-							m_oRecvWindow.end++;
-
-							// mark for parse message
-							parse_message = true;
-
-							// send ack when get packet
-							m_bSendAck = true;
+							//TODO
+							break;
 						}
-						else
-						{
-							if (stream->RecvBufferResize(2 * stream->recv_buffer_size) == false)
-								break;
-						}
+
+						// 接收成功 释放缓存
+						m_oRecvWindow.m_btarrBuffer[btBufferId][0] = m_oRecvWindow.m_btFreeBufferId;
+						m_oRecvWindow.m_btFreeBufferId = btBufferId;
+
+						// 从队列移除
+						m_oRecvWindow.m_warrSeqSize[btId] = 0;
+						m_oRecvWindow.m_btarrSeqBufferId[btId] = m_oRecvWindow::window_size;
+						m_oRecvWindow.m_btBegin++;
+						m_oRecvWindow.m_btEnd++;
+
+						// 是否可以解析
+						bParseMessage = true;
+
+						// 需要发送ack
+						m_bSendAck = true;
 					}
 				}
 
-				// record receive syn last
+				// 标记最后一个syn
 				m_btSynLast = m_oRecvWindow.begin - 1;
-
-				// parse message
-				if (parse_message)
-				{
-					try
-					{
-						stream->OnParseMessage();
-					}
-					catch (...)
-					{
-						bCloseConnection = true;
-					}
-				}
 			}
-
-			if (bCloseConnection)
-				OnClose();
 		}
 	private:
 		SendWindow<SEND_BUFF_SIZE, SEND_WINDOW_SIZE> m_oSendWindow;

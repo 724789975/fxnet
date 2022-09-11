@@ -44,7 +44,7 @@ public:
 	 * @param dwSize 接收的长度
 	 * @return int 错误码
 	 */
-	virtual int operator() (char* szBuff, unsigned int dwSize) = 0;
+	virtual int operator() (char* szBuff, unsigned short wSize) = 0;
 };
 
 class RecvOperator
