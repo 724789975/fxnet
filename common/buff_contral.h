@@ -4,6 +4,16 @@
 #include "include/sliding_window_def.h"
 #include "sliding_window.h"
 
+#include <math.h>
+#include <errno.h>
+#ifdef _WIN32
+#include <WinSock2.h>
+#include <Windows.h>
+#include <MSWSock.h>
+#include <Ws2tcpip.h>
+#endif // _WIN32
+
+
 namespace FXNET
 {
 	template <unsigned short SEND_BUFF_SIZE = 512, unsigned short SEND_WINDOW_SIZE = 32
@@ -16,9 +26,9 @@ namespace FXNET
 		enum { recv_buff_size = RECV_BUFF_SIZE };
 		enum { recv_window_size = RECV_WINDOW_SIZE };
 
-		typedef SendWindow<SEND_BUFF_SIZE, SEND_WINDOW_SIZE> SendWindow;
-		typedef SlidingWindow<RECV_BUFF_SIZE, RECV_WINDOW_SIZE> RecvWindow;
-		typedef BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE> BUFF_CONTRAL;
+		typedef SendWindow<send_buff_size, send_window_size> _SendWindow;
+		typedef SlidingWindow<recv_buff_size, recv_window_size> _RecvWindow;
+		typedef BufferContral<send_buff_size, send_window_size, recv_buff_size, recv_window_size> BUFF_CONTRAL;
 
 		BufferContral()
 		{
@@ -59,13 +69,13 @@ namespace FXNET
 		unsigned short Send(const char* pSendBuffer, unsigned short wSize, double dTime)
 		{
 			unsigned short wSendSize = 0;
-			while ((m_oSendWindow.m_btFreeBufferId < m_oSendWindow::window_size) && // there is a free buffer
+			while ((m_oSendWindow.m_btFreeBufferId < _SendWindow::window_size) && // there is a free buffer
 				(wSize > 0))
 			{
 				//长度不会大于拥塞窗口
 				if (m_oSendWindow.m_btEnd - m_oSendWindow.m_btBegin > m_dSendWindowControl) break;
 
-				unsigned char btId = m_oSendWindow.m_btEnd % m_oSendWindow::window_size;
+				unsigned char btId = m_oSendWindow.m_btEnd % _SendWindow::window_size;
 
 				// 获取一个帧
 				unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
@@ -82,7 +92,7 @@ namespace FXNET
 
 				// 复制数据
 				unsigned int dwCopyOffset = sizeof(oPacket);
-				unsigned int dwCopySize = m_oSendWindow::buffer_size - dwCopyOffset;
+				unsigned int dwCopySize = _SendWindow::buff_size - dwCopyOffset;
 				if (dwCopySize > wSize)
 					dwCopySize = wSize;
 
@@ -137,18 +147,18 @@ namespace FXNET
 						if (m_dSendWindowThreshhold < 2) {m_dSendWindowThreshhold = 2;}
 
 						m_dSendWindowControl = m_dSendWindowThreshhold + m_dwAckSameCount - 1;
-						if (m_dSendWindowControl > m_oSendWindow.window_size)
+						if (m_dSendWindowControl > _SendWindow::window_size)
 						{
-							m_dSendWindowControl = m_oSendWindow.window_size;
+							m_dSendWindowControl = _SendWindow::window_size;
 						}
 					}
 					else
 					{
 						//相同ack时 拥塞控制窗口+1
 						m_dSendWindowControl += 1;
-						if (m_dSendWindowControl > m_oSendWindow.window_size)
+						if (m_dSendWindowControl > _SendWindow::window_size)
 						{
-							m_dSendWindowControl = m_oSendWindow.window_size;
+							m_dSendWindowControl = _SendWindow::window_size;
 						}
 					}
 				}
@@ -165,8 +175,8 @@ namespace FXNET
 				//如果超时(超过rto) 那么重新进入慢启动
 				for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 				{
-					unsigned char btId = i % m_oSendWindow::window_size;
-					ushort size = m_oSendWindow.m_warrSeqSize[btId];
+					unsigned char btId = i % _SendWindow::window_size;
+					unsigned short size = m_oSendWindow.m_warrSeqSize[btId];
 
 					if (m_oSendWindow.m_dwarrSeqRetryCount[btId] > 0
 						&& dTime >= m_oSendWindow.m_warrSeqSize[btId])
@@ -242,8 +252,8 @@ namespace FXNET
 					//如果发送长度超过拥塞窗口 就停止
 					if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl) {break;}
 
-					unsigned char btId = i % m_oSendWindow::window_size;
-					ushort wSize = m_oSendWindow.m_warrSeqSize[btId];
+					unsigned char btId = i % _SendWindow::window_size;
+					unsigned short wSize = m_oSendWindow.m_warrSeqSize[btId];
 
 	 				//开始发送 或者 重传
 					if (dTime >= m_oSendWindow.m_darrSeqRetry[btId] || bForceRetry)
@@ -310,7 +320,7 @@ namespace FXNET
 			{
 				m_oSendWindow.m_oSendAckPacket.m_btStatus = m_dwStatus;
 				m_oSendWindow.m_oSendAckPacket.m_btSyn = m_oSendWindow.m_btBegin - 1;
-				m_oSendWindow.m_oSendAckPacket.m_btAck = m_oRecvWindow.begin - 1;
+				m_oSendWindow.m_oSendAckPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
 				m_oSendWindow.m_btpWaitSendBuff = (unsigned char*)(&m_oSendWindow.m_oSendAckPacket);
 				m_oSendWindow.m_dwWaitSendSize = sizeof(m_oSendWindow.m_oSendAckPacket);
@@ -351,7 +361,7 @@ namespace FXNET
 			{
 				// allocate buffer
 				unsigned char btBufferId = m_oRecvWindow.m_btFreeBufferId;
-				unsigned char* pBuffer = m_oRecvWindow.buffer[btBufferId];
+				unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId];
 				m_oRecvWindow.m_btFreeBufferId = pBuffer[0];
 
 				// can't allocate buffer, disconnect.
@@ -362,7 +372,7 @@ namespace FXNET
 				}
 
 				unsigned short wLen = 0;
-				int dwErrorCode = (*m_pRecvOperator)(pBuffer, RecvWindow::buff_size, wLen);
+				int dwErrorCode = (*m_pRecvOperator)(pBuffer, _RecvWindow::buff_size, wLen);
 
 				if (dwErrorCode && (EAGAIN != dwErrorCode))
 				{
@@ -426,14 +436,14 @@ namespace FXNET
 
 					// m_SendWindowControl not more than double m_SendWindowControl 
 					double send_window_control_max = m_dSendWindowControl * 2;
-					if (send_window_control_max > m_oSendWindow::window_size)
+					if (send_window_control_max > _SendWindow::window_size)
 					{
-						send_window_control_max = m_oSendWindow::window_size;
+						send_window_control_max = _SendWindow::window_size;
 					}
 
 					while (m_oSendWindow.m_btBegin != (unsigned char)(packet.m_btAck + 1))
 					{
-						unsigned char id = m_oSendWindow.m_btBegin % m_oSendWindow::window_size;
+						unsigned char id = m_oSendWindow.m_btBegin % _SendWindow::window_size;
 						unsigned char btBufferId = m_oSendWindow.m_btarrSeqBufferId[id];
 
 						//只使用没有重发的包计算延迟
@@ -450,7 +460,7 @@ namespace FXNET
 						}
 
 						// 释放缓存
-						m_oSendWindow.buffer[btBufferId][0] = m_oSendWindow.m_btFreeBufferId;
+						m_oSendWindow.m_btarrBuffer[btBufferId][0] = m_oSendWindow.m_btFreeBufferId;
 						m_oSendWindow.m_btFreeBufferId = btBufferId;
 						m_oSendWindow.m_btBegin++;
 
@@ -492,16 +502,16 @@ namespace FXNET
 				//接收到的是一个有效的包
 				if (m_oRecvWindow.IsValidIndex(packet.m_btSyn))
 				{
-					unsigned char btId = packet.m_btSyn % m_oRecvWindow::window_size;
+					unsigned char btId = packet.m_btSyn % _RecvWindow::window_size;
 
-					if (m_oRecvWindow.m_btarrSeqBufferId[btId] >= m_oRecvWindow::window_size)
+					if (m_oRecvWindow.m_btarrSeqBufferId[btId] >= _RecvWindow::window_size)
 					{
 						m_oRecvWindow.m_btarrSeqBufferId[btId] = btBufferId;
 						m_oRecvWindow.m_warrSeqSize[btId] = wLen;
 						bPacketReceived = true;
 
 						// 没有更多的接收缓冲 那么先处理接收
-						if (m_oRecvWindow.m_btFreeBufferId >= m_oRecvWindow.window_size) { break; }
+						if (m_oRecvWindow.m_btFreeBufferId >= _RecvWindow::window_size) { break; }
 						else { continue; }
 					}
 				}
@@ -527,7 +537,7 @@ namespace FXNET
 				for (unsigned char i = m_oRecvWindow.m_btBegin; i != m_oRecvWindow.m_btEnd; i++)
 				{
 					// 接收到的buff是否有效
-					if (m_oRecvWindow.m_btarrSeqBufferId[i % m_oRecvWindow::window_size] >= m_oRecvWindow::window_size)
+					if (m_oRecvWindow.m_btarrSeqBufferId[i % _RecvWindow::window_size] >= _RecvWindow::window_size)
 						break;
 
 					btNewAck = i;
@@ -539,10 +549,10 @@ namespace FXNET
 					while (m_oRecvWindow.m_btBegin != (unsigned char)(btNewAck + 1))
 					{
 						const unsigned char cbtHeadSize = sizeof(PacketHeader);
-						unsigned char btId = m_oRecvWindow.m_btBegin % m_oRecvWindow::window_size;
+						unsigned char btId = m_oRecvWindow.m_btBegin % _RecvWindow::window_size;
 						unsigned char btBufferId = m_oRecvWindow.m_btarrSeqBufferId[btId];
 						unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
-						ushort wSize = m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
+						unsigned short wSize = m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
 
 						if ((*m_pOnRecvOperator)(pBuffer, wSize))
 						{
@@ -556,7 +566,7 @@ namespace FXNET
 
 						// 从队列移除
 						m_oRecvWindow.m_warrSeqSize[btId] = 0;
-						m_oRecvWindow.m_btarrSeqBufferId[btId] = m_oRecvWindow::window_size;
+						m_oRecvWindow.m_btarrSeqBufferId[btId] = _RecvWindow::window_size;
 						m_oRecvWindow.m_btBegin++;
 						m_oRecvWindow.m_btEnd++;
 
@@ -573,8 +583,8 @@ namespace FXNET
 			}
 		}
 	private:
-		SendWindow<SEND_BUFF_SIZE, SEND_WINDOW_SIZE> m_oSendWindow;
-		SlidingWindow<RECV_BUFF_SIZE, RECV_WINDOW_SIZE> m_oRecvWindow;
+		_SendWindow m_oSendWindow;
+		_RecvWindow m_oRecvWindow;
 
 		OnRecvOperator* m_pOnRecvOperator;
 		RecvOperator* m_pRecvOperator;
