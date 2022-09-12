@@ -1,0 +1,63 @@
+#include "cas_lock.h"
+
+#include <windows.h>
+
+namespace FXNET
+{
+#ifndef _WIN32
+	bool atomic_cas_uint32(unsigned int* p, unsigned int c, unsigned int s)
+	{
+		unsigned char btSuccess;
+
+		__asm volatile (
+		"lock; cmpxchgl %4, %0;"
+			"sete %1;"
+			: "=m" (*p), "=a" (btSuccess) /* Outputs. */
+			: "m" (*p), "a" (c), "r" (s) /* Inputs. */
+			: "memory"
+			);
+
+		return (!(bool)btSuccess);
+	}
+#endif 
+	CCasLock::CCasLock()
+		: m_lLock(0)
+	{ }
+
+	// _WIN32
+	CCasLock& CCasLock::Lock()
+	{
+		for (;;)
+		{
+#ifdef _WIN32
+			volatile long& lLock = reinterpret_cast<volatile long&>(m_lLock);
+			if (0 == InterlockedCompareExchange(&lLock, 1, 0)) break;
+#else // _WIN32
+			if (atomic_cas_uint32(&m_lLock, 1, 0)) break;
+#endif // _WIN32
+		}
+	}
+	CCasLock& CCasLock::Unlock()
+	{
+		for (;;)
+		{
+#ifdef _WIN32
+			volatile long& lLock = reinterpret_cast<volatile long&>(m_lLock);
+			if (1 == InterlockedCompareExchange(&lLock, 0, 1)) break;
+#else // _WIN32
+			if (atomic_cas_uint32(&m_lLock, 0, 1)) break;
+#endif // _WIN32
+		}
+	}
+
+	CLockImp::CLockImp(CCasLock& refLock)
+		: m_refLock(refLock)
+	{
+		m_refLock.Lock();
+	}
+	CLockImp::~CLockImp()
+	{
+		m_refLock.Unlock();
+	}
+}
+

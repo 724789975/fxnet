@@ -6,6 +6,7 @@ namespace FXNET
 	class CSession
 	{
 	public:
+		CSession& Send();
 	private:
 		/* data */
 	};
