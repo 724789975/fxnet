@@ -27,6 +27,9 @@ namespace FXNET
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
 		NativeSocketType& NativeSocket() { return (NativeSocketType&)m_hNativeHandle; }
 
+
+		virtual void OnRead() = 0;
+		virtual void OnWrite() = 0;
 	protected:
 		NativeHandleType m_hNativeHandle;
 	private:

@@ -17,7 +17,7 @@ namespace FXNET
 
 		m_oAddr.sin_port = htons(wPort);
 
-		// 创建socket
+		// 鍒涘缓socket
 		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
 		if (NativeSocket() == -1)
 		{
@@ -65,7 +65,7 @@ namespace FXNET
 		}
 #endif // _WIN32
 
-		// 地址重用
+		// 鍦板潃閲嶇敤
 		int nReuse = 1;
 		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*) & nReuse, sizeof(nReuse)))
 		{
@@ -98,24 +98,65 @@ namespace FXNET
 			return dwError;
 		}
 
-		//TODO 初始化连接池
-		
-		//// allocate accept queue
-		//if (!accept_pool.Initialize(UDP_ACCEPT_MAX_SIZE))
-		//{
-		//	log_write(LOG_ERROR, "not enough memory");
-		//	listen_socket = -1;
-		//	return false;
-		//}
+		m_oAcceptPool.Init();
 
-		//memset(accept_queue, sizeof(accept_queue), 0);
-		//accept_queue_len = 0;
-
-
-
-
+		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
 
 		return dwError;
+	}
+
+	void CUdpListener::OnRead()
+	{
+		//TODO
+	}
+
+	unsigned int CUdpListener::GenerateAcceptHash(const sockaddr_in& addr)
+	{
+		unsigned int h = addr.sin_addr.s_addr ^ addr.sin_port;
+		h ^= h >> 16;
+		h ^= h >> 8;
+		return h & (UDP_ACCEPT_HASH_SIZE - 1);
+	}
+
+	CUdpListener::AcceptReq* CUdpListener::GetAcceptReq(const sockaddr_in& addr)
+	{
+		for (AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)]; pReq != NULL; pReq = pReq->m_pNext)
+		{
+			if (pReq->addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
+				pReq->addr.sin_port == addr.sin_port)
+				return pReq;
+		}
+
+		return NULL;
+	}
+	void CUdpListener::AddAcceptReq(AcceptReq* pReq)
+	{
+		if (pReq && pReq->m_pNext == NULL)
+		{
+			unsigned int h = GenerateAcceptHash(pReq->addr);
+			pReq->m_pNext = m_arroAcceptQueue[h];
+			m_arroAcceptQueue[h] = pReq;
+		}
+	}
+
+	void CUdpListener::RemoveAcceptReq(const sockaddr_in& addr)
+	{
+		AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)];
+		AcceptReq* pPrev = NULL;
+
+		while (pReq != NULL)
+		{
+			if (pReq->addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
+				pReq->addr.sin_port == addr.sin_port)
+			{
+				if (pPrev) pPrev->m_pNext = pReq->m_pNext;
+				m_oAcceptPool.Free(pReq);
+				break;
+			}
+
+			pPrev = pReq;
+			pReq = pReq->m_pNext;
+		}
 	}
 };
 

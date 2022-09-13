@@ -26,6 +26,7 @@ namespace FXNET
 		{
 			T m_oElement;
 			T* m_pNext;
+			int m_dwUseCount;
 		};
 
 		Element[size] m_oElements;
@@ -51,6 +52,7 @@ namespace FXNET
 		for (int i = 0; i < Size; ++i)
 		{
 			m_oElements[i].m_pNext = m_oElements + i;
+			m_oElements[i].m_dwUseCount = 0;
 		}
 		m_oElements[Size - 1] = NULL;
 		m_pFreeNode = m_oElements;
@@ -73,7 +75,14 @@ namespace FXNET
 		m_pFreeNode = m_pFreeNode->m_pNext;
 		pElement->m_pNext = NULL;
 
-		return &pElement->m_pNext;
+#ifdef _DEBUG
+		if (pElement->m_dwUseCount)
+		{
+			throw();
+		}
+		++pElement->m_dwUseCount;
+#endif // DEBUG
+		return &pElement;
 	}
 
 	template<typename T, unsigned int Size>
@@ -81,6 +90,12 @@ namespace FXNET
 	{
 		CLockImp oLockImp(m_oLock);
 		Element* pElement = (Element*)pT;
+#ifdef _DEBUG
+		if (!pElement->m_dwUseCount)
+		{
+			throw();
+		}
+#endif // DEBUG
 		pElement->m_pNext = m_pFreeNode;
 		m_pFreeNode = pElement;
 	}
