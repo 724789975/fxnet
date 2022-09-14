@@ -36,6 +36,7 @@ namespace FXNET
 			if (atomic_cas_uint32(&m_lLock, 1, 0)) break;
 #endif // _WIN32
 		}
+		return *this;
 	}
 	CCasLock& CCasLock::Unlock()
 	{
@@ -48,6 +49,8 @@ namespace FXNET
 			if (atomic_cas_uint32(&m_lLock, 0, 1)) break;
 #endif // _WIN32
 		}
+
+		return *this;
 	}
 
 	CLockImp::CLockImp(CCasLock& refLock)
