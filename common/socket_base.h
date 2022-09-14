@@ -9,6 +9,9 @@
 
 namespace FXNET
 {
+
+	class IOOperationBase;
+
 	class CSocketBase
 	{
 	public:
@@ -27,6 +30,8 @@ namespace FXNET
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
 		NativeSocketType& NativeSocket() { return (NativeSocketType&)m_hNativeHandle; }
 
+		virtual IOOperationBase& NewReadOperation() = 0;
+		virtual IOOperationBase& NewWriteOperation() = 0;
 
 		virtual void OnRead() = 0;
 		virtual void OnWrite() = 0;
@@ -35,6 +40,16 @@ namespace FXNET
 	private:
 	};
 
+	class IOOperationBase
+#ifdef _WIN32
+		: public OVERLAPPED
+#endif // _WIN32
+	{
+	public:
+		virtual IOOperationBase& operator()(CSocketBase& refSocketBase) = 0;
+	protected:
+	private:
+	};
 };
 
 #endif // !__SOCKET_BASE_H__

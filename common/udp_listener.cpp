@@ -98,9 +98,18 @@ namespace FXNET
 			return dwError;
 		}
 
+#ifndef _WIN32
 		m_oAcceptPool.Init();
 
 		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
+#endif // _WIN32
+
+		//todo注册事件
+
+
+#ifdef _WIN32
+		dwError = PostAccept(refOStream);
+#endif // _WIN32
 
 		return dwError;
 	}
@@ -110,6 +119,35 @@ namespace FXNET
 		//TODO
 	}
 
+#ifdef _WIN32
+	int CUdpListener::PostAccept(std::ostream& refOStream)
+	{
+		IOOperation oPeration;
+		memset(&oPeration, 0, sizeof(OVERLAPPED));
+
+		oPeration.m_stWsaBuff.buf = oPeration.m_szRecvBuff;
+		oPeration.m_stWsaBuff.len = sizeof(oPeration.m_szRecvBuff);
+		memset(oPeration.m_stWsaBuff.buf, 0, oPeration.m_stWsaBuff.len);
+
+		DWORD dwReadLen = 0;
+		DWORD dwFlags = 0;
+
+		int dwSockAddr = sizeof(oPeration.m_stRemoteAddr);
+
+		if (WSARecvFrom(NativeSocket(), &oPeration.m_stWsaBuff, 1, &dwReadLen, &dwFlags,
+			(sockaddr*)(&oPeration.m_stRemoteAddr), &dwSockAddr, &oPeration, NULL) == SOCKET_ERROR)
+		{
+			int dwError = WSAGetLastError();
+			if (dwError != WSA_IO_PENDING)
+			{
+				refOStream << "WSARecvFrom errno : " << dwError << ", handle : " << NativeSocket()
+					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				return dwError;
+			}
+		}
+		return 0;
+	}
+#else
 	unsigned int CUdpListener::GenerateAcceptHash(const sockaddr_in& addr)
 	{
 		unsigned int h = addr.sin_addr.s_addr ^ addr.sin_port;
@@ -158,6 +196,14 @@ namespace FXNET
 			pReq = pReq->m_pNext;
 		}
 	}
+#endif // _WIN32
+
+	IOOperationBase& CUdpListener::IOOperation::operator()(CSocketBase& refSocketBase)
+	{
+		refSocketBase.OnRead();
+		return *this;
+	}
+
 };
 
 
