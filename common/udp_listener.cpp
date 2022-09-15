@@ -114,28 +114,122 @@ namespace FXNET
 		return dwError;
 	}
 
-	void CUdpListener::OnRead()
+	CUdpListener::IOReadOperation& CUdpListener::NewReadOperation()
 	{
-		//TODO
+		IOReadOperation& refPeration = *(new IOReadOperation());
+#ifdef _WIN32
+
+		memset(&refPeration, 0, sizeof(OVERLAPPED));
+
+		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
+		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
+		memset(refPeration.m_stWsaBuff.buf, 0, refPeration.m_stWsaBuff.len);
+#endif // _WIN32
+		return refPeration;
+	}
+
+	void CUdpListener::OnRead(std::ostream& refOStream)
+	{
+
+#ifdef _WIN32
+#else
+		for (;;)
+		{
+			PacketHeader header;
+			sockaddr_in address;
+			socklen_t addr_len = sizeof(sockaddr);
+
+			// receive message
+			int size = recvfrom(NativeSocket(), (char*)& header, sizeof(header), 0, (sockaddr*)&address, &addr_len);
+
+			if (size == sizeof(header))
+			{
+				AcceptReq* req = GetAcceptReq(address);
+
+				if (req != NULL)
+					continue;
+
+				if (header.m_btSyn != 1 || header.m_btAck != 0)
+					continue;
+
+				req = m_oAcceptPool.Allocate();
+
+				if (req == NULL)
+				{
+					refOStream << NativeSocket() << " can't allocate more udp accept request.\n";
+					break;
+				}
+
+				req->m_pNext = NULL;
+				req->addr = address;
+
+				req->m_oAcceptSocket = socket(AF_INET, SOCK_DGRAM, 0);
+				if (req->m_oAcceptSocket == -1)
+				{
+					refOStream << NativeSocket() << " create socket failed.\n";
+					m_oAcceptPool.Free(req);
+					continue;
+				}
+
+				// cloexec
+				fcntl(req->m_oAcceptSocket, F_SETFD, FD_CLOEXEC);
+
+				// set reuseaddr
+				int yes = 1;
+				if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)& yes, sizeof(yes)))
+				{
+					refOStream << NativeSocket() << ", errno(" << errno << ")\n";
+					close(req->m_oAcceptSocket);
+					m_oAcceptPool.Free(req);
+					continue;
+				}
+
+				// bind
+				if (bind(req->m_oAcceptSocket, (sockaddr*)&m_oAddr, sizeof(m_oAddr)))
+				{
+					refOStream << NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
+						<< inet_ntoa(m_oAddr.sin_addr) << ":" << (int)ntohs(addr.sin_port);
+					close(req->m_oAcceptSocket);
+					m_oAcceptPool.Free(req);
+					continue;
+				}
+
+				// add accept req
+				AddAcceptReq(req);
+
+				// send back
+				//TODO
+				//OnClientConnected(req->accept_socket, address);
+			}
+			else if (size < 0)
+			{
+				if (errno == EINTR) { continue; }
+
+				if (errno != EAGAIN && errno != EWOULDBLOCK)
+				{
+					refOStream << NativeSocket() << "error accept(" << errno << ").";
+				}
+
+				break;
+			}
+		}
+	
+#endif // _WIN32
+
 	}
 
 #ifdef _WIN32
 	int CUdpListener::PostAccept(std::ostream& refOStream)
 	{
-		IOOperation oPeration;
-		memset(&oPeration, 0, sizeof(OVERLAPPED));
-
-		oPeration.m_stWsaBuff.buf = oPeration.m_szRecvBuff;
-		oPeration.m_stWsaBuff.len = sizeof(oPeration.m_szRecvBuff);
-		memset(oPeration.m_stWsaBuff.buf, 0, oPeration.m_stWsaBuff.len);
+		IOReadOperation& refPeration = NewReadOperation();
 
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;
 
-		int dwSockAddr = sizeof(oPeration.m_stRemoteAddr);
+		int dwSockAddr = sizeof(refPeration.m_stRemoteAddr);
 
-		if (WSARecvFrom(NativeSocket(), &oPeration.m_stWsaBuff, 1, &dwReadLen, &dwFlags,
-			(sockaddr*)(&oPeration.m_stRemoteAddr), &dwSockAddr, &oPeration, NULL) == SOCKET_ERROR)
+		if (WSARecvFrom(NativeSocket(), &refPeration.m_stWsaBuff, 1, &dwReadLen, &dwFlags,
+			(sockaddr*)(&refPeration.m_stRemoteAddr), &dwSockAddr, &refPeration, NULL) == SOCKET_ERROR)
 		{
 			int dwError = WSAGetLastError();
 			if (dwError != WSA_IO_PENDING)
@@ -198,9 +292,9 @@ namespace FXNET
 	}
 #endif // _WIN32
 
-	IOOperationBase& CUdpListener::IOOperation::operator()(CSocketBase& refSocketBase)
+	IOOperationBase& CUdpListener::IOReadOperation::operator()(CSocketBase& refSocketBase, std::ostream& refOStream)
 	{
-		refSocketBase.OnRead();
+		refSocketBase.OnRead(refOStream);
 		return *this;
 	}
 

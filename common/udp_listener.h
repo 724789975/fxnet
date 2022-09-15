@@ -21,39 +21,41 @@ namespace FXNET
 	class CUdpListener : public CUdpSocket
 	{
 	public:
+		class IOReadOperation : public IOOperationBase
+		{
+		public:
+			friend class CUdpListener;
+			virtual IOOperationBase& operator()(CSocketBase& refSocketBase, std::ostream& refOStream);
+		private:
+#ifdef _WIN32
+			WSABUF m_stWsaBuff;
+			char m_szRecvBuff[UDP_RECV_WINDOW_BUFF_SIZE];
+			sockaddr_in m_stRemoteAddr;
+#endif // _WIN32
+
+		};
+
 		virtual const char* Name()const { return "CUdpListener"; }
 		virtual CSocketBase& Update(double dTime);
 
 		int Listen(const char* szIp, unsigned short wPort, std::ostream& refOStream);
 
-		virtual void OnRead();
-		virtual void OnWrite();
+		virtual IOReadOperation& NewReadOperation();
+		virtual IOOperationBase& NewWriteOperation();
+
+		virtual void OnRead(std::ostream& refOStream);
+		virtual void OnWrite(std::ostream& refOStream);
 	protected:
 	private:
 		static const unsigned int UDP_ACCEPT_HASH_SIZE = 64;
 		static const unsigned int UDP_ACCEPT_MAX_SIZE = 2048;
 
 
-		class IOOperation : public IOOperationBase
-		{
-		public:
-			friend class CUdpListener;
-			virtual IOOperationBase& operator()(CSocketBase& refSocketBase);
-		private:
-#ifdef _WIN32
-			WSABUF m_stWsaBuff;
-			sockaddr_in m_stRemoteAddr;
-			NativeSocketType m_oAcceptSocket;
-
-			char m_szRecvBuff[UDP_RECV_WINDOW_BUFF_SIZE];
-#endif // _WIN32
-
-		};
 
 #ifdef _WIN32
-		CUdpListener& PostAccept(std::ostream& refOStream);
+		int PostAccept(std::ostream& refOStream);
 #else
-		class AcceptReq
+		struct AcceptReq
 		{
 			AcceptReq* m_pNext;
 			sockaddr_in addr;

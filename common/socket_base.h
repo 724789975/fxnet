@@ -7,6 +7,8 @@
 #include <Ws2tcpip.h>
 #endif // _WIN32
 
+#include <ostream>
+
 namespace FXNET
 {
 
@@ -33,8 +35,8 @@ namespace FXNET
 		virtual IOOperationBase& NewReadOperation() = 0;
 		virtual IOOperationBase& NewWriteOperation() = 0;
 
-		virtual void OnRead() = 0;
-		virtual void OnWrite() = 0;
+		virtual void OnRead(std::ostream& refOStream) = 0;
+		virtual void OnWrite(std::ostream& refOStream) = 0;
 	protected:
 		NativeHandleType m_hNativeHandle;
 	private:
@@ -46,7 +48,9 @@ namespace FXNET
 #endif // _WIN32
 	{
 	public:
-		virtual IOOperationBase& operator()(CSocketBase& refSocketBase) = 0;
+		virtual ~IOOperationBase() {}
+		virtual IOOperationBase& operator()(CSocketBase& refSocketBase, std::ostream& refOStream) = 0;
+
 	protected:
 	private:
 	};
