@@ -30,7 +30,7 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpListener;
-			virtual IOOperationBase& operator()(CSocketBase& refSocketBase, std::ostream& refOStream);
+			virtual void operator()(CSocketBase& refSocketBase, std::ostream& refOStream);
 		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
@@ -41,7 +41,7 @@ namespace FXNET
 		};
 
 		virtual const char* Name()const { return "CUdpListener"; }
-		virtual CSocketBase& Update(double dTime);
+		virtual CSocketBase& Update(double dTimedouble, std::ostream& refOStream);
 
 		int Listen(const char* szIp, unsigned short wPort, std::ostream& refOStream);
 

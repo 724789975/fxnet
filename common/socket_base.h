@@ -30,7 +30,7 @@ namespace FXNET
 #endif //_WIN32
 
 		virtual const char* Name()const { return "CSocketBase"; }
-		virtual CSocketBase& Update(double dTime) = 0;
+		virtual CSocketBase& Update(double dTime, std::ostream& refOStream) = 0;
 
 		static NativeHandleType InvalidNativeHandle() { return (NativeHandleType)-1; };
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
@@ -53,7 +53,7 @@ namespace FXNET
 	{
 	public:
 		virtual ~IOOperationBase() {}
-		virtual IOOperationBase& operator()(CSocketBase& refSocketBase, std::ostream& refOStream) = 0;
+		virtual void operator()(CSocketBase& refSocketBase, std::ostream& refOStream) = 0;
 
 	protected:
 	private:

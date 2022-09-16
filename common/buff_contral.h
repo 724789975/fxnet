@@ -632,7 +632,7 @@ namespace FXNET
 					unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
 					unsigned short wSize = m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
 
-					// if ((*m_pOnRecvOperator)(pBuffer, wSize))
+					if ((*m_pOnRecvOperator)((char*)pBuffer, wSize))
 					{
 						//TODO
 						break;
