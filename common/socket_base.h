@@ -9,6 +9,10 @@
 
 #include <ostream>
 
+#ifdef _WIN32
+#pragma comment(lib,"ws2_32.lib")
+#endif //_WIN32
+
 namespace FXNET
 {
 

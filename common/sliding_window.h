@@ -119,13 +119,13 @@ namespace FXNET
 		 */
 		SendWindow& Add2SendWindow(unsigned char btId, unsigned char btBuffId, unsigned short wPacketSize, double dTime, double dRetryTime)
 		{
-			SlidingWindow::m_btarrSeqBufferId[btId] = btBuffId;
-			SlidingWindow::m_warrSeqSize[btId] = wPacketSize;
-			SlidingWindow::m_darrSeqTime[btId] = dTime;
-			SlidingWindow::m_darrSeqRetry[btId] = dTime;
-			SlidingWindow::m_darrSeqRetryTime[btId] = dRetryTime;
-			SlidingWindow::m_dwarrSeqRetryCount[btId] = 0;
-			SlidingWindow::m_btEnd++;
+			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btarrSeqBufferId[btId] = btBuffId;
+			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_warrSeqSize[btId] = wPacketSize;
+			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqTime[btId] = dTime;
+			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetry[btId] = dTime;
+			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetryTime[btId] = dRetryTime;
+			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_dwarrSeqRetryCount[btId] = 0;
+			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btEnd++;
 
 			return *this;
 		}

@@ -1,11 +1,13 @@
 #include "cas_lock.h"
 
+#ifdef _WIN32
 #include <windows.h>
+#endif	//_WIN32
 
 namespace FXNET
 {
 #ifndef _WIN32
-	bool atomic_cas_uint32(unsigned int* p, unsigned int c, unsigned int s)
+	static bool atomic_cas_uint32(unsigned int* p, unsigned int c, unsigned int s)
 	{
 		unsigned char btSuccess;
 
@@ -19,7 +21,8 @@ namespace FXNET
 
 		return (!(bool)btSuccess);
 	}
-#endif 
+#endif //_WIN32
+
 	CCasLock::CCasLock()
 		: m_lLock(0)
 	{ }

@@ -6,6 +6,7 @@
 
 #include <math.h>
 #include <errno.h>
+#include <string.h>
 #ifdef _WIN32
 #include <WinSock2.h>
 #include <Windows.h>
@@ -171,7 +172,7 @@ namespace FXNET
 
 			if (dwCopySize > 0)
 			{
-				memcpy(pBuffer + dwCopyOffset, pSendBuffer, dwCopySize);
+				memcpy((void*)(pBuffer + dwCopyOffset), pSendBuffer, dwCopySize);
 
 				wSize -= dwCopySize;
 				wSendSize += dwCopySize;
@@ -405,8 +406,7 @@ namespace FXNET
 			if (dwErrorCode)
 			{
 				//TODO 发送出错 断开连接
-
-				break;
+				return dwErrorCode;
 			}
 			else
 			{
@@ -632,7 +632,7 @@ namespace FXNET
 					unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
 					unsigned short wSize = m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
 
-					if ((*m_pOnRecvOperator)(pBuffer, wSize))
+					// if ((*m_pOnRecvOperator)(pBuffer, wSize))
 					{
 						//TODO
 						break;

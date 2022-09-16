@@ -1,8 +1,6 @@
 #ifndef __CAS_QUEUE_H__
 #define __CAS_QUEUE_H__
 
-#pragma comment(lib,"ws2_32.lib")
-
 #include "cas_lock.h"
 
 namespace FXNET
@@ -75,7 +73,7 @@ namespace FXNET
 			return NULL;
 		}
 
-		Element* pElement = &m_pFreeNode->m_oElement;
+		Element* pElement = m_pFreeNode;
 		m_pFreeNode = m_pFreeNode->m_pNext;
 		pElement->m_pNext = NULL;
 
@@ -86,7 +84,7 @@ namespace FXNET
 		}
 		++pElement->m_dwUseCount;
 #endif // DEBUG
-		return &pElement;
+		return &pElement->m_oElement;
 	}
 
 	template<typename T, unsigned int Size>
@@ -99,6 +97,7 @@ namespace FXNET
 		{
 			throw;
 		}
+		--pElement->m_dwUseCount;
 #endif // DEBUG
 		pElement->m_pNext = m_pFreeNode;
 		m_pFreeNode = pElement;

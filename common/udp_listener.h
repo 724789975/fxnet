@@ -7,6 +7,11 @@
 
 #include <sstream>
 
+#ifndef _WIN32
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#endif //_WIN32
+
 
 namespace FXNET
 {

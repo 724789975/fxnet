@@ -2,7 +2,12 @@
 
 #ifdef _WIN32
 #include <WinSock2.h>
+#define macro_closesocket closesocket
 #else
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#define macro_closesocket close
 #endif // _WIN32
 
 namespace FXNET
@@ -39,7 +44,7 @@ namespace FXNET
 		if (fcntl(NativeSocket(), F_SETFL, fcntl(NativeSocket(), F_GETFL) | O_NONBLOCK))
 #endif // _WIN32
 		{
-			closesocket(NativeSocket());
+			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			dwError = WSAGetLastError();
@@ -55,7 +60,7 @@ namespace FXNET
 #ifndef _WIN32
 		if (fcntl(NativeSocket(), F_SETFD, FD_CLOEXEC))
 		{
-			closesocket(NativeSocket());
+			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			dwError = errno;
 
@@ -69,7 +74,7 @@ namespace FXNET
 		int nReuse = 1;
 		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*) & nReuse, sizeof(nReuse)))
 		{
-			closesocket(NativeSocket());
+			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			dwError = WSAGetLastError();
@@ -85,7 +90,7 @@ namespace FXNET
 		// bind
 		if (bind(NativeSocket(), (sockaddr*)&m_oAddr, sizeof(m_oAddr)))
 		{
-			closesocket(NativeSocket());
+			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			dwError = WSAGetLastError();
@@ -179,7 +184,7 @@ namespace FXNET
 				if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)& yes, sizeof(yes)))
 				{
 					refOStream << NativeSocket() << ", errno(" << errno << ")\n";
-					close(req->m_oAcceptSocket);
+					macro_closesocket(req->m_oAcceptSocket);
 					m_oAcceptPool.Free(req);
 					continue;
 				}
@@ -188,8 +193,8 @@ namespace FXNET
 				if (bind(req->m_oAcceptSocket, (sockaddr*)&m_oAddr, sizeof(m_oAddr)))
 				{
 					refOStream << NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
-						<< inet_ntoa(m_oAddr.sin_addr) << ":" << (int)ntohs(addr.sin_port);
-					close(req->m_oAcceptSocket);
+						<< inet_ntoa(m_oAddr.sin_addr) << ":" << (int)ntohs(m_oAddr.sin_port);
+					macro_closesocket(req->m_oAcceptSocket);
 					m_oAcceptPool.Free(req);
 					continue;
 				}
@@ -213,6 +218,18 @@ namespace FXNET
 				break;
 			}
 		}
+
+			// temp remove accept req at here
+			AcceptReq *pReq;
+			for (int i = 0; i < UDP_ACCEPT_HASH_SIZE; i++)
+			{
+				while ((pReq = m_arroAcceptQueue[i]) != NULL)
+				{
+					m_arroAcceptQueue[i] = pReq->m_pNext;
+
+					m_oAcceptPool.Free(pReq);
+				}
+			}
 	
 #endif // _WIN32
 
