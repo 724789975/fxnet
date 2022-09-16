@@ -319,21 +319,6 @@ namespace FXNET
 			(*(IOOperationBase*)(pstPerIoData))(*poSock, refOStream);
 		}
 #else
-		while (true)
-		{
-			IFxSocket** ppSock = m_oDelayCloseSockQueue.PopFront();
-			if (ppSock == NULL)
-			{
-				break;
-			}
-
-			IFxSocket* poSock = *ppSock;
-			if (poSock == NULL)
-			{
-				break;
-			}
-			poSock->Close();
-		}
 
 		int nCount = WaitEvents(dwTimeOut);
 		if (nCount < 0)
@@ -349,15 +334,18 @@ namespace FXNET
 				return false;
 			}
 
-			IFxSocket* poSock = (IFxSocket*)pEvent->data.ptr;
+			CSocketBase* poSock = (CSocketBase*)pEvent->data.ptr;
 			if (NULL == poSock)
 			{
 				return false;
 			}
+			if ()
+			{
+			}
 
-			poSock->OnParserIoEvent(pEvent->events);
 		}
 #endif // _WIN32
+
 		return true;
 	}
 
