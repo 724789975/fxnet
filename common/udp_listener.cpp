@@ -119,14 +119,16 @@ namespace FXNET
 			return dwError;
 		}
 
-#ifndef _WIN32
+#ifdef _WIN32
+		FxIoThread::Instance()->AddEvent(NativeSocket(), this, pOStream);
+#else
 		m_oAcceptPool.Init();
-
 		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
+
+		FxIoThread::Instance()->AddEvent(NativeSocket(), EPOLLIN, this, pOStream);
 #endif // _WIN32
 
 		//注册事件
-		FxIoThread::Instance()->AddEvent(NativeSocket(), this, pOStream);
 
 #ifdef _WIN32
 		dwError = PostAccept(pOStream);

@@ -7,6 +7,7 @@
 #include <process.h>
 #else
 #include <unistd.h>
+#include <sys/time.h>
 #endif
 
 #include <iostream>
@@ -21,7 +22,7 @@ namespace FXNET
 #ifdef _WIN32
 		, m_hCompletionPort(INVALID_HANDLE_VALUE)
 #else
-		, m_hEpoll(INVALID_SOCKET)
+		, m_hEpoll(-1)
 		, m_pEvents(NULL)
 #endif // _WIN32
 		, m_dLoatUpdateTime(0.)
@@ -32,10 +33,10 @@ namespace FXNET
 	{
 #ifdef _WIN32
 #else
-		if (m_hEpoll != (int)INVALID_SOCKET)
+		if (m_hEpoll != (int)ISocketBase::InvalidNativeHandle())
 		{
 			close(m_hEpoll);
-			m_hEpoll = INVALID_SOCKET;
+			m_hEpoll = (int)ISocketBase::InvalidNativeHandle();
 		}
 
 		if (m_pEvents != NULL)
@@ -77,7 +78,7 @@ namespace FXNET
 #endif // _WIN32
 		if (!Start())
 		{
-			*pOStream << "start error "<< WSAGetLastError()
+			*pOStream << "start error "
 				<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			return false;
 		}
@@ -93,10 +94,10 @@ namespace FXNET
 		}
 #ifdef _WIN32
 #else
-		if (m_hEpoll != (int)INVALID_SOCKET)
+		if (m_hEpoll != (int)ISocketBase::InvalidNativeHandle())
 		{
 			close(m_hEpoll);
-			m_hEpoll = INVALID_SOCKET;
+			m_hEpoll = (int)ISocketBase::InvalidNativeHandle();
 		}
 
 		if (m_pEvents != NULL)
@@ -405,12 +406,12 @@ namespace FXNET
 
 			if (pEvent->events & (EPOLLERR | EPOLLHUP))
 			{
-				poSock->NewErrorOperation(errno)(poSock, 0, pOStream);
+				poSock->NewErrorOperation(errno)(*poSock, 0, pOStream);
 			}
 			else
 			{
-				if (pEvent->events & EPOLLOUT) { poSock->NewReadOperation()(poSock, 0, pOStream); }
-				if (pEvent->events & EPOLLIN) { poSock->NewWriteOperation()(poSock, 0, pOStream); }
+				if (pEvent->events & EPOLLOUT) { poSock->NewReadOperation()(*poSock, 0, pOStream); }
+				if (pEvent->events & EPOLLIN) { poSock->NewWriteOperation()(*poSock, 0, pOStream); }
 			}
 		}
 #endif // _WIN32
@@ -453,7 +454,7 @@ namespace FXNET
 
 	int FxIoThread::WaitEvents(int nMilliSecond)
 	{
-		if ((int)INVALID_SOCKET == m_hEpoll)
+		if ((int)ISocketBase::InvalidNativeHandle() == m_hEpoll)
 		{
 			return 0;
 		}

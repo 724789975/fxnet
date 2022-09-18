@@ -44,11 +44,11 @@ $(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o)
 
 %.o: %.cpp
 	@echo Compile...$@
-	$(CPP) $(CXX_FLAGS) -fpic -ldl -std=c++11 $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d) 
+	$(CPP) $(CXX_FLAGS) -fpic -ldl $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d) 
 
 %.o: %.cc
 	@echo Compile...$@
-	$(CC) $(C_FLAGS) -fpic -ldl -std=c++11 $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d)
+	$(CC) $(C_FLAGS) -fpic -ldl $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d)
 	
 -include $(OBJS:.cpp=.d)
 -include $(COBJS:.cc=.d)
