@@ -2,7 +2,7 @@
 
 namespace FXNET
 {
-	CSocketBase& CUdpSocket::Update(double dTime)
+	ISocketBase& CUdpSocket::Update(double dTime)
 	{
 		// TODO: 在此处插入 return 语句
 

@@ -2,7 +2,7 @@
 #define __IOThread_H__
 
 #include "thread.h"
-
+#include "singleton.h"
 #include "socket_base.h"
 
 #include <vector>
@@ -14,7 +14,11 @@
 
 namespace FXNET
 {
-	class FxIoThread : public IFxThread
+	/**
+	 * @brief 
+	 * io线程 只用一个就够了 10000个连接问题不大
+	 */
+	class FxIoThread : public IFxThread, public TSingleton<FxIoThread>
 	{
 	public:
 		FxIoThread();
@@ -27,22 +31,18 @@ namespace FXNET
 
 		bool					Start();
 
-		bool					Init(unsigned int dwMaxSock);
+		bool					Init(std::ostream* pOStream);
 		void					Uninit();
 
 		unsigned int			GetThreadId();
-		FILE*& GetFile();
-
-		void					AddConnectSocket(IFxConnectSocket* pSock);
-		void					DelConnectSocket(IFxConnectSocket* pSock);
 
 #ifdef _WIN32
-		bool					AddEvent(int hSock, IFxSocket* poSock);
+		bool					AddEvent(ISocketBase::NativeSocketType hSock, ISocketBase* poSock, std::ostream* pOStream);
 #else
-		bool					AddEvent(int hSock, unsigned int dwEvents, IFxSocket* poSock);
-		bool					ChangeEvent(int hSock, unsigned int dwEvents, IFxSocket* poSock);
-		bool					DelEvent(int hSock);
+		bool					AddEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
+		bool					ChangeEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
 #endif // _WIN32
+		bool					DelEvent(ISocketBase::NativeSocketType hSock, std::ostream* pOStream);
 
 		// win下为完成端口 linux下为epoll
 #ifdef _WIN32
@@ -50,18 +50,15 @@ namespace FXNET
 #else
 		int						GetHandle();
 		int						WaitEvents(int nMilliSecond);
-		epoll_event* GetEvent(int nIndex);
-		void					PushDelayCloseSock(IFxSocket* poSock);
+		epoll_event*			GetEvent(int nIndex);
 #endif // _WIN32
 
 	private:
-		void					 __DealSock();
-		bool __DealData(std::ostream& refOStream);
+		void					__DealSock();
+		bool					__DealData(std::ostream* pOStream);
 
 	protected:
-		IFxThreadHandler* m_poThrdHandler;
-
-		unsigned int					m_dwMaxSock;
+		IFxThreadHandler*		m_poThrdHandler;
 		bool					m_bStop;
 
 #ifdef _WIN32
@@ -69,14 +66,11 @@ namespace FXNET
 #else
 		int						m_hEpoll;
 		epoll_event* m_pEvents;
-		TEventQueue<IFxSocket*>	m_oDelayCloseSockQueue;
+		//TEventQueue<ISocketBase*>	m_oDelayCloseSockQueue;
 #endif // _WIN32
 
-		FILE* m_pFile;
-		char					m_szLogPath[64];
-
-		//存放udp的连接指针 目前只在udp中用到 每0.01秒发送一次
-		std::set<CSocketBase*>	m_setConnectSockets;
+		//存放连接指针 每0.05秒更新一次
+		std::set<ISocketBase*>	m_setConnectSockets;
 		//最后一次更新的时间
 		double					m_dLoatUpdateTime;
 	};

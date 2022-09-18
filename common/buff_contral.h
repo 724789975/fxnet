@@ -159,7 +159,7 @@ namespace FXNET
 			unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
 			// 处理数据头
-			PacketHeader& oPacket = *(PacketHeader*)pBuffer;
+			UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
 			oPacket.m_btStatus = m_dwStatus;
 			oPacket.m_btSyn = m_oSendWindow.m_btEnd;
 			oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
@@ -286,7 +286,7 @@ namespace FXNET
 					unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
 					// packet header
-					PacketHeader& oPacket = *(PacketHeader*)pBuffer;
+					UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
 					oPacket.m_btStatus = m_dwStatus;
 					oPacket.m_btSyn = m_oSendWindow.end;
 					oPacket.m_btAck = m_oRecvWindow.begin - 1;
@@ -339,7 +339,7 @@ namespace FXNET
 					unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[btId]];
 
 					// packet header
-					PacketHeader& packet = *(PacketHeader*)pBuffer;
+					UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
 					packet.m_btStatus = m_dwStatus;
 					packet.m_btSyn = i;
 					packet.m_btAck = m_oRecvWindow.m_btBegin - 1;
@@ -483,7 +483,7 @@ namespace FXNET
 				return 0;
 			}
 
-			if (wLen < (unsigned short)sizeof(PacketHeader))
+			if (wLen < (unsigned short)sizeof(UDPPacketHeader))
 			{
 				bRecvAble = false;
 				pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
@@ -495,7 +495,7 @@ namespace FXNET
 			m_dwNumBytesReceived += wLen + 28;
 
 			// packet header
-			PacketHeader& packet = *(PacketHeader*)pBuffer;
+			UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
 
 			//收到一个有效的ack 那么要更新发送窗口的状态
 			if (m_oSendWindow.IsValidIndex(packet.m_btAck))
@@ -626,7 +626,7 @@ namespace FXNET
 			{
 				while (m_oRecvWindow.m_btBegin != (unsigned char)(btNewAck + 1))
 				{
-					const unsigned char cbtHeadSize = sizeof(PacketHeader);
+					const unsigned char cbtHeadSize = sizeof(UDPPacketHeader);
 					unsigned char btId = m_oRecvWindow.m_btBegin % _RecvWindow::window_size;
 					unsigned char btBufferId = m_oRecvWindow.m_btarrSeqBufferId[btId];
 					unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;

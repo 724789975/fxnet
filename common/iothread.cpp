@@ -13,20 +13,19 @@
 
 namespace FXNET
 {
+#define MAX_EVENT_NUM 256
 
 	FxIoThread::FxIoThread()
-	{
-		m_poThrdHandler = NULL;
-		m_pFile = NULL;
+		: m_poThrdHandler(NULL)
+		, m_bStop(false)
 #ifdef _WIN32
+		, m_hCompletionPort(INVALID_HANDLE_VALUE)
 #else
-		m_pEvents = NULL;
-		m_hEpoll = INVALID_SOCKET;
+		, m_hEpoll(INVALID_SOCKET)
+		, m_pEvents(NULL)
 #endif // _WIN32
-		m_dwMaxSock = 0;
-		m_bStop = false;
-
-		m_dLoatUpdateTime = 0;
+		, m_dLoatUpdateTime(0.)
+	{
 	}
 
 	FxIoThread::~FxIoThread()
@@ -47,7 +46,7 @@ namespace FXNET
 #endif // _WIN32
 	}
 
-	bool FxIoThread::Init(unsigned int dwMaxSock)
+	bool FxIoThread::Init(std::ostream* pOStream)
 	{
 #ifdef _WIN32
 		// 初始化的时候 先获取下 创建完成端口 //
@@ -55,25 +54,31 @@ namespace FXNET
 
 		if (m_hCompletionPort == NULL)
 		{
+			if (pOStream)
+			{
+				*pOStream << "CreateIoCompletionPort error "<< WSAGetLastError()
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 #else
-		m_dwMaxSock = dwMaxSock;
-		m_pEvents = new epoll_event[dwMaxSock];
+		m_pEvents = new epoll_event[MAX_EVENT_NUM];
 		if (NULL == m_pEvents)
 		{
 			return false;
 		}
 
-		m_hEpoll = epoll_create(dwMaxSock);
+		m_hEpoll = epoll_create(MAX_EVENT_NUM);
 		if (m_hEpoll < 0)
 		{
 			return false;
 		}
-		m_oDelayCloseSockQueue.Init(2 * dwMaxSock);
+		//m_oDelayCloseSockQueue.Init(2 * dwMaxSock);
 #endif // _WIN32
 		if (!Start())
 		{
+			*pOStream << "start error "<< WSAGetLastError()
+				<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			return false;
 		}
 
@@ -102,8 +107,6 @@ namespace FXNET
 #endif // _WIN32
 	}
 
-
-
 	unsigned int FxIoThread::GetThreadId()
 	{
 		if (m_poThrdHandler)
@@ -113,79 +116,67 @@ namespace FXNET
 		return 0;
 	}
 
-
-	FILE*& FxIoThread::GetFile()
-	{
-		unsigned int dwTime = GetTimeHandler()->GetSecond() - GetTimeHandler()->GetSecond() % 3600;
-		sprintf(m_szLogPath, "./%s_%d_%d_%p_log.txt", GetExeName(), dwTime, GetPid(), this);
-		if (Access(m_szLogPath, 0) == -1)
-		{
-			if (m_pFile)
-			{
-				fclose(m_pFile);
-				m_pFile = NULL;
-			}
-			m_pFile = fopen(m_szLogPath, "a+");
-			setvbuf(m_pFile, (char*)NULL, _IOLBF, 1024);
-		}
-		if (m_pFile == NULL)
-		{
-			m_pFile = fopen(m_szLogPath, "a+");
-			setvbuf(m_pFile, (char*)NULL, _IOLBF, 1024);
-		}
-		return m_pFile;
-	}
-
-	void FxIoThread::AddConnectSocket(IFxConnectSocket* pSock)
-	{
-		m_setConnectSockets.insert(pSock);
-	}
-
-	void FxIoThread::DelConnectSocket(IFxConnectSocket* pSock)
-	{
-		m_setConnectSockets.erase(pSock);
-	}
-
 	void FxIoThread::__DealSock()
 	{
 	}
 
 #ifdef _WIN32
-	bool FxIoThread::AddEvent(int hSock, IFxSocket* poSock)
+	bool FxIoThread::AddEvent(ISocketBase::NativeSocketType hSock, ISocketBase* poSock, std::ostream* pOStream)
 	{
 		if (hSock < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "hSock : %d, socket id : %d", hSock, poSock->GetSockId());
+			if (pOStream)
+			{
+				*pOStream << "hSock : " << hSock
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
 		if (NULL == GetHandle())
 		{
-			ThreadLog(LogLv_Error, GetFile(), "%s", "GetHandle failed");
+			if (pOStream)
+			{
+				*pOStream << "get handle error"
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
 		if (NULL == CreateIoCompletionPort((HANDLE)hSock, GetHandle(), (ULONG_PTR)poSock, 0))
 		{
 			int dwErr = WSAGetLastError();
-			ThreadLog(LogLv_Error, GetFile(), "CreateIoCompletionPort errno %d", dwErr);
+			if (pOStream)
+			{
+				*pOStream << "CreateIoCompletionPort errno " << WSAGetLastError()
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
+		//m_setConnectSockets.insert(poSock);
 		return true;
 	}
 #else
-	bool FxIoThread::AddEvent(int hSock, unsigned int dwEvents, IFxSocket* poSock)
+	bool FxIoThread::AddEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream)
 	{
 		if (hSock < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "hSock : %d, socket id : %d", hSock, poSock->GetSockId());
+			if (pOStream)
+			{
+				*pOStream << "hSock : " << hSock
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
 		if (m_hEpoll < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "%s", "m_hEpoll < 0");
+			if (pOStream)
+			{
+				*pOStream << "m_hEpoll < 0"
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 		epoll_event e;
@@ -194,24 +185,37 @@ namespace FXNET
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, hSock, &e) < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "epoll_ctl errno %d", errno);
+			if (pOStream)
+			{
+				*pOStream << "epoll_ctl errno " << errno
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
+		//m_setConnectSockets.insert(poSock);
 		return true;
 	}
 
-	bool FxIoThread::ChangeEvent(int hSock, unsigned int dwEvents, IFxSocket* poSock)
+	bool FxIoThread::ChangeEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream)
 	{
 		if (m_hEpoll < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "%s", "m_hEpoll < 0");
+			if (pOStream)
+			{
+				*pOStream << hSock << " m_hEpoll < 0"
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
 		if (hSock < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "socket : %d", hSock);
+			if (pOStream)
+			{
+				*pOStream << hSock
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
@@ -221,102 +225,151 @@ namespace FXNET
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_MOD, hSock, &e) < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "epoll_ctl errno : %d", errno);
+			if (pOStream)
+			{
+				*pOStream << "epoll_ctl errno : " << errno
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
 		return true;
 	}
 
-	bool FxIoThread::DelEvent(int hSock)
+#endif // _WIN32
+	bool FxIoThread::DelEvent(ISocketBase::NativeSocketType hSock, std::ostream* pOStream)
 	{
+#ifdef _WIN32
+		CancelIo((ISocketBase::NativeHandleType)hSock);
+		return true;
+#else
 		if (m_hEpoll < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "%s", "m_hEpoll < 0");
+			if (pOStream)
+			{
+				*pOStream << "m_hEpoll < 0"
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
 		if (hSock < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "socket : %d", hSock);
+			if (pOStream)
+			{
+				*pOStream << hSock
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 
 		epoll_event e;
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_DEL, hSock, &e) < 0)
 		{
-			ThreadLog(LogLv_Error, GetFile(), "epoll_ctl errno : %d", errno);
+			if (pOStream)
+			{
+				*pOStream << "epoll_ctl errno : " << errno
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return false;
 		}
 		return true;
-	}
-
 #endif // _WIN32
+
+	}
 
 	void FxIoThread::ThrdFunc()
 	{
+#ifdef _WIN32
+		SYSTEMTIME st;
+		GetSystemTime(&st);
+		double dTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+#else
+		static struct timeval tv;
+		gettimeofday(&tv, NULL);
+		double dTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+#endif
+
 		std::ostream& refOStream = std::cout;
 		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " start, "
 			<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ <<"]";
 
-		double dTime = 0;
-		
 		while (!m_bStop)
 		{
-			if (!__DealData(refOStream))
+			std::ostream& refOStream = std::cout;
+			if (!__DealData(&refOStream))
 			{
 				break;
 			}
 
 			__DealSock();
 
-			if (GetTimeHandler()->GetMilliSecond() - m_dLoatUpdateTime >= 0.01)
+			if (dTime - m_dLoatUpdateTime >= 0.05)
 			{
-				m_dLoatUpdateTime = GetTimeHandler()->GetMilliSecond();
-				for (std::set<CSocketBase*>::iterator it = m_setConnectSockets.begin();
+				m_dLoatUpdateTime = dTime;
+				for (std::set<ISocketBase*>::iterator it = m_setConnectSockets.begin();
 					it != m_setConnectSockets.end();)
 				{
-					if ((*it)->IsConnected())
-					{
-						(*it)->Update(dTime, refOStream);
-						++it;
-					}
-					else
-					{
-						m_setConnectSockets.erase(it++);
-					}
+					(*it)->Update(dTime, &refOStream);
 				}
 			}
 
-			FxSleep(1);
+#ifdef _WIN32
+			Sleep(1);
+#else
+			usleep(1000);
+#endif // _WIN32
 		}
-		ThreadLog(LogLv_Info, GetFile(), "thread id %d end", m_poThrdHandler->GetThreadId());
+		refOStream << "thread id " << m_poThrdHandler->GetThreadId() <<" end\n";
 	}
 
-	bool FxIoThread::__DealData(std::ostream& refOStream)
+	bool FxIoThread::__DealData(std::ostream* pOStream)
 {
 		const int dwTimeOut = 1;
 #ifdef _WIN32
 		void* pstPerIoData = NULL;
-		CSocketBase* poSock = NULL;
-		BOOL bRet = false;
+		ISocketBase* poSock = NULL;
 		DWORD dwByteTransferred = 0;
+		BOOL bRet = FALSE;
 
-		//while (true)
+		while (bRet = GetQueuedCompletionStatus(GetHandle(), &dwByteTransferred
+				, (PULONG_PTR)&poSock, (LPOVERLAPPED*)&pstPerIoData, dwTimeOut) )
 		{
-			poSock = NULL;
+			(*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream);
+
 			pstPerIoData = NULL;
+			poSock = NULL;
 			dwByteTransferred = 0;
+		}
 
-			bRet = GetQueuedCompletionStatus(
-				GetHandle(),
-				&dwByteTransferred,
-				(PULONG_PTR)&poSock,
-				(LPOVERLAPPED*)&pstPerIoData,
-				dwTimeOut);
+		if (bRet == FALSE)
+		{
+			if (WAIT_TIMEOUT == WSAGetLastError())
+			{
+				return true;
+			}
+			if (NULL == pstPerIoData)
+			{
+				if (pOStream)
+				{
+					*pOStream << "GetQueuedCompletionStatus FALSE " << WSAGetLastError();
+				}
+				return true;
+			}
 
+			if (!poSock)
+			{
+				if (pOStream)
+				{
+					*pOStream << "GetQueuedCompletionStatus FALSE " << WSAGetLastError();
+				}
+				return true;
+			}
 
-			(*(IOOperationBase*)(pstPerIoData))(*poSock, refOStream);
+			//TODO 删除这个op 还是执行？ 先删除好了
+			//(*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream);
+			delete (IOOperationBase*)(pstPerIoData);
+			poSock->NewErrorOperation(WSAGetLastError())(*poSock, dwByteTransferred, pOStream);
 		}
 #else
 
@@ -331,18 +384,34 @@ namespace FXNET
 			epoll_event* pEvent = GetEvent(i);
 			if (NULL == pEvent)
 			{
+				if (pOStream)
+				{
+					*pOStream << "get event error "
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]";
+				}
 				return false;
 			}
 
-			CSocketBase* poSock = (CSocketBase*)pEvent->data.ptr;
+			ISocketBase* poSock = (ISocketBase*)pEvent->data.ptr;
 			if (NULL == poSock)
 			{
+				if (pOStream)
+				{
+					*pOStream << "get socket error "
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]";
+				}
 				return false;
 			}
-			if ()
-			{
-			}
 
+			if (pEvent->events & (EPOLLERR | EPOLLHUP))
+			{
+				poSock->NewErrorOperation(errno)(poSock, 0, pOStream);
+			}
+			else
+			{
+				if (pEvent->events & EPOLLOUT) { poSock->NewReadOperation()(poSock, 0, pOStream); }
+				if (pEvent->events & EPOLLIN) { poSock->NewWriteOperation()(poSock, 0, pOStream); }
+			}
 		}
 #endif // _WIN32
 
@@ -389,7 +458,7 @@ namespace FXNET
 			return 0;
 		}
 
-		int nCount = epoll_wait(m_hEpoll, m_pEvents, m_dwMaxSock, nMilliSecond);
+		int nCount = epoll_wait(m_hEpoll, m_pEvents, MAX_EVENT_NUM, nMilliSecond);
 		if (nCount < 0)
 		{
 			if (errno != EINTR)
@@ -406,23 +475,13 @@ namespace FXNET
 
 	epoll_event* FxIoThread::GetEvent(int nIndex)
 	{
-		if (0 > nIndex || (int)m_dwMaxSock <= nIndex)
+		if (0 > nIndex || (int)MAX_EVENT_NUM <= nIndex)
 		{
 			return NULL;
 		}
 
 		return &m_pEvents[nIndex];
 	}
-
-
-	void FxIoThread::PushDelayCloseSock(IFxSocket* poSock)
-	{
-		while (!m_oDelayCloseSockQueue.PushBack(poSock))
-		{
-			FxSleep(10);
-		}
-	}
-
 #endif // _WIN32
 };
 

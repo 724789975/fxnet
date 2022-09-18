@@ -1,4 +1,5 @@
 #include "udp_listener.h"
+#include "iothread.h"
 
 #ifdef _WIN32
 #include <WinSock2.h>
@@ -12,7 +13,7 @@
 
 namespace FXNET
 {
-	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream& refOStream)
+	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
 	{
 		int dwError = 0;
 		memset(&m_oAddr, 0, sizeof(m_oAddr));
@@ -32,8 +33,11 @@ namespace FXNET
 			dwError = errno;
 #endif // _WIN32
 
-			refOStream << "socket create failed(" << dwError << ") ["
-				<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			if (pOStream)
+			{
+				(*pOStream) << "socket create failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return dwError;
 		}
 
@@ -52,8 +56,11 @@ namespace FXNET
 			dwError = errno;
 #endif // _WIN32
 
-			refOStream << "socket set nonblock failed(" << dwError << ") ["
-				<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			if (pOStream)
+			{
+				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return dwError;
 		}
 
@@ -64,8 +71,11 @@ namespace FXNET
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			dwError = errno;
 
-			refOStream << "socket set FD_CLOEXEC failed(" << dwError << ") ["
-				<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			if (*pOStream)
+			{
+				(*pOStream) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return dwError;
 		}
 #endif // _WIN32
@@ -82,8 +92,11 @@ namespace FXNET
 			dwError = errno;
 #endif // _WIN32
 
-			refOStream << "socket set SO_REUSEADDR failed(" << dwError << ") ["
-				<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			if (pOStream)
+			{
+				(*pOStream) << "socket set SO_REUSEADDR failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return dwError;
 		}
 
@@ -97,9 +110,12 @@ namespace FXNET
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
-			refOStream << "bind failed on (" << inet_ntoa(m_oAddr.sin_addr)
-				<< ", " << (int)ntohs(m_oAddr.sin_port) << ")(" << dwError << ") ["
-				<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			if (pOStream)
+			{
+				(*pOStream) << "bind failed on (" << inet_ntoa(m_oAddr.sin_addr)
+					<< ", " << (int)ntohs(m_oAddr.sin_port) << ")(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return dwError;
 		}
 
@@ -109,11 +125,11 @@ namespace FXNET
 		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
 #endif // _WIN32
 
-		//todo注册事件
-
+		//注册事件
+		FxIoThread::Instance()->AddEvent(NativeSocket(), this, pOStream);
 
 #ifdef _WIN32
-		dwError = PostAccept(refOStream);
+		dwError = PostAccept(pOStream);
 #endif // _WIN32
 
 		return dwError;
@@ -133,14 +149,14 @@ namespace FXNET
 		return refPeration;
 	}
 
-	void CUdpListener::OnRead(std::ostream& refOStream)
+	void CUdpListener::OnRead(std::ostream* pOStream)
 	{
 
 #ifdef _WIN32
 #else
 		for (;;)
 		{
-			PacketHeader header;
+			UDPPacketHeader header;
 			sockaddr_in address;
 			socklen_t addr_len = sizeof(sockaddr);
 
@@ -161,7 +177,10 @@ namespace FXNET
 
 				if (req == NULL)
 				{
-					refOStream << NativeSocket() << " can't allocate more udp accept request.\n";
+					if (pOStream)
+					{
+						*pOStream << NativeSocket() << " can't allocate more udp accept request.\n";
+					}
 					break;
 				}
 
@@ -171,7 +190,10 @@ namespace FXNET
 				req->m_oAcceptSocket = socket(AF_INET, SOCK_DGRAM, 0);
 				if (req->m_oAcceptSocket == -1)
 				{
-					refOStream << NativeSocket() << " create socket failed.\n";
+					if (pOStream)
+					{
+						*pOStream << NativeSocket() << " create socket failed.\n";
+					}
 					m_oAcceptPool.Free(req);
 					continue;
 				}
@@ -183,7 +205,11 @@ namespace FXNET
 				int yes = 1;
 				if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)& yes, sizeof(yes)))
 				{
-					refOStream << NativeSocket() << ", errno(" << errno << ")\n";
+					if (pOStream)
+					{
+						*pOStream << NativeSocket() << ", errno(" << errno << ")"
+							<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+					}
 					macro_closesocket(req->m_oAcceptSocket);
 					m_oAcceptPool.Free(req);
 					continue;
@@ -192,8 +218,12 @@ namespace FXNET
 				// bind
 				if (bind(req->m_oAcceptSocket, (sockaddr*)&m_oAddr, sizeof(m_oAddr)))
 				{
-					refOStream << NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
-						<< inet_ntoa(m_oAddr.sin_addr) << ":" << (int)ntohs(m_oAddr.sin_port);
+					if (pOStream)
+					{
+						*pOStream << NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
+							<< inet_ntoa(m_oAddr.sin_addr) << ":" << (int)ntohs(m_oAddr.sin_port)
+							<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					}
 					macro_closesocket(req->m_oAcceptSocket);
 					m_oAcceptPool.Free(req);
 					continue;
@@ -212,7 +242,11 @@ namespace FXNET
 
 				if (errno != EAGAIN && errno != EWOULDBLOCK)
 				{
-					refOStream << NativeSocket() << "error accept(" << errno << ").";
+					if (pOStream)
+					{
+						*pOStream << NativeSocket() << "error accept(" << errno << ")."
+							<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					}
 				}
 
 				break;
@@ -236,7 +270,7 @@ namespace FXNET
 	}
 
 #ifdef _WIN32
-	int CUdpListener::PostAccept(std::ostream& refOStream)
+	int CUdpListener::PostAccept(std::ostream* pOStream)
 	{
 		IOReadOperation& refPeration = NewReadOperation();
 
@@ -245,14 +279,17 @@ namespace FXNET
 
 		int dwSockAddr = sizeof(refPeration.m_stRemoteAddr);
 
-		if (WSARecvFrom(NativeSocket(), &refPeration.m_stWsaBuff, 1, &dwReadLen, &dwFlags,
-			(sockaddr*)(&refPeration.m_stRemoteAddr), &dwSockAddr, &refPeration, NULL) == SOCKET_ERROR)
+		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refPeration.m_stWsaBuff, 1, &dwReadLen
+			, &dwFlags, (sockaddr*)(&refPeration.m_stRemoteAddr), &dwSockAddr, &refPeration, NULL))
 		{
 			int dwError = WSAGetLastError();
 			if (dwError != WSA_IO_PENDING)
 			{
-				refOStream << "WSARecvFrom errno : " << dwError << ", handle : " << NativeSocket()
-					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				if (pOStream)
+				{
+					(*pOStream) << "WSARecvFrom errno : " << dwError << ", handle : " << NativeSocket()
+						<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				}
 				return dwError;
 			}
 		}
@@ -309,10 +346,18 @@ namespace FXNET
 	}
 #endif // _WIN32
 
-	IOOperationBase& CUdpListener::IOReadOperation::operator()(CSocketBase& refSocketBase, std::ostream& refOStream)
+	void CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
-		refSocketBase.OnRead(refOStream);
-		return *this;
+		if (0 == dwLen)
+		{
+			//TODO
+		}
+		refSocketBase.OnRead(pOStream);
+		return;
+	}
+
+	void CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
+	{
 	}
 
 };

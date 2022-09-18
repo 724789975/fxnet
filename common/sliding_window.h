@@ -3,7 +3,7 @@
 
 namespace FXNET
 {
-	struct PacketHeader
+	struct UDPPacketHeader
 	{
 		unsigned char m_btStatus;
 		unsigned char m_btSyn;
@@ -142,7 +142,7 @@ namespace FXNET
 		/**
 		 * @brief 用来同步ack(tcp下需要缓存) 
 		 */
-		PacketHeader m_oSendAckPacket;
+		UDPPacketHeader m_oSendAckPacket;
 
 	};
 } // namespace FXNET
