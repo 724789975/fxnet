@@ -24,7 +24,14 @@ namespace FXNET
 		m_oAddr.sin_port = htons(wPort);
 
 		// 创建socket
+#ifdef _WIN32
+		NativeSocket() = WSASocket( AF_INET
+			,SOCK_DGRAM ,0 ,NULL ,0 ,WSA_FLAG_OVERLAPPED);
+#else
 		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
+#endif // _WIN32
+
+
 		if (NativeSocket() == -1)
 		{
 #ifdef _WIN32
@@ -127,8 +134,6 @@ namespace FXNET
 
 		FxIoThread::Instance()->AddEvent(NativeSocket(), EPOLLIN, this, pOStream);
 #endif // _WIN32
-
-		//注册事件
 
 #ifdef _WIN32
 		dwError = PostAccept(pOStream);
@@ -354,12 +359,63 @@ namespace FXNET
 		{
 			//TODO
 		}
-		refSocketBase.OnRead(pOStream);
+		//refSocketBase.OnRead(pOStream);
+
+#ifndef _WIN32
+		for (;;)
+		{
+			UDPPacketHeader oUDPPacketHeader;
+
+			sockaddr_in stRemoteAddr = { 0 };
+			unsigned int nRemoteAddrLen = sizeof(stRemoteAddr);
+
+			int dwLen = recvfrom(refSocketBase.NativeSocket(), (char*)(&oUDPPacketHeader), sizeof(oUDPPacketHeader), 0, (sockaddr*)&stRemoteAddr, &nRemoteAddrLen);
+			if (0 > dwLen)
+			{
+				if (errno == EINTR)
+					continue;
+
+				if (errno != EAGAIN && errno != EWOULDBLOCK)
+				{
+					*pOStream << "error accept : " << refSocketBase.NativeSocket()
+						<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				}
+
+				break;
+			}
+
+			if (dwLen != sizeof(oUDPPacketHeader))
+			{
+				*pOStream << refSocketBase.NativeSocket()
+					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				continue;
+			}
+
+			if (oUDPPacketHeader.m_btAck != 0)
+			{
+				*pOStream << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck <<  ", " << refSocketBase.NativeSocket()
+					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				continue;
+			}
+			if (oUDPPacketHeader.m_btSyn != 1)
+			{
+				*pOStream << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn <<  ", " << refSocketBase.NativeSocket()
+					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				continue;
+			}
+
+			//TODO
+		}
+	
+#endif
+		delete this;
 		return;
 	}
 
 	void CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
 	{
+		delete this;
+		return;
 	}
 
 };

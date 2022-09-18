@@ -410,8 +410,8 @@ namespace FXNET
 			}
 			else
 			{
-				if (pEvent->events & EPOLLOUT) { poSock->NewReadOperation()(*poSock, 0, pOStream); }
-				if (pEvent->events & EPOLLIN) { poSock->NewWriteOperation()(*poSock, 0, pOStream); }
+				if (pEvent->events & EPOLLOUT) { poSock->NewWriteOperation()(*poSock, 0, pOStream); }
+				if (pEvent->events & EPOLLIN) { poSock->NewReadOperation()(*poSock, 0, pOStream); }
 			}
 		}
 #endif // _WIN32
