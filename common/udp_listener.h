@@ -62,6 +62,7 @@ namespace FXNET
 		static const unsigned int UDP_ACCEPT_MAX_SIZE = 2048;
 
 
+		CUdpListener& OnClientConnected(NativeSocketType hSock, sockaddr_in address);
 
 #ifdef _WIN32
 		int PostAccept(std::ostream* pOStream);

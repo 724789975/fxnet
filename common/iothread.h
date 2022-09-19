@@ -18,41 +18,48 @@ namespace FXNET
 	 * @brief 
 	 * io线程 只用一个就够了 10000个连接问题不大
 	 */
-	class FxIoThread : public IFxThread, public TSingleton<FxIoThread>
+	class FxIoModule : public IFxThread, public TSingleton<FxIoModule>
 	{
 	public:
-		FxIoThread();
-		virtual ~FxIoThread();
+
+		class EventBase
+#ifdef _WIN32
+			: public OVERLAPPED
+#endif // _WIN32
+		{
+		public:
+			virtual ~EventBase() {}
+			virtual void operator()() = 0;
+		protected:
+		private:
+		};
+
+		FxIoModule();
+		virtual ~FxIoModule();
 
 		virtual void			ThrdFunc();
 		virtual void			Stop();
-
 		void					SetStoped() { m_bStop = true; }
-
 		bool					Start();
+		unsigned int			GetThreadId();
 
 		bool					Init(std::ostream* pOStream);
 		void					Uninit();
 
-		unsigned int			GetThreadId();
-
 #ifdef _WIN32
-		bool					AddEvent(ISocketBase::NativeSocketType hSock, ISocketBase* poSock, std::ostream* pOStream);
-#else
-		bool					AddEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
-		bool					ChangeEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
-#endif // _WIN32
-		bool					DelEvent(ISocketBase::NativeSocketType hSock, std::ostream* pOStream);
-
 		// win下为完成端口 linux下为epoll
-#ifdef _WIN32
 		HANDLE					GetHandle();
+		bool					RegisterIO(ISocketBase::NativeSocketType hSock, ISocketBase* poSock, std::ostream* pOStream);
 #else
+		bool					RegisterIO(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
+		bool					ChangeEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
 		int						GetHandle();
 		int						WaitEvents(int nMilliSecond);
 		epoll_event*			GetEvent(int nIndex);
 #endif // _WIN32
+		bool					DeregisterIO(ISocketBase::NativeSocketType hSock, std::ostream* pOStream);
 
+		FxIoModule&				PostEvent(EventBase* pEvent);
 	private:
 		void					__DealSock();
 		bool					__DealData(std::ostream* pOStream);

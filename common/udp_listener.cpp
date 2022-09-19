@@ -127,12 +127,12 @@ namespace FXNET
 		}
 
 #ifdef _WIN32
-		FxIoThread::Instance()->AddEvent(NativeSocket(), this, pOStream);
+		FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream);
 #else
 		m_oAcceptPool.Init();
 		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
 
-		FxIoThread::Instance()->AddEvent(NativeSocket(), EPOLLIN, this, pOStream);
+		FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLIN, this, pOStream);
 #endif // _WIN32
 
 #ifdef _WIN32
@@ -158,7 +158,6 @@ namespace FXNET
 
 	void CUdpListener::OnRead(std::ostream* pOStream)
 	{
-
 #ifdef _WIN32
 #else
 		for (;;)
@@ -260,23 +259,40 @@ namespace FXNET
 			}
 		}
 
-			// temp remove accept req at here
-			AcceptReq *pReq;
-			for (int i = 0; i < UDP_ACCEPT_HASH_SIZE; i++)
+		// temp remove accept req at here
+		AcceptReq *pReq;
+		for (int i = 0; i < UDP_ACCEPT_HASH_SIZE; i++)
+		{
+			while ((pReq = m_arroAcceptQueue[i]) != NULL)
 			{
-				while ((pReq = m_arroAcceptQueue[i]) != NULL)
-				{
-					m_arroAcceptQueue[i] = pReq->m_pNext;
+				m_arroAcceptQueue[i] = pReq->m_pNext;
 
-					m_oAcceptPool.Free(pReq);
-				}
+				m_oAcceptPool.Free(pReq);
 			}
+		}
 	
 #endif // _WIN32
 
 	}
 
 #ifdef _WIN32
+	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address)
+	{
+		//Client* client = server.client_pool.Allocate();
+		//if (client == NULL)
+		//{
+		//	close(connected_socket);
+		//	return;
+		//}
+
+		//client->client_address = addr;
+		//client->tcp_connection.stream = NULL;
+		//client->udp_connection.stream = client;
+		//client->connection = &client->udp_connection;
+		//client->udp_connection.Connect(connected_socket, addr);
+		return *this;
+	}
+
 	int CUdpListener::PostAccept(std::ostream* pOStream)
 	{
 		IOReadOperation& refPeration = NewReadOperation();
@@ -361,6 +377,8 @@ namespace FXNET
 		}
 		//refSocketBase.OnRead(pOStream);
 
+		CUdpListener& refSock = (CUdpListener&) refSocketBase;
+
 #ifndef _WIN32
 		for (;;)
 		{
@@ -372,8 +390,7 @@ namespace FXNET
 			int dwLen = recvfrom(refSocketBase.NativeSocket(), (char*)(&oUDPPacketHeader), sizeof(oUDPPacketHeader), 0, (sockaddr*)&stRemoteAddr, &nRemoteAddrLen);
 			if (0 > dwLen)
 			{
-				if (errno == EINTR)
-					continue;
+				if (errno == EINTR) { continue; }
 
 				if (errno != EAGAIN && errno != EWOULDBLOCK)
 				{
@@ -404,7 +421,73 @@ namespace FXNET
 				continue;
 			}
 
+			AcceptReq* req = refSock.GetAcceptReq(stRemoteAddr);
+
+			if (req != NULL)
+				continue;
+
+			req = refSock.m_oAcceptPool.Allocate();
+
+			if (req == NULL)
+			{
+				if (pOStream)
+				{
+					*pOStream << refSock.NativeSocket() << " can't allocate more udp accept request.\n";
+				}
+				break;
+			}
+
+			req->m_pNext = NULL;
+			req->addr = stRemoteAddr;
+
+			req->m_oAcceptSocket = socket(AF_INET, SOCK_DGRAM, 0);
+			if (req->m_oAcceptSocket == -1)
+			{
+				if (pOStream)
+				{
+					*pOStream << refSock.NativeSocket() << " create socket failed.\n";
+				}
+				refSock.m_oAcceptPool.Free(req);
+				continue;
+			}
+
+			// cloexec
+			fcntl(req->m_oAcceptSocket, F_SETFD, FD_CLOEXEC);
+
+			// set reuseaddr
+			int yes = 1;
+			if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)& yes, sizeof(yes)))
+			{
+				if (pOStream)
+				{
+					*pOStream << refSock.NativeSocket() << ", errno(" << errno << ")"
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+				}
+				macro_closesocket(req->m_oAcceptSocket);
+				refSock.m_oAcceptPool.Free(req);
+				continue;
+			}
+
+			// bind
+			if (bind(req->m_oAcceptSocket, (sockaddr*)&refSock.m_oAddr, sizeof(m_oAddr)))
+			{
+				if (pOStream)
+				{
+					*pOStream << refSock.NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
+						<< inet_ntoa(refSock.m_oAddr.sin_addr) << ":" << (int)ntohs(refSock.m_oAddr.sin_port)
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				}
+				macro_closesocket(req->m_oAcceptSocket);
+				refSock.m_oAcceptPool.Free(req);
+				continue;
+			}
+
+			// add accept req
+			refSock.AddAcceptReq(req);
+
+			// send back
 			//TODO
+			//OnClientConnected(req->accept_socket, address);
 		}
 	
 #endif
