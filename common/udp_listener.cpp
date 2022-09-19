@@ -1,5 +1,6 @@
 #include "udp_listener.h"
 #include "iothread.h"
+#include "udp_connector.h"
 
 #ifdef _WIN32
 #include <WinSock2.h>
@@ -158,126 +159,11 @@ namespace FXNET
 
 	void CUdpListener::OnRead(std::ostream* pOStream)
 	{
-#ifdef _WIN32
-#else
-		for (;;)
-		{
-			UDPPacketHeader header;
-			sockaddr_in address;
-			socklen_t addr_len = sizeof(sockaddr);
-
-			// receive message
-			int size = recvfrom(NativeSocket(), (char*)& header, sizeof(header), 0, (sockaddr*)&address, &addr_len);
-
-			if (size == sizeof(header))
-			{
-				AcceptReq* req = GetAcceptReq(address);
-
-				if (req != NULL)
-					continue;
-
-				if (header.m_btSyn != 1 || header.m_btAck != 0)
-					continue;
-
-				req = m_oAcceptPool.Allocate();
-
-				if (req == NULL)
-				{
-					if (pOStream)
-					{
-						*pOStream << NativeSocket() << " can't allocate more udp accept request.\n";
-					}
-					break;
-				}
-
-				req->m_pNext = NULL;
-				req->addr = address;
-
-				req->m_oAcceptSocket = socket(AF_INET, SOCK_DGRAM, 0);
-				if (req->m_oAcceptSocket == -1)
-				{
-					if (pOStream)
-					{
-						*pOStream << NativeSocket() << " create socket failed.\n";
-					}
-					m_oAcceptPool.Free(req);
-					continue;
-				}
-
-				// cloexec
-				fcntl(req->m_oAcceptSocket, F_SETFD, FD_CLOEXEC);
-
-				// set reuseaddr
-				int yes = 1;
-				if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)& yes, sizeof(yes)))
-				{
-					if (pOStream)
-					{
-						*pOStream << NativeSocket() << ", errno(" << errno << ")"
-							<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
-					}
-					macro_closesocket(req->m_oAcceptSocket);
-					m_oAcceptPool.Free(req);
-					continue;
-				}
-
-				// bind
-				if (bind(req->m_oAcceptSocket, (sockaddr*)&m_oAddr, sizeof(m_oAddr)))
-				{
-					if (pOStream)
-					{
-						*pOStream << NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
-							<< inet_ntoa(m_oAddr.sin_addr) << ":" << (int)ntohs(m_oAddr.sin_port)
-							<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-					}
-					macro_closesocket(req->m_oAcceptSocket);
-					m_oAcceptPool.Free(req);
-					continue;
-				}
-
-				// add accept req
-				AddAcceptReq(req);
-
-				// send back
-				//TODO
-				//OnClientConnected(req->accept_socket, address);
-			}
-			else if (size < 0)
-			{
-				if (errno == EINTR) { continue; }
-
-				if (errno != EAGAIN && errno != EWOULDBLOCK)
-				{
-					if (pOStream)
-					{
-						*pOStream << NativeSocket() << "error accept(" << errno << ")."
-							<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-					}
-				}
-
-				break;
-			}
-		}
-
-		// temp remove accept req at here
-		AcceptReq *pReq;
-		for (int i = 0; i < UDP_ACCEPT_HASH_SIZE; i++)
-		{
-			while ((pReq = m_arroAcceptQueue[i]) != NULL)
-			{
-				m_arroAcceptQueue[i] = pReq->m_pNext;
-
-				m_oAcceptPool.Free(pReq);
-			}
-		}
-	
-#endif // _WIN32
-
 	}
 
-#ifdef _WIN32
 	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address)
 	{
+		CUdpConnector* pUdpSock = new CUdpConnector;
 		//Client* client = server.client_pool.Allocate();
 		//if (client == NULL)
 		//{
@@ -293,6 +179,7 @@ namespace FXNET
 		return *this;
 	}
 
+#ifdef _WIN32
 	int CUdpListener::PostAccept(std::ostream* pOStream)
 	{
 		IOReadOperation& refPeration = NewReadOperation();
@@ -371,15 +258,90 @@ namespace FXNET
 
 	void CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
+		class _
+		{
+		public:
+			_(CUdpListener::IOReadOperation* _p) : p(_p) {}
+			~_() { delete p; }
+			CUdpListener::IOReadOperation* p;
+		} t(this);
+
+		CUdpListener& refSock = (CUdpListener&) refSocketBase;
+
+#ifdef _WIN32
+		refSock.PostAccept(pOStream);
+#endif // _WIN32
+
 		if (0 == dwLen)
 		{
 			//TODO
 		}
-		//refSocketBase.OnRead(pOStream);
 
-		CUdpListener& refSock = (CUdpListener&) refSocketBase;
+#ifdef _WIN32
+		UDPPacketHeader oUDPPacketHeader = { 0 };
 
-#ifndef _WIN32
+		sockaddr_in& stRemoteAddr = m_stRemoteAddr;
+
+		if (dwLen != sizeof(oUDPPacketHeader))
+		{
+			*pOStream << refSocketBase.NativeSocket()
+				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+			return;
+		}
+
+		if (oUDPPacketHeader.m_btAck != 0)
+		{
+			*pOStream << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
+				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+			return;
+		}
+		if (oUDPPacketHeader.m_btSyn != 1)
+		{
+			*pOStream << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
+				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+			return;
+		}
+
+		NativeSocketType hSock = WSASocket(AF_INET
+			, SOCK_DGRAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+		if (hSock == -1)
+		{
+			if (pOStream)
+			{
+				*pOStream << refSock.NativeSocket() << " create socket failed.\n";
+			}
+			return;
+		}
+
+		// set reuseaddr
+		int yes = 1;
+		if (setsockopt(hSock, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes)))
+		{
+			if (pOStream)
+			{
+				*pOStream << refSock.NativeSocket() << ", errno(" << errno << ")"
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+			}
+			macro_closesocket(hSock);
+			return;
+		}
+
+		// bind
+		if (bind(hSock, (sockaddr*)&refSock.m_oAddr, sizeof(m_oAddr)))
+		{
+			if (pOStream)
+			{
+				*pOStream << refSock.NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
+					<< inet_ntoa(refSock.m_oAddr.sin_addr) << ":" << (int)ntohs(refSock.m_oAddr.sin_port)
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			macro_closesocket(hSock);
+			return;
+		}
+
+		// send back
+		refSock.OnClientConnected(hSock, m_stRemoteAddr);
+#else
 		for (;;)
 		{
 			UDPPacketHeader oUDPPacketHeader;
@@ -486,12 +448,22 @@ namespace FXNET
 			refSock.AddAcceptReq(req);
 
 			// send back
-			//TODO
-			//OnClientConnected(req->accept_socket, address);
+			refSock.OnClientConnected(req->m_oAcceptSocket, req->addr);
+		}
+
+		// temp remove accept req at here
+		AcceptReq* pReq;
+		for (int i = 0; i < UDP_ACCEPT_HASH_SIZE; i++)
+		{
+			while ((pReq = refSock.m_arroAcceptQueue[i]) != NULL)
+			{
+				refSock.m_arroAcceptQueue[i] = pReq->m_pNext;
+
+				refSock.m_oAcceptPool.Free(pReq);
+			}
 		}
 	
 #endif
-		delete this;
 		return;
 	}
 
