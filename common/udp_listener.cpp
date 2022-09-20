@@ -169,20 +169,15 @@ namespace FXNET
 	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream)
 	{
 		CUdpConnector* pUdpSock = new CUdpConnector;
-		pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream);
+		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
+		{
+			if (pOStream)
+			{
+				(*pOStream) << "client connect failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+		}
 
-		//Client* client = server.client_pool.Allocate();
-		//if (client == NULL)
-		//{
-		//	close(connected_socket);
-		//	return;
-		//}
-
-		//client->client_address = addr;
-		//client->tcp_connection.stream = NULL;
-		//client->udp_connection.stream = client;
-		//client->connection = &client->udp_connection;
-		//client->udp_connection.Connect(connected_socket, addr);
 		return *this;
 	}
 
@@ -315,7 +310,8 @@ namespace FXNET
 		{
 			if (pOStream)
 			{
-				*pOStream << refSock.NativeSocket() << " create socket failed.\n";
+				*pOStream << refSock.NativeSocket() << " create socket failed."
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
 			}
 			return;
 		}
@@ -414,7 +410,8 @@ namespace FXNET
 			{
 				if (pOStream)
 				{
-					*pOStream << refSock.NativeSocket() << " create socket failed.\n";
+					*pOStream << refSock.NativeSocket() << " create socket failed."
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
 				}
 				refSock.m_oAcceptPool.Free(req);
 				continue;

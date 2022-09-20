@@ -29,9 +29,13 @@ namespace FXNET
 		class IOErrorOperation : public IOOperationBase
 		{
 		public:
-			friend class CUdpListener;
+			friend class CUdpConnector;
 			virtual void operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
 		};
+
+		friend class IOReadOperation;
+		friend class IOErrorOperation;
+		friend class CUdpListener;
 
 		virtual const char* Name()const { return "CUdpConnector"; }
 		virtual ISocketBase& Update(double dTimedouble, std::ostream* pOStream);
@@ -39,7 +43,7 @@ namespace FXNET
 		sockaddr_in& GetRemoteAddr() { return m_stRemoteAddr; }
 		CUdpConnector& SetRemoteAddr(sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
 
-		int Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
+		int Connect(sockaddr_in address, std::ostream* pOStream);
 
 		virtual IOReadOperation& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
@@ -48,9 +52,11 @@ namespace FXNET
 		virtual void OnRead(std::ostream* refOStream);
 		virtual void OnWrite(std::ostream* pOStream);
 		virtual void OnError(std::ostream* pOStream);
+		void OnConnected(std::ostream* pOStream);
 	protected:
 		sockaddr_in m_stRemoteAddr;
 	private:
+		int Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
 	};
 };
 

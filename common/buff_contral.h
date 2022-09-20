@@ -144,8 +144,7 @@ namespace FXNET
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline  BufferContral<BUFF_SIZE, WINDOW_SIZE>&
-		BufferContral<BUFF_SIZE, WINDOW_SIZE>
-		::SetOnRecvOperator(OnRecvOperator* p)
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetOnRecvOperator(OnRecvOperator* p)
 	{
 		m_pOnRecvOperator = p;
 
@@ -154,8 +153,7 @@ namespace FXNET
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
-		BufferContral<BUFF_SIZE, WINDOW_SIZE>
-		::SetSendOperator(SendOperator* p)
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetSendOperator(SendOperator* p)
 	{
 		m_pSendOperator = p;
 
@@ -164,8 +162,7 @@ namespace FXNET
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
-		BufferContral<BUFF_SIZE, WINDOW_SIZE>
-		::SetAckOutTime(double dOutTime)
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetAckOutTime(double dOutTime)
 	{
 		m_dAckOutTime = dOutTime;
 	}
@@ -218,8 +215,7 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>
-		::SendMessages(double dTime)
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages(double dTime)
 	{
 		// check ack received time
 		if (dTime - m_dAckRecvTime > m_dAckOutTime)
@@ -457,8 +453,7 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>
-		::ReceiveMessages(double dTime)
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime)
 	{
 		// packet received
 		bool bPacketReceived = false;
