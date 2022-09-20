@@ -130,6 +130,9 @@ namespace FXNET
 			}
 			return 1;
 		}
+		if (m_oBuffContral.Init())
+		{
+		}
 
 		// status = ST_SYN_RECV;
 		// delay_time = 0;

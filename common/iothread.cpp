@@ -27,6 +27,15 @@ namespace FXNET
 #endif // _WIN32
 		, m_dLoatUpdateTime(0.)
 	{
+#ifdef _WIN32
+		SYSTEMTIME st;
+		GetSystemTime(&st);
+		double m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+#else
+		static struct timeval tv;
+		gettimeofday(&tv, NULL);
+		double m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+#endif
 	}
 
 	FxIoModule::~FxIoModule()
@@ -52,11 +61,11 @@ namespace FXNET
 #ifdef _WIN32
 		SYSTEMTIME st;
 		GetSystemTime(&st);
-		double dTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+		m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
 #else
 		static struct timeval tv;
 		gettimeofday(&tv, NULL);
-		double dTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+		m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
 #endif
 
 		std::ostream& refOStream = std::cout;
@@ -73,13 +82,13 @@ namespace FXNET
 
 			__DealSock();
 
-			if (dTime - m_dLoatUpdateTime >= 0.05)
+			if (m_dCurrentTime - m_dLoatUpdateTime >= 0.05)
 			{
-				m_dLoatUpdateTime = dTime;
+				m_dLoatUpdateTime = m_dCurrentTime;
 				for (std::set<ISocketBase*>::iterator it = m_setConnectSockets.begin();
 					it != m_setConnectSockets.end();)
 				{
-					(*it)->Update(dTime, &refOStream);
+					(*it)->Update(m_dCurrentTime, &refOStream);
 				}
 			}
 
@@ -181,6 +190,11 @@ namespace FXNET
 			m_pEvents = NULL;
 		}
 #endif // _WIN32
+	}
+
+	double FxIoModule::GetCurrentTime()
+	{
+		return m_dCurrentTime;
 	}
 
 #ifdef _WIN32

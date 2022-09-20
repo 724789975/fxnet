@@ -17,7 +17,6 @@ namespace FXNET
 
 	private:
 
-		BufferContral<UDP_SEND_WINDOW_BUFF_SIZE, UDP_SEND_WINDOW_SIZE, UDP_RECV_WINDOW_BUFF_SIZE, UDP_RECV_WINDOW_SIZE> m_oBuffContral;
 
 	};
 

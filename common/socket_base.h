@@ -52,6 +52,12 @@ namespace FXNET
 	protected:
 		NativeHandleType m_hNativeHandle;
 		sockaddr_in m_stLocalAddr;
+
+		//linux下et模式 需要表示是否刻度可写
+#ifndef _WIN32
+		bool bReadable;
+		bool bWritable;
+#endif
 	private:
 	};
 

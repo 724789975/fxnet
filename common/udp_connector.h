@@ -3,6 +3,11 @@
 
 #include "udp_socket.h"
 
+#ifndef _WIN32
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#endif //_WIN32
+
 namespace FXNET
 {
 	class CUdpConnector : public CUdpSocket

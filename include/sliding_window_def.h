@@ -34,6 +34,15 @@
  */
 #define UDP_RECV_WINDOW_BUFF_SIZE 512
 
+/**
+ * @brief 发送缓存帧数量
+ */
+#define UDP_WINDOW_SIZE 32
+/**
+ * @brief 发送缓存帧长度
+ */
+#define UDP_WINDOW_BUFF_SIZE 512
+
 namespace FXNET
 {
 	class Message

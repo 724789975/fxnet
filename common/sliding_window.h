@@ -59,6 +59,7 @@ namespace FXNET
 		}
 
 	protected:
+	public:
 		/**
 		 * @brief 发送/接收 缓冲区
 		 */

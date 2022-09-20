@@ -3,6 +3,7 @@
 
 #include "include/sliding_window_def.h"
 #include "sliding_window.h"
+#include "iothread.h"
 
 #include <math.h>
 #include <errno.h>
@@ -12,23 +13,23 @@
 #include <Windows.h>
 #include <MSWSock.h>
 #include <Ws2tcpip.h>
+#include <time.h>
+#else
+#include <sys/time.h>
 #endif // _WIN32
 
 namespace FXNET
 {
-	template <unsigned short SEND_BUFF_SIZE = 512, unsigned short SEND_WINDOW_SIZE = 32
-		, unsigned short RECV_BUFF_SIZE = 512, unsigned short RECV_WINDOW_SIZE = 32>
+	template <unsigned short BUFF_SIZE = 512, unsigned short WINDOW_SIZE = 32>
 	class BufferContral
 	{
 	public:
-		enum { send_buff_size = SEND_BUFF_SIZE };
-		enum { send_window_size = SEND_WINDOW_SIZE };
-		enum { recv_buff_size = RECV_BUFF_SIZE };
-		enum { recv_window_size = RECV_WINDOW_SIZE };
+		enum { buff_size = BUFF_SIZE };
+		enum { window_size = WINDOW_SIZE };
 
-		typedef SendWindow<send_buff_size, send_window_size> _SendWindow;
-		typedef SlidingWindow<recv_buff_size, recv_window_size> _RecvWindow;
-		typedef BufferContral<send_buff_size, send_window_size, recv_buff_size, recv_window_size> BUFF_CONTRAL;
+		typedef SendWindow<buff_size, window_size> _SendWindow;
+		typedef SlidingWindow<buff_size, window_size> _RecvWindow;
+		typedef BufferContral<buff_size, window_size> BUFF_CONTRAL;
 
 		BufferContral();
 		~BufferContral();
@@ -98,58 +99,52 @@ namespace FXNET
 		double m_dAckOutTime; //默认是5
 	};
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>::BufferContral()
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>::BufferContral()
 	{ }
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>::~BufferContral()
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>::~BufferContral()
 	{ }
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline int BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>::Init()
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::Init()
 	{
 		//status = ST_SYN_RECV;
-		// m_dDelayTime = 0;
-		// m_dDelayAverage = 3 * m_dSendFrequency;
-		// retry_time = delay_time + 2 * delay_average;
-		// send_time = 0;
-		// ack_recv_time = Event::GetTime();
-		// ack_timeout_retry = 1;
-		// ack_same_count = 0;
-		// quick_retry = false;
-		// send_data_time = 0;
+		m_dDelayTime = 0;
+		m_dDelayAverage = 3 * m_dSendFrequency;
+		m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
+		m_dSendTime = 0;
 
-		// ack_last = 0;
-		// syn_last = 0;
-		// send_ack = false;
-		// send_window_control = 1;
-		// send_window_threshhold = send_window.window_size;
+		m_dAckRecvTime = FxIoModule::Instance()->GetCurrentTime();
+		m_dwAckTimeoutRetry = 1;
+		m_dwAckSameCount = 0;
+		m_bQuickRetry = false;
+		m_dSendDataTime = 0;
 
-		// readable = false;
-		// writable = false;
+		m_btAckLast = 0;
+		m_btSynLast = 0;
+		m_bSendAck = false;
+		m_dSendWindowControl = 1;
+		m_dSendWindowThreshhold = _SendWindow::window_size;
 
-		// // clear sliding window buffer
-		// recv_window.ClearBuffer();
-		// send_window.ClearBuffer();
+		// 清空滑动窗口
+		m_oRecvWindow.ClearBuffer();
+		m_oSendWindow.ClearBuffer();
 
-		// // initialize send window
-		// send_window.begin = 1;
-		// send_window.end = send_window.begin;
+		// 初始化发送窗口
+		m_oSendWindow.m_btBegin = 1;
+		m_oSendWindow.m_btEnd = m_oSendWindow.m_btBegin;
 
-		// // initialize recv window
-		// recv_window.begin = 1;
-		// recv_window.end = recv_window.begin + recv_window.window_size;
-		// return 0;
+		// 初始化接收窗口
+		m_oRecvWindow.m_btBegin = 1;
+		m_oRecvWindow.m_btEnd = m_oRecvWindow.m_btBegin + _RecvWindow::window_size;
+		return 0;
 	}
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline  BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>&
-		BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline  BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>
 		::SetOnRecvOperator(OnRecvOperator* p)
 	{
 		m_pOnRecvOperator = p;
@@ -157,10 +152,9 @@ namespace FXNET
 		return *this;
 	}
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>&
-		BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>
 		::SetSendOperator(SendOperator* p)
 	{
 		m_pSendOperator = p;
@@ -168,18 +162,16 @@ namespace FXNET
 		return *this;
 	}
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>&
-		BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>
 		::SetAckOutTime(double dOutTime)
 	{
 		m_dAckOutTime = dOutTime;
 	}
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline unsigned short BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline unsigned short BufferContral<BUFF_SIZE, WINDOW_SIZE>
 		::Send(const char* pSendBuffer, unsigned short wSize, double dTime)
 	{
 		unsigned short wSendSize = 0;
@@ -225,9 +217,8 @@ namespace FXNET
 		return wSendSize;
 	}
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline int BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>
 		::SendMessages(double dTime)
 	{
 		// check ack received time
@@ -465,9 +456,8 @@ namespace FXNET
 		return 0;
 	}
 
-	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
-		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
-	inline int BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>
 		::ReceiveMessages(double dTime)
 	{
 		// packet received

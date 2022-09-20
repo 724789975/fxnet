@@ -46,6 +46,8 @@ namespace FXNET
 		bool					Init(std::ostream* pOStream);
 		void					Uninit();
 
+		double					GetCurrentTime();
+
 #ifdef _WIN32
 		// win下为完成端口 linux下为epoll
 		HANDLE					GetHandle();
@@ -79,6 +81,7 @@ namespace FXNET
 		//存放连接指针 每0.05秒更新一次
 		std::set<ISocketBase*>	m_setConnectSockets;
 		//最后一次更新的时间
+		double					m_dCurrentTime;
 		double					m_dLoatUpdateTime;
 	};
 
