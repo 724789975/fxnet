@@ -6,6 +6,9 @@
 #include <Windows.h>
 #include <MSWSock.h>
 #include <Ws2tcpip.h>
+#else
+#include<netinet/in.h>
+#include<arpa/inet.h>
 #endif // _WIN32
 
 #include <ostream>
@@ -37,6 +40,8 @@ namespace FXNET
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
 		NativeSocketType& NativeSocket() { return (NativeSocketType&)m_hNativeHandle; }
 
+		sockaddr_in& GetLocalAddr() { return m_stLocalAddr; }
+
 		virtual IOOperationBase& NewReadOperation() = 0;
 		virtual IOOperationBase& NewWriteOperation() = 0;
 		virtual IOOperationBase& NewErrorOperation(int dwError) = 0;
@@ -46,6 +51,7 @@ namespace FXNET
 		virtual void OnError(std::ostream* pOStream) = 0;
 	protected:
 		NativeHandleType m_hNativeHandle;
+		sockaddr_in m_stLocalAddr;
 	private:
 	};
 

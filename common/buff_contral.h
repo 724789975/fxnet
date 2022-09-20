@@ -33,6 +33,8 @@ namespace FXNET
 		BufferContral();
 		~BufferContral();
 
+		int Init();
+
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
 
 		// TODO是否需要 不需要后面删掉
@@ -105,6 +107,44 @@ namespace FXNET
 		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
 	inline BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>::~BufferContral()
 	{ }
+
+	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
+		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>
+	inline int BufferContral<SEND_BUFF_SIZE, SEND_WINDOW_SIZE, RECV_BUFF_SIZE, RECV_WINDOW_SIZE>::Init()
+	{
+		//status = ST_SYN_RECV;
+		// m_dDelayTime = 0;
+		// m_dDelayAverage = 3 * m_dSendFrequency;
+		// retry_time = delay_time + 2 * delay_average;
+		// send_time = 0;
+		// ack_recv_time = Event::GetTime();
+		// ack_timeout_retry = 1;
+		// ack_same_count = 0;
+		// quick_retry = false;
+		// send_data_time = 0;
+
+		// ack_last = 0;
+		// syn_last = 0;
+		// send_ack = false;
+		// send_window_control = 1;
+		// send_window_threshhold = send_window.window_size;
+
+		// readable = false;
+		// writable = false;
+
+		// // clear sliding window buffer
+		// recv_window.ClearBuffer();
+		// send_window.ClearBuffer();
+
+		// // initialize send window
+		// send_window.begin = 1;
+		// send_window.end = send_window.begin;
+
+		// // initialize recv window
+		// recv_window.begin = 1;
+		// recv_window.end = recv_window.begin + recv_window.window_size;
+		// return 0;
+	}
 
 	template<unsigned short SEND_BUFF_SIZE, unsigned short SEND_WINDOW_SIZE
 		, unsigned short RECV_BUFF_SIZE, unsigned short RECV_WINDOW_SIZE>

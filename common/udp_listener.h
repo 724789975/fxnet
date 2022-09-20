@@ -62,7 +62,7 @@ namespace FXNET
 		static const unsigned int UDP_ACCEPT_MAX_SIZE = 2048;
 
 
-		CUdpListener& OnClientConnected(NativeSocketType hSock, sockaddr_in address);
+		CUdpListener& OnClientConnected(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
 
 #ifdef _WIN32
 		int PostAccept(std::ostream* pOStream);
@@ -84,8 +84,6 @@ namespace FXNET
 		CCasLockQueue<AcceptReq, UDP_ACCEPT_MAX_SIZE> m_oAcceptPool;
 #endif // _WIN32
 
-
-		sockaddr_in m_oAddr;
 	};
 
 

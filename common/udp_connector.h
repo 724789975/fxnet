@@ -31,6 +31,10 @@ namespace FXNET
 		virtual const char* Name()const { return "CUdpConnector"; }
 		virtual ISocketBase& Update(double dTimedouble, std::ostream* pOStream);
 
+		sockaddr_in& GetRemoteAddr() { return m_stRemoteAddr; }
+		CUdpConnector& SetRemoteAddr(sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
+
+		int Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
 
 		virtual IOReadOperation& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
@@ -40,6 +44,7 @@ namespace FXNET
 		virtual void OnWrite(std::ostream* pOStream);
 		virtual void OnError(std::ostream* pOStream);
 	protected:
+		sockaddr_in m_stRemoteAddr;
 	private:
 	};
 };

@@ -4,12 +4,16 @@
 
 #ifdef _WIN32
 #include <WinSock2.h>
+#ifndef macro_closesocket
 #define macro_closesocket closesocket
+#endif //macro_closesocket
 #else
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#ifndef macro_closesocket
 #define macro_closesocket close
+#endif //macro_closesocket
 #endif // _WIN32
 
 namespace FXNET
@@ -17,12 +21,13 @@ namespace FXNET
 	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
 	{
 		int dwError = 0;
-		memset(&m_oAddr, 0, sizeof(m_oAddr));
-		m_oAddr.sin_family = AF_INET;
+		sockaddr_in& refLocalAddr = GetLocalAddr();
+		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
+		refLocalAddr.sin_family = AF_INET;
 
-		if (szIp) { m_oAddr.sin_addr.s_addr = inet_addr(szIp); }
+		if (szIp) { refLocalAddr.sin_addr.s_addr = inet_addr(szIp); }
 
-		m_oAddr.sin_port = htons(wPort);
+		refLocalAddr.sin_port = htons(wPort);
 
 		// 创建socket
 #ifdef _WIN32
@@ -109,7 +114,7 @@ namespace FXNET
 		}
 
 		// bind
-		if (bind(NativeSocket(), (sockaddr*)&m_oAddr, sizeof(m_oAddr)))
+		if (bind(NativeSocket(), (sockaddr*)&refLocalAddr , sizeof(refLocalAddr)))
 		{
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
@@ -120,8 +125,8 @@ namespace FXNET
 #endif // _WIN32
 			if (pOStream)
 			{
-				(*pOStream) << "bind failed on (" << inet_ntoa(m_oAddr.sin_addr)
-					<< ", " << (int)ntohs(m_oAddr.sin_port) << ")(" << dwError << ") ["
+				(*pOStream) << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
+					<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ") ["
 					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
@@ -161,9 +166,11 @@ namespace FXNET
 	{
 	}
 
-	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address)
+	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream)
 	{
 		CUdpConnector* pUdpSock = new CUdpConnector;
+		pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream);
+
 		//Client* client = server.client_pool.Allocate();
 		//if (client == NULL)
 		//{
@@ -327,12 +334,12 @@ namespace FXNET
 		}
 
 		// bind
-		if (bind(hSock, (sockaddr*)&refSock.m_oAddr, sizeof(m_oAddr)))
+		if (bind(hSock, (sockaddr*)&refSock.m_stLocalAddr, sizeof(m_stLocalAddr)))
 		{
 			if (pOStream)
 			{
 				*pOStream << refSock.NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
-					<< inet_ntoa(refSock.m_oAddr.sin_addr) << ":" << (int)ntohs(refSock.m_oAddr.sin_port)
+					<< inet_ntoa(refSock.m_stLocalAddr.sin_addr) << ":" << (int)ntohs(refSock.m_stLocalAddr.sin_port)
 					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			}
 			macro_closesocket(hSock);
@@ -340,7 +347,7 @@ namespace FXNET
 		}
 
 		// send back
-		refSock.OnClientConnected(hSock, m_stRemoteAddr);
+		refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
 #else
 		for (;;)
 		{
@@ -431,12 +438,12 @@ namespace FXNET
 			}
 
 			// bind
-			if (bind(req->m_oAcceptSocket, (sockaddr*)&refSock.m_oAddr, sizeof(m_oAddr)))
+			if (bind(req->m_oAcceptSocket, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
 			{
 				if (pOStream)
 				{
 					*pOStream << refSock.NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
-						<< inet_ntoa(refSock.m_oAddr.sin_addr) << ":" << (int)ntohs(refSock.m_oAddr.sin_port)
+						<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 				}
 				macro_closesocket(req->m_oAcceptSocket);
@@ -448,7 +455,7 @@ namespace FXNET
 			refSock.AddAcceptReq(req);
 
 			// send back
-			refSock.OnClientConnected(req->m_oAcceptSocket, req->addr);
+			refSock.OnClientConnected(req->m_oAcceptSocket, req->addr, pOStream);
 		}
 
 		// temp remove accept req at here
