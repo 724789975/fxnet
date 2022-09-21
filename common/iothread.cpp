@@ -30,11 +30,11 @@ namespace FXNET
 #ifdef _WIN32
 		SYSTEMTIME st;
 		GetSystemTime(&st);
-		double m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+		m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
 #else
 		static struct timeval tv;
 		gettimeofday(&tv, NULL);
-		double m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+		m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
 #endif
 	}
 
@@ -264,6 +264,7 @@ namespace FXNET
 		}
 		epoll_event e;
 		e.events = dwEvents;
+		e.events |= EPOLLET;
 		e.data.ptr = poSock;
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, hSock, &e) < 0)
@@ -304,6 +305,7 @@ namespace FXNET
 
 		epoll_event e;
 		e.events = dwEvents;
+		e.events |= EPOLLET;
 		e.data.ptr = poSock;
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_MOD, hSock, &e) < 0)

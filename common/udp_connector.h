@@ -2,6 +2,7 @@
 #define __UDP_CONNECTOR_H__
 
 #include "udp_socket.h"
+#include "buff_contral.h"
 
 #ifndef _WIN32
 #include<netinet/in.h>
@@ -23,7 +24,7 @@ namespace FXNET
 			WSABUF m_stWsaBuff;
 			sockaddr_in m_stRemoteAddr;
 #endif // _WIN32
-			char m_szRecvBuff[UDP_RECV_WINDOW_BUFF_SIZE];
+			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
 		};
 
 		class IOErrorOperation : public IOOperationBase
@@ -54,9 +55,10 @@ namespace FXNET
 		virtual void OnError(std::ostream* pOStream);
 		void OnConnected(std::ostream* pOStream);
 	protected:
-		sockaddr_in m_stRemoteAddr;
 	private:
 		int Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
+		sockaddr_in m_stRemoteAddr;
+		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
 	};
 };
 

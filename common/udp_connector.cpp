@@ -19,6 +19,13 @@ namespace FXNET
 	ISocketBase& CUdpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
 		// TODO: 在此处插入 return 语句
+
+		//TODO 需要将数据放入窗口 暂时未添加
+		//m_oBuffContral.Send(NULL, 0, dTimedouble);
+
+		m_oBuffContral.SendMessages(dTimedouble);
+		m_oBuffContral.ReceiveMessages(dTimedouble);
+
 		return *this;
 	}
 

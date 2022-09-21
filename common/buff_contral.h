@@ -20,6 +20,57 @@
 
 namespace FXNET
 {
+	class OnRecvOperator
+	{
+	public:
+		/**
+		 * @brief 接收函数
+		 *
+		 * @param szBuff 接收的数据
+		 * @param dwSize 接收的长度
+		 * @return int 错误码
+		 */
+		virtual int operator() (char* szBuff, unsigned short wSize) = 0;
+	};
+
+	class OnConnectedOperator
+	{
+	public:
+		/**
+		 * @brief 连接处理
+		 *
+		 */
+		virtual int operator() () = 0;
+	};
+
+	class RecvOperator
+	{
+	public:
+		/**
+		 * @brief 接收函数
+		 *
+		 * @param pBuff 接收的数据
+		 * @param wBuffSize 接收缓冲区的长度
+		 * @param wRecvSize 接收的长度
+		 * @return int 错误码
+		 */
+		virtual int operator() (char* pBuff, unsigned short wBuffSize, int wRecvSize) = 0;
+	};
+
+	class SendOperator
+	{
+	public:
+		/**
+		 * @brief 发送处理函数
+		 *
+		 * @param szBuff 要发送的数据
+		 * @param wBufferSize 要发送的长度
+		 * @param wSendLen 发送长度
+		 * @return int 错误码
+		 */
+		virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen) = 0;
+	};
+
 	template <unsigned short BUFF_SIZE = 512, unsigned short WINDOW_SIZE = 32>
 	class BufferContral
 	{
@@ -37,6 +88,7 @@ namespace FXNET
 		int Init();
 
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
+		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
 
 		// TODO是否需要 不需要后面删掉
 		BufferContral& SetSendOperator(SendOperator* p);
@@ -62,6 +114,7 @@ namespace FXNET
 		_RecvWindow m_oRecvWindow;
 
 		OnRecvOperator* m_pOnRecvOperator;
+		OnConnectedOperator* m_pOnConnectedOperator;
 		RecvOperator* m_pRecvOperator;
 		SendOperator* m_pSendOperator;
 
@@ -148,6 +201,14 @@ namespace FXNET
 	{
 		m_pOnRecvOperator = p;
 
+		return *this;
+	}
+
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline  BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetOnConnectedOperator(OnConnectedOperator* p)
+	{
+		m_pOnConnectedOperator = p;
 		return *this;
 	}
 
@@ -309,14 +370,14 @@ namespace FXNET
 
 					// 获取缓存
 					unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
-					m_oSendWindow.m_btFreeBufferId = m_oSendWindow.buffer[btBufferId][0];
+					m_oSendWindow.m_btFreeBufferId = m_oSendWindow.m_btarrBuffer[btBufferId][0];
 					unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
 					// packet header
 					UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
 					oPacket.m_btStatus = m_dwStatus;
-					oPacket.m_btSyn = m_oSendWindow.end;
-					oPacket.m_btAck = m_oRecvWindow.begin - 1;
+					oPacket.m_btSyn = m_oSendWindow.m_btEnd;
+					oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
 					// 添加到发送窗口
 					m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(oPacket), dTime, m_dRetryTime);
@@ -329,7 +390,7 @@ namespace FXNET
 		if (m_oSendWindow.m_btpWaitSendBuff)
 		{
 			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
+			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
 			if (dwErrorCode)
 			{
 				//TODO 发送出错 断开连接
@@ -372,7 +433,7 @@ namespace FXNET
 					packet.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
 					unsigned short wLen = 0;
-					int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
+					int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
 					if (dwErrorCode)
 					{
 						if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
@@ -417,7 +478,6 @@ namespace FXNET
 			}
 		}
 
-
 		// send ack
 		if (!m_oSendWindow.m_btpWaitSendBuff && m_bSendAck)
 		{
@@ -429,7 +489,7 @@ namespace FXNET
 			m_oSendWindow.m_dwWaitSendSize = sizeof(m_oSendWindow.m_oSendAckPacket);
 
 			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pSendOperator)(m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
+			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
 			if (dwErrorCode)
 			{
 				//TODO 发送出错 断开连接
@@ -475,7 +535,7 @@ namespace FXNET
 			}
 
 			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pRecvOperator)(pBuffer, _RecvWindow::buff_size, wLen);
+			int dwErrorCode = (*m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, wLen);
 
 			if (dwErrorCode && (EAGAIN != dwErrorCode))
 			{
@@ -682,7 +742,7 @@ namespace FXNET
 			}
 
 			// 标记最后一个syn
-			m_btSynLast = m_oRecvWindow.begin - 1;
+			m_btSynLast = m_oRecvWindow.m_btBegin - 1;
 		}
 	}
 

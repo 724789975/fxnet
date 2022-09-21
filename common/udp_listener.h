@@ -36,7 +36,7 @@ namespace FXNET
 			WSABUF m_stWsaBuff;
 			sockaddr_in m_stRemoteAddr;
 #endif // _WIN32
-			char m_szRecvBuff[UDP_RECV_WINDOW_BUFF_SIZE];
+			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
 		};
 
 		class IOErrorOperation : public IOOperationBase
