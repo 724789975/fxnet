@@ -101,6 +101,7 @@ namespace FXNET
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
 		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
 
+		BufferContral& SetRecvOperator(RecvOperator* p);
 		// TODO是否需要 不需要后面删掉
 		BufferContral& SetSendOperator(SendOperator* p);
 
@@ -223,6 +224,14 @@ namespace FXNET
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetOnConnectedOperator(OnConnectedOperator* p)
 	{
 		m_pOnConnectedOperator = p;
+		return *this;
+	}
+
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetRecvOperator(RecvOperator* p)
+	{
+		m_pRecvOperator = p;
 		return *this;
 	}
 
@@ -775,6 +784,8 @@ namespace FXNET
 			// 标记最后一个syn
 			m_btSynLast = m_oRecvWindow.m_btBegin - 1;
 		}
+
+		return 0;
 	}
 
 } // namespace FXNET

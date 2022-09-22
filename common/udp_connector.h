@@ -34,6 +34,30 @@ namespace FXNET
 			virtual void operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
 		};
 
+		class UDPOnRecvOperator : public OnRecvOperator
+		{
+		public:
+			virtual int operator() (char* szBuff, unsigned short wSize);
+		};
+
+		class UDPOnConnectedOperator : public OnConnectedOperator
+		{
+		public:
+			virtual int operator() ();
+		};
+
+		class UDPRecvOperator : public RecvOperator
+		{
+		public:
+			virtual int operator() (char* pBuff, unsigned short wBuffSize, int wRecvSize);
+		};
+
+		class UDPSendOperator : public SendOperator
+		{
+		public:
+			virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen);
+		};
+
 		friend class IOReadOperation;
 		friend class IOErrorOperation;
 		friend class CUdpListener;
@@ -63,6 +87,11 @@ namespace FXNET
 	private:
 		int Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
 		sockaddr_in m_stRemoteAddr;
+
+		UDPOnRecvOperator m_funOnRecvOperator;
+		UDPOnConnectedOperator m_funOnConnectedOperator;
+		UDPRecvOperator m_funRecvOperator;
+		UDPSendOperator m_funSendOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
 	};
 };

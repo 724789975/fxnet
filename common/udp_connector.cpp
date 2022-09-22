@@ -16,35 +16,42 @@
 
 namespace FXNET
 {
-	CUdpConnector::CUdpConnector()
+	void CUdpConnector::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	{}
+
+	void CUdpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
 	{
-		class UDPOnRecvOperator : public OnRecvOperator
-		{
-		public:
-			virtual int operator() (char* szBuff, unsigned short wSize)
-			{}
-		};
+		delete this;
+		return;
+	}
 
-		class UDPOnConnectedOperator : public OnConnectedOperator
-		{
-		public:
-			virtual int operator() ()
-			{}
-		};
+	int CUdpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize)
+	{
+		return 0;
+	}
 
-		class UDPRecvOperator : public RecvOperator
-		{
-		public:
-			virtual int operator() (char* pBuff, unsigned short wBuffSize, int wRecvSize)
-			{}
-		};
+	int CUdpConnector::UDPOnConnectedOperator::operator()()
+	{
+		return 0;
+	}
 
-		class UDPSendOperator : public SendOperator
-		{
-		public:
-			virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen)
-			{}
-		};
+	int CUdpConnector::UDPRecvOperator::operator()(char* pBuff, unsigned short wBuffSize, int wRecvSize)
+	{
+		return 0;
+	}
+
+	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen)
+	{
+		return 0;
+	}
+
+	CUdpConnector::CUdpConnector()
+		: m_stRemoteAddr({0})
+	{
+		m_oBuffContral.SetOnRecvOperator(&m_funOnRecvOperator)
+			.SetOnConnectedOperator(&m_funOnConnectedOperator)
+			.SetRecvOperator(&m_funRecvOperator)
+			.SetSendOperator(&m_funSendOperator);
 	}
 
 	int CUdpConnector::Init(std::ostream* pOStream, int dwState)
@@ -274,12 +281,4 @@ namespace FXNET
 		return 0;
 	}
 
-	void CUdpConnector::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
-	{}
-
-	void CUdpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
-	{
-		delete this;
-		return;
-	}
 };
