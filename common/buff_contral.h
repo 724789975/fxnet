@@ -71,6 +71,17 @@ namespace FXNET
 		virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen) = 0;
 	};
 
+	enum ConnectionStatus
+	{
+		ST_IDLE,
+		ST_SYN_SEND,		//使用
+		ST_SYN_RECV,		//使用
+		ST_SYN_RECV_WAIT,
+		ST_ESTABLISHED,		//使用
+		ST_FIN_WAIT_1,
+		ST_FIN_WAIT_2,
+	};
+
 	template <unsigned short BUFF_SIZE = 512, unsigned short WINDOW_SIZE = 32>
 	class BufferContral
 	{
@@ -85,7 +96,7 @@ namespace FXNET
 		BufferContral();
 		~BufferContral();
 
-		int Init();
+		int Init(int dwState);
 
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
 		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
@@ -137,6 +148,7 @@ namespace FXNET
 		unsigned int m_dwNumPacketsSend;
 		unsigned int m_dwNumPacketsRetry;
 
+		bool m_bConnected;
 
 	private:
 		double m_dAckRecvTime;
@@ -161,9 +173,9 @@ namespace FXNET
 	{ }
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::Init()
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::Init(int dwState)
 	{
-		//status = ST_SYN_RECV;
+		m_dwStatus = dwState;
 		m_dDelayTime = 0;
 		m_dDelayAverage = 3 * m_dSendFrequency;
 		m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
@@ -192,6 +204,8 @@ namespace FXNET
 		// 初始化接收窗口
 		m_oRecvWindow.m_btBegin = 1;
 		m_oRecvWindow.m_btEnd = m_oRecvWindow.m_btBegin + _RecvWindow::window_size;
+
+		m_bConnected = false;
 		return 0;
 	}
 
@@ -574,6 +588,23 @@ namespace FXNET
 				pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 				m_oRecvWindow.m_btFreeBufferId = btBufferId;
 				break;
+			}
+			if (!m_bConnected)
+			{
+				if (wLen > (unsigned short)sizeof(UDPPacketHeader))
+				{
+					bRecvAble = false;
+					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+					m_oRecvWindow.m_btFreeBufferId = btBufferId;
+					break;
+				}
+				UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
+				m_dwStatus = ST_ESTABLISHED;
+				if (ST_ESTABLISHED == packet.m_btStatus)
+				{
+					(*m_pOnConnectedOperator)();
+					m_bConnected = true;
+				}
 			}
 
 			// num unsigned chars received

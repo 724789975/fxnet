@@ -16,6 +16,60 @@
 
 namespace FXNET
 {
+	CUdpConnector::CUdpConnector()
+	{
+		class UDPOnRecvOperator : public OnRecvOperator
+		{
+		public:
+			virtual int operator() (char* szBuff, unsigned short wSize)
+			{}
+		};
+
+		class UDPOnConnectedOperator : public OnConnectedOperator
+		{
+		public:
+			virtual int operator() ()
+			{}
+		};
+
+		class UDPRecvOperator : public RecvOperator
+		{
+		public:
+			virtual int operator() (char* pBuff, unsigned short wBuffSize, int wRecvSize)
+			{}
+		};
+
+		class UDPSendOperator : public SendOperator
+		{
+		public:
+			virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen)
+			{}
+		};
+	}
+
+	int CUdpConnector::Init(std::ostream* pOStream, int dwState)
+	{
+		if (m_oBuffContral.Init(dwState))
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+#ifdef _WIN32
+			int dwError = WSAGetLastError();
+#else // _WIN32
+			int dwError = errno;
+#endif // _WIN32
+
+			if (pOStream)
+			{
+				(*pOStream) << "register io failed" << " ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return 1;
+		}
+
+		return 0;
+	}
+
 	ISocketBase& CUdpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
 		// TODO: 在此处插入 return 语句
@@ -56,6 +110,18 @@ namespace FXNET
 				(*pOStream) << "client connect failed(" << dwError << ") ["
 					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			}
+		}
+
+		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_SEND))
+		{
+			if (pOStream)
+			{
+				(*pOStream) << "client connect failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+
+			//post 到iomodule 移除
+			return 1;
 		}
 
 		return 0;
@@ -203,23 +269,7 @@ namespace FXNET
 
 			return 1;
 		}
-		if (m_oBuffContral.Init())
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-#ifdef _WIN32
-			int dwError = WSAGetLastError();
-#else // _WIN32
-			int dwError = errno;
-#endif // _WIN32
-
-			if (pOStream)
-			{
-				(*pOStream) << "register io failed" << " ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-			return 1;
-		}
+	
 
 		return 0;
 	}

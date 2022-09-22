@@ -176,7 +176,23 @@ namespace FXNET
 				(*pOStream) << "client connect failed(" << dwError << ") ["
 					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			}
+
+			//post 到iomodule 移除
+			return *this;
 		}
+
+		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_RECV))
+		{
+			if (pOStream)
+			{
+				(*pOStream) << "client connect failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+
+			//post 到iomodule 移除
+			return *this;
+		}
+
 
 		return *this;
 	}

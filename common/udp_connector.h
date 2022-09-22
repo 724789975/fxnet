@@ -38,7 +38,12 @@ namespace FXNET
 		friend class IOErrorOperation;
 		friend class CUdpListener;
 
+		CUdpConnector();
+
 		virtual const char* Name()const { return "CUdpConnector"; }
+
+		int Init(std::ostream* pOStream, int dwState);
+
 		virtual ISocketBase& Update(double dTimedouble, std::ostream* pOStream);
 
 		sockaddr_in& GetRemoteAddr() { return m_stRemoteAddr; }
