@@ -791,3 +791,4 @@ namespace FXNET
 } // namespace FXNET
 
 #endif	//!__BUFF_CONTRAL_H__
+

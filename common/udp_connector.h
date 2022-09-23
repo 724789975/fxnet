@@ -43,7 +43,10 @@ namespace FXNET
 		class UDPOnConnectedOperator : public OnConnectedOperator
 		{
 		public:
+			UDPOnConnectedOperator(CUdpConnector& refUdpConnector);
 			virtual int operator() ();
+		private:
+			CUdpConnector& m_refUdpConnector;
 		};
 
 		class UDPRecvOperator : public RecvOperator

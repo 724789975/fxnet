@@ -14,10 +14,18 @@
 #endif //macro_closesocket
 #endif // _WIN32
 
+#include <iostream>
+
 namespace FXNET
 {
 	void CUdpConnector::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
-	{}
+	{
+		CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
+#ifdef _WIN32
+#else
+
+#endif // _WIN32
+	}
 
 	void CUdpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
 	{
@@ -27,11 +35,23 @@ namespace FXNET
 
 	int CUdpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize)
 	{
+#ifdef _WIN32
+#else
+
+#endif // _WIN32
+
+
 		return 0;
+	}
+
+	CUdpConnector::UDPOnConnectedOperator::UDPOnConnectedOperator(CUdpConnector& refUdpConnector)
+		: m_refUdpConnector(refUdpConnector)
+	{
 	}
 
 	int CUdpConnector::UDPOnConnectedOperator::operator()()
 	{
+		m_refUdpConnector.OnConnected(&std::cout);
 		return 0;
 	}
 
@@ -47,6 +67,7 @@ namespace FXNET
 
 	CUdpConnector::CUdpConnector()
 		: m_stRemoteAddr({0})
+		, m_funOnConnectedOperator(*this)
 	{
 		m_oBuffContral.SetOnRecvOperator(&m_funOnRecvOperator)
 			.SetOnConnectedOperator(&m_funOnConnectedOperator)
@@ -164,6 +185,10 @@ namespace FXNET
 	}
 
 	void CUdpConnector::OnError(std::ostream* pOStream)
+	{
+	}
+
+	void CUdpConnector::OnConnected(std::ostream* pOStream)
 	{
 	}
 
