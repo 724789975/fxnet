@@ -2,6 +2,7 @@
 #define __BUFF_CONTRAL_H__
 
 #include "include/sliding_window_def.h"
+#include "include/error_code.h"
 #include "sliding_window.h"
 #include "iothread.h"
 
