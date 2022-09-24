@@ -12,6 +12,7 @@ enum UserError
 	CODE_SUCCESS_BEGIN = 1 << 29 | FACILITY_BEGIN << 16,
 	//无缓存可读
 	CODE_SUCCESS_NO_BUFF_READ = 1 << 29 | FACILITY_NET << 16,
+	//断开连接
 	CODE_SUCCESS_NET_EOF,
 
 	CODE_SUCCESS_END = 1 << 29 | FACILITY_END << 16 | 15,
@@ -26,6 +27,7 @@ enum UserError
 
 	//错误
 	CODE_ERROR_BEGIN = 3 << 30 | 1 << 29 | FACILITY_BEGIN << 16,
+	//UDP滑动窗口没有buff了
 	CODE_ERROR_NET_UDP_ALLOC_BUFF = 3 << 30 | 1 << 29 | FACILITY_NET << 16,
 	CODE_ERROR_END = 3 << 30 | 1 << 29 | FACILITY_END << 16 | 15,
 };
