@@ -274,15 +274,9 @@ namespace FXNET
 	}
 #endif // _WIN32
 
-	void CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	int CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
-		class _
-		{
-		public:
-			_(CUdpListener::IOReadOperation* _p) : p(_p) {}
-			~_() { delete p; }
-			CUdpListener::IOReadOperation* p;
-		} t(this);
+		DELETE_WHEN_DESTRUCT(CUdpListener::IOReadOperation, this);
 
 		CUdpListener& refSock = (CUdpListener&) refSocketBase;
 
@@ -304,20 +298,20 @@ namespace FXNET
 		{
 			*pOStream << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
-			return;
+			return 0;
 		}
 
 		if (oUDPPacketHeader.m_btAck != 0)
 		{
 			*pOStream << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
-			return;
+			return 0;
 		}
 		if (oUDPPacketHeader.m_btSyn != 1)
 		{
 			*pOStream << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
-			return;
+			return 0;
 		}
 
 		NativeSocketType hSock = WSASocket(AF_INET
@@ -329,7 +323,7 @@ namespace FXNET
 				*pOStream << refSock.NativeSocket() << " create socket failed."
 					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
 			}
-			return;
+			return 0;
 		}
 
 		// set reuseaddr
@@ -342,7 +336,7 @@ namespace FXNET
 					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
 			}
 			macro_closesocket(hSock);
-			return;
+			return 0;
 		}
 
 		// bind
@@ -355,7 +349,7 @@ namespace FXNET
 					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			}
 			macro_closesocket(hSock);
-			return;
+			return 0;
 		}
 
 		// send back
@@ -484,13 +478,13 @@ namespace FXNET
 		}
 	
 #endif
-		return;
+		return 0;
 	}
 
-	void CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
+	int CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
 	{
 		delete this;
-		return;
+		return 0;
 	}
 
 };

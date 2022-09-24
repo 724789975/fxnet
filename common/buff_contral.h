@@ -23,6 +23,8 @@ namespace FXNET
 	class OnRecvOperator
 	{
 	public:
+		virtual ~OnRecvOperator() {};
+
 		/**
 		 * @brief 接收函数
 		 *
@@ -30,22 +32,24 @@ namespace FXNET
 		 * @param dwSize 接收的长度
 		 * @return int 错误码
 		 */
-		virtual int operator() (char* szBuff, unsigned short wSize) = 0;
+		virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* refOStream) = 0;
 	};
 
 	class OnConnectedOperator
 	{
 	public:
+		virtual ~OnConnectedOperator() {};
 		/**
 		 * @brief 连接处理
 		 *
 		 */
-		virtual int operator() () = 0;
+		virtual int operator() (std::ostream* refOStream) = 0;
 	};
 
 	class RecvOperator
 	{
 	public:
+		virtual ~RecvOperator() {};
 		/**
 		 * @brief 接收函数
 		 *
@@ -54,12 +58,13 @@ namespace FXNET
 		 * @param wRecvSize 接收的长度
 		 * @return int 错误码
 		 */
-		virtual int operator() (char* pBuff, unsigned short wBuffSize, int wRecvSize) = 0;
+		virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* refOStream) = 0;
 	};
 
 	class SendOperator
 	{
 	public:
+		virtual ~SendOperator() {};
 		/**
 		 * @brief 发送处理函数
 		 *
@@ -68,7 +73,7 @@ namespace FXNET
 		 * @param wSendLen 发送长度
 		 * @return int 错误码
 		 */
-		virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen) = 0;
+		virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen, std::ostream* refOStream) = 0;
 	};
 
 	enum ConnectionStatus
@@ -117,9 +122,9 @@ namespace FXNET
 		unsigned short Send(const char* pSendBuffer, unsigned short wSize, double dTime);
 
 		//TCP不需要?
-		int SendMessages(double dTime);
+		int SendMessages(double dTime, std::ostream* pOStream);
 
-		int ReceiveMessages(double dTime);
+		int ReceiveMessages(double dTime, std::ostream* refOStream);
 		
 	private:
 		_SendWindow m_oSendWindow;
@@ -182,7 +187,7 @@ namespace FXNET
 		m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
 		m_dSendTime = 0;
 
-		m_dAckRecvTime = FxIoModule::Instance()->GetCurrentTime();
+		m_dAckRecvTime = FxIoModule::Instance()->FxGetCurrentTime();
 		m_dwAckTimeoutRetry = 1;
 		m_dwAckSameCount = 0;
 		m_bQuickRetry = false;
@@ -299,7 +304,7 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages(double dTime)
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages(double dTime, std::ostream* pOStream)
 	{
 		// check ack received time
 		if (dTime - m_dAckRecvTime > m_dAckOutTime)
@@ -413,7 +418,7 @@ namespace FXNET
 		if (m_oSendWindow.m_btpWaitSendBuff)
 		{
 			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
+			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen, pOStream);
 			if (dwErrorCode)
 			{
 				//TODO 发送出错 断开连接
@@ -456,7 +461,7 @@ namespace FXNET
 					packet.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
 					unsigned short wLen = 0;
-					int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
+					int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen, pOStream);
 					if (dwErrorCode)
 					{
 						if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
@@ -512,7 +517,7 @@ namespace FXNET
 			m_oSendWindow.m_dwWaitSendSize = sizeof(m_oSendWindow.m_oSendAckPacket);
 
 			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen);
+			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen, pOStream);
 			if (dwErrorCode)
 			{
 				//TODO 发送出错 断开连接
@@ -536,7 +541,7 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime)
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime, std::ostream* pOStream)
 	{
 		// packet received
 		bool bPacketReceived = false;
@@ -553,12 +558,11 @@ namespace FXNET
 			// can't allocate buffer, disconnect.
 			if (btBufferId >= m_oRecvWindow.window_size)
 			{
-				//TODO
-				return 1;
+				return CODE_ERROR_NET_UDP_ALLOC_BUFF;
 			}
 
-			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, wLen);
+			int dwLen = 0;
+			int dwErrorCode = (*m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, dwLen, pOStream);
 
 			if (dwErrorCode && (EAGAIN != dwErrorCode))
 			{
@@ -570,10 +574,10 @@ namespace FXNET
 				}
 
 #ifdef _WIN32
-				if (WSA_IO_PENDING == dwErrorCode)
+				if (WSA_IO_PENDING == dwErrorCode || CODE_SUCCESS_NO_BUFF_READ == dwErrorCode)
 #else
 				if (EAGAIN == dwErrorCode || EWOULDBLOCK == dwErrorCode)
-#endif	//_WIN32	
+#endif	//_WIN32
 				{
 					bRecvAble = false;
 					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
@@ -581,26 +585,19 @@ namespace FXNET
 					break;
 				}
 
-				//TODO
 				return dwErrorCode;
 			}
 
-			if (0 == wLen)
-			{
-				//TODO
-				return 0;
-			}
-
-			if (wLen < (unsigned short)sizeof(UDPPacketHeader))
+			if (dwLen < (unsigned short)sizeof(UDPPacketHeader))
 			{
 				bRecvAble = false;
 				pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 				m_oRecvWindow.m_btFreeBufferId = btBufferId;
-				break;
+				continue;
 			}
 			if (!m_bConnected)
 			{
-				if (wLen > (unsigned short)sizeof(UDPPacketHeader))
+				if (dwLen > (unsigned short)sizeof(UDPPacketHeader))
 				{
 					bRecvAble = false;
 					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
@@ -611,13 +608,13 @@ namespace FXNET
 				m_dwStatus = ST_ESTABLISHED;
 				if (ST_ESTABLISHED == packet.m_btStatus)
 				{
-					(*m_pOnConnectedOperator)();
+					(*m_pOnConnectedOperator)(pOStream);
 					m_bConnected = true;
 				}
 			}
 
 			// num unsigned chars received
-			m_dwNumBytesReceived += wLen + 28;
+			m_dwNumBytesReceived += dwLen + 28;
 
 			// packet header
 			UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
@@ -710,7 +707,7 @@ namespace FXNET
 				if (m_oRecvWindow.m_btarrSeqBufferId[btId] >= _RecvWindow::window_size)
 				{
 					m_oRecvWindow.m_btarrSeqBufferId[btId] = btBufferId;
-					m_oRecvWindow.m_warrSeqSize[btId] = wLen;
+					m_oRecvWindow.m_warrSeqSize[btId] = dwLen;
 					bPacketReceived = true;
 
 					// 没有更多的接收缓冲 那么先处理接收
@@ -757,7 +754,7 @@ namespace FXNET
 					unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
 					unsigned short wSize = m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
 
-					if ((*m_pOnRecvOperator)((char*)pBuffer, wSize))
+					if ((*m_pOnRecvOperator)((char*)pBuffer, wSize, pOStream))
 					{
 						//TODO
 						break;

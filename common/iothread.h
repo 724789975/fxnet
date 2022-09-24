@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #ifdef _WIN32
 #else
 #include <sys/epoll.h>
@@ -46,7 +47,7 @@ namespace FXNET
 		bool					Init(std::ostream* pOStream);
 		void					Uninit();
 
-		double					GetCurrentTime();
+		double					FxGetCurrentTime();
 
 #ifdef _WIN32
 		// win下为完成端口 linux下为epoll
@@ -83,6 +84,8 @@ namespace FXNET
 		//最后一次更新的时间
 		double					m_dCurrentTime;
 		double					m_dLoatUpdateTime;
+
+		std::map<ISocketBase::NativeSocketType, ISocketBase*> m_mapSockets;
 	};
 
 };

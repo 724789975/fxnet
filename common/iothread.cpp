@@ -192,7 +192,7 @@ namespace FXNET
 #endif // _WIN32
 	}
 
-	double FxIoModule::GetCurrentTime()
+	double FxIoModule::FxGetCurrentTime()
 	{
 		return m_dCurrentTime;
 	}
@@ -431,7 +431,13 @@ namespace FXNET
 		while (bRet = GetQueuedCompletionStatus(GetHandle(), &dwByteTransferred
 			, (PULONG_PTR)&poSock, (LPOVERLAPPED*)&pstPerIoData, dwTimeOut))
 		{
-			if (poSock) { (*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream); }
+			if (poSock)
+			{
+				if (int dwError = (*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream))
+				{
+					poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
+				}
+			}
 			else {(*(EventBase*)(pstPerIoData))();}
 
 			pstPerIoData = NULL;
@@ -504,8 +510,20 @@ namespace FXNET
 			}
 			else
 			{
-				if (pEvent->events & EPOLLOUT) { poSock->NewWriteOperation()(*poSock, 0, pOStream); }
-				if (pEvent->events & EPOLLIN) { poSock->NewReadOperation()(*poSock, 0, pOStream); }
+				if (pEvent->events & EPOLLOUT)
+				{
+					if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
+					{
+						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
+					}
+				}
+				if (pEvent->events & EPOLLIN)
+				{
+					if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
+					{
+						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
+					}
+				}
 			}
 		}
 #endif // _WIN32

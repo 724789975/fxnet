@@ -17,6 +17,18 @@
 #pragma comment(lib,"ws2_32.lib")
 #endif //_WIN32
 
+//#define 
+
+#define DELETE_WHEN_DESTRUCT(CLASS_NAME, __point)\
+class _\
+{\
+public:\
+	_(CLASS_NAME* _p) : p(_p) {}\
+	~_() { delete p; }\
+	CLASS_NAME* p;\
+}____(__point);\
+
+
 namespace FXNET
 {
 
@@ -33,6 +45,7 @@ namespace FXNET
 		typedef int NativeSocketType;
 #endif //_WIN32
 
+		virtual ~ISocketBase() {}
 		virtual const char* Name()const { return "CSocketBase"; }
 		virtual ISocketBase& Update(double dTime, std::ostream* POStream) = 0;
 
@@ -44,6 +57,7 @@ namespace FXNET
 
 		virtual IOOperationBase& NewReadOperation() = 0;
 		virtual IOOperationBase& NewWriteOperation() = 0;
+		//error operation调用之后 socket相关结构会被析构
 		virtual IOOperationBase& NewErrorOperation(int dwError) = 0;
 
 		virtual void OnRead(std::ostream* refOStream) = 0;
@@ -53,11 +67,12 @@ namespace FXNET
 		NativeHandleType m_hNativeHandle;
 		sockaddr_in m_stLocalAddr;
 
+#ifdef _WIN32
+#else
 		//linux下et模式 需要表示是否刻度可写
-#ifndef _WIN32
 		bool bReadable;
 		bool bWritable;
-#endif
+#endif // _WIN32
 	private:
 	};
 
@@ -69,7 +84,7 @@ namespace FXNET
 	public:
 		IOOperationBase() : m_dwError(0) {}
 		virtual ~IOOperationBase() {}
-		virtual void operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream) = 0;
+		virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream) = 0;
 
 		int m_dwError;
 	protected:

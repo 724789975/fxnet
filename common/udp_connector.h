@@ -9,6 +9,8 @@
 #include<arpa/inet.h>
 #endif //_WIN32
 
+#include <set>
+
 namespace FXNET
 {
 	class CUdpConnector : public CUdpSocket
@@ -18,11 +20,12 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpConnector;
-			virtual void operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
 		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
 			sockaddr_in m_stRemoteAddr;
+			unsigned int m_dwLen;
 #endif // _WIN32
 			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
 		};
@@ -31,20 +34,23 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpConnector;
-			virtual void operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
 		};
 
 		class UDPOnRecvOperator : public OnRecvOperator
 		{
 		public:
-			virtual int operator() (char* szBuff, unsigned short wSize);
+			UDPOnRecvOperator(CUdpConnector& refUdpConnector);
+			virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* refOStream);
+		private:
+			CUdpConnector& m_refUdpConnector;
 		};
 
 		class UDPOnConnectedOperator : public OnConnectedOperator
 		{
 		public:
 			UDPOnConnectedOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() ();
+			virtual int operator() (std::ostream* refOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -52,13 +58,28 @@ namespace FXNET
 		class UDPRecvOperator : public RecvOperator
 		{
 		public:
-			virtual int operator() (char* pBuff, unsigned short wBuffSize, int wRecvSize);
+			UDPRecvOperator(CUdpConnector& refUdpConnector);
+			virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* refOStream);
+
+#ifdef _WIN32
+			UDPRecvOperator& SetIOReadOperation(IOReadOperation* pReadOperation);
+#endif // _WIN32
+
+		private:
+#ifdef _WIN32
+			IOReadOperation* m_pReadOperation;
+#endif // _WIN32
+
+			CUdpConnector& m_refUdpConnector;
 		};
 
 		class UDPSendOperator : public SendOperator
 		{
 		public:
-			virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen);
+			UDPSendOperator(CUdpConnector& refUdpConnector);
+			virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen, std::ostream* refOStream);
+		private:
+			CUdpConnector& m_refUdpConnector;
 		};
 
 		friend class IOReadOperation;
@@ -66,6 +87,8 @@ namespace FXNET
 		friend class CUdpListener;
 
 		CUdpConnector();
+		~CUdpConnector();
+		
 
 		virtual const char* Name()const { return "CUdpConnector"; }
 
@@ -96,6 +119,13 @@ namespace FXNET
 		UDPRecvOperator m_funRecvOperator;
 		UDPSendOperator m_funSendOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
+
+#ifdef _WIN32
+		//windows下 如果删除了事件 会有内存泄露
+		//因此需要将产生的事件记录记录下来 用于删除
+		//error不需要 error为手动产生
+		std::set<IOOperationBase*> m_setIOOperations;
+#endif // _WIN32
 	};
 };
 
