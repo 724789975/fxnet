@@ -70,8 +70,8 @@ namespace FXNET
 #ifdef _WIN32
 #else
 		//linux下et模式 需要表示是否刻度可写
-		bool bReadable;
-		bool bWritable;
+		bool m_bReadable;
+		bool m_bWritable;
 #endif // _WIN32
 	private:
 	};

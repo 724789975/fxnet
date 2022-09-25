@@ -28,10 +28,12 @@ namespace FXNET
 #ifdef _WIN32
 		m_dwLen = dwLen;
 		refConnector.m_funRecvOperator.SetIOReadOperation(this);
+		bool bReadable = true;
 #else
-		refConnector.bReadable = true;
+		refConnector.m_bReadable = true;
+		bool& bReadable = refConnector.m_bReadable;
 #endif // _WIN32
-		if (int dwError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream))
+		if (int dwError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
 		{
 			//此处有报错
 			if (pOStream)
@@ -74,13 +76,10 @@ namespace FXNET
 	}
 
 	CUdpConnector::UDPRecvOperator::UDPRecvOperator(CUdpConnector& refUdpConnector)
+		: m_refUdpConnector(refUdpConnector)
 #ifdef _WIN32
-		: m_pReadOperation(NULL)
-		,
-#else
-		:
+		, m_pReadOperation(NULL)
 #endif // _WIN32
-		m_refUdpConnector(refUdpConnector)
 	{
 	}
 
@@ -112,6 +111,7 @@ namespace FXNET
 
 		if (0 > wRecvSize)
 		{
+			m_bReadable = false;
 			return errno;
 		}
 #endif // _WIN32
@@ -130,11 +130,20 @@ namespace FXNET
 	CUdpConnector::UDPSendOperator::UDPSendOperator(CUdpConnector& refUdpConnector)
 		: m_refUdpConnector(refUdpConnector)
 	{
-
 	}
 
-	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen, std::ostream* refOStream)
+	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream)
 	{
+
+#ifdef _WIN32
+		m_refUdpConnector.NewWriteOperation();
+#else
+		dwSendLen = send(m_refUdpConnector.NativeSocket(), szBuff, wBufferSize, 0);
+		if (0 < dwSendLen)
+		{
+			return errno;
+		}
+#endif // _WIN32
 		return 0;
 	}
 
@@ -153,7 +162,6 @@ namespace FXNET
 
 	CUdpConnector::~CUdpConnector()
 	{
-		std::set<IOOperationBase*> m_setIOOperations;
 		for (std::set<IOOperationBase*>::iterator it = m_setIOOperations.begin();
 			it != m_setIOOperations.end(); ++it)
 		{
@@ -193,7 +201,13 @@ namespace FXNET
 		//m_oBuffContral.Send(NULL, 0, dTimedouble);
 
 		m_oBuffContral.SendMessages(dTimedouble, pOStream);
-		m_oBuffContral.ReceiveMessages(dTimedouble, pOStream);
+	
+#ifdef _WIN32
+		bool bReadable = true;
+#else
+		bool& bReadable = refConnector.m_bReadable;
+#endif // _WIN32
+		m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream);
 
 		return *this;
 	}

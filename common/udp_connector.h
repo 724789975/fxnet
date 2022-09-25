@@ -30,6 +30,18 @@ namespace FXNET
 			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
 		};
 
+		class IOWriteOperation : public IOOperationBase
+		{
+		public:
+			friend class CUdpConnector;
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+		private:
+#ifdef _WIN32
+			WSABUF m_stWsaBuff;
+			sockaddr_in m_stRemoteAddr;
+#endif // _WIN32
+		};
+
 		class IOErrorOperation : public IOOperationBase
 		{
 		public:
@@ -66,18 +78,17 @@ namespace FXNET
 #endif // _WIN32
 
 		private:
+			CUdpConnector& m_refUdpConnector;
 #ifdef _WIN32
 			IOReadOperation* m_pReadOperation;
 #endif // _WIN32
-
-			CUdpConnector& m_refUdpConnector;
 		};
 
 		class UDPSendOperator : public SendOperator
 		{
 		public:
 			UDPSendOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen, std::ostream* refOStream);
+			virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};

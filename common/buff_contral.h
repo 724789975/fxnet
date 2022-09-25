@@ -74,7 +74,7 @@ namespace FXNET
 		 * @param wSendLen 发送长度
 		 * @return int 错误码
 		 */
-		virtual int operator() (char* szBuff, unsigned short wBufferSize, unsigned short& wSendLen, std::ostream* refOStream) = 0;
+		virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream) = 0;
 	};
 
 	enum ConnectionStatus
@@ -125,7 +125,7 @@ namespace FXNET
 		//TCP不需要?
 		int SendMessages(double dTime, std::ostream* pOStream);
 
-		int ReceiveMessages(double dTime, std::ostream* refOStream);
+		int ReceiveMessages(double dTime, bool& refbReadable, std::ostream* refOStream);
 		
 	private:
 		_SendWindow m_oSendWindow;
@@ -418,22 +418,22 @@ namespace FXNET
 		//如果有待发送数据 那么 先发送待发送数据
 		if (m_oSendWindow.m_btpWaitSendBuff)
 		{
-			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen, pOStream);
+			int dwLen = 0;
+			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
 			if (dwErrorCode)
 			{
-				//TODO 发送出错 断开连接
+				//发送出错 断开连接
 				return dwErrorCode;
 			}
 			else
 			{
-				m_oSendWindow.m_btpWaitSendBuff += wLen;
-				m_oSendWindow.m_dwWaitSendSize -= wLen;
+				m_oSendWindow.m_btpWaitSendBuff += dwLen;
+				m_oSendWindow.m_dwWaitSendSize -= dwLen;
 				if (0 == m_oSendWindow.m_dwWaitSendSize)
 				{
 					m_oSendWindow.m_btpWaitSendBuff = NULL;
 				}
-				m_dwNumBytesSend += wLen;
+				m_dwNumBytesSend += dwLen;
 			}
 		}
 		//如果待发送数据已发 那么就继续发送
@@ -461,8 +461,8 @@ namespace FXNET
 					packet.m_btSyn = i;
 					packet.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
-					unsigned short wLen = 0;
-					int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen, pOStream);
+					int dwLen = 0;
+					int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
 					if (dwErrorCode)
 					{
 						if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
@@ -474,8 +474,8 @@ namespace FXNET
 					}
 					else
 					{
-						m_oSendWindow.m_btpWaitSendBuff = pBuffer + wLen;
-						m_oSendWindow.m_dwWaitSendSize = wSize - wLen;
+						m_oSendWindow.m_btpWaitSendBuff = pBuffer + dwLen;
+						m_oSendWindow.m_dwWaitSendSize = wSize - dwLen;
 						if (0 == m_oSendWindow.m_dwWaitSendSize)
 						{
 							m_oSendWindow.m_btpWaitSendBuff = NULL;
@@ -485,7 +485,7 @@ namespace FXNET
 							//等待下次发送
 							break;
 						}
-						m_dwNumBytesSend += wLen;
+						m_dwNumBytesSend += dwLen;
 					}
 
 					// 发送包数量
@@ -517,8 +517,8 @@ namespace FXNET
 			m_oSendWindow.m_btpWaitSendBuff = (unsigned char*)(&m_oSendWindow.m_oSendAckPacket);
 			m_oSendWindow.m_dwWaitSendSize = sizeof(m_oSendWindow.m_oSendAckPacket);
 
-			unsigned short wLen = 0;
-			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, wLen, pOStream);
+			int dwLen = 0;
+			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
 			if (dwErrorCode)
 			{
 				//TODO 发送出错 断开连接
@@ -526,8 +526,8 @@ namespace FXNET
 			}
 			else
 			{
-				m_oSendWindow.m_btpWaitSendBuff += wLen;
-				m_oSendWindow.m_dwWaitSendSize -= wLen;
+				m_oSendWindow.m_btpWaitSendBuff += dwLen;
+				m_oSendWindow.m_dwWaitSendSize -= dwLen;
 				if (0 == m_oSendWindow.m_dwWaitSendSize)
 				{
 					m_oSendWindow.m_btpWaitSendBuff = NULL;
@@ -542,14 +542,13 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime, std::ostream* pOStream)
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream)
 	{
 		// packet received
 		bool bPacketReceived = false;
 		bool bCloseConnection = false;
 
-		bool bRecvAble = true;
-		while (bRecvAble)
+		while (refbReadable)
 		{
 			// allocate buffer
 			unsigned char btBufferId = m_oRecvWindow.m_btFreeBufferId;
@@ -580,7 +579,7 @@ namespace FXNET
 				if (EAGAIN == dwErrorCode || EWOULDBLOCK == dwErrorCode)
 #endif	//_WIN32
 				{
-					bRecvAble = false;
+					refbReadable = false;
 					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 					m_oRecvWindow.m_btFreeBufferId = btBufferId;
 					break;
@@ -591,7 +590,7 @@ namespace FXNET
 
 			if (dwLen < (unsigned short)sizeof(UDPPacketHeader))
 			{
-				bRecvAble = false;
+				refbReadable = false;
 				pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 				m_oRecvWindow.m_btFreeBufferId = btBufferId;
 				continue;
@@ -600,7 +599,7 @@ namespace FXNET
 			{
 				if (dwLen > (unsigned short)sizeof(UDPPacketHeader))
 				{
-					bRecvAble = false;
+					refbReadable = false;
 					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 					m_oRecvWindow.m_btFreeBufferId = btBufferId;
 					break;
