@@ -113,8 +113,14 @@ namespace FXNET
 		int Connect(sockaddr_in address, std::ostream* pOStream);
 
 		virtual IOReadOperation& NewReadOperation();
-		virtual IOOperationBase& NewWriteOperation();
-		virtual IOOperationBase& NewErrorOperation(int dwError);
+		virtual IOWriteOperation& NewWriteOperation();
+		virtual IOErrorOperation& NewErrorOperation(int dwError);
+
+#ifdef _WIN32
+		CUdpConnector& PostRecv(std::ostream* pOStream);
+		CUdpConnector& PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
+#endif // _WIN32
+
 
 		virtual void OnRead(std::ostream* refOStream);
 		virtual void OnWrite(std::ostream* pOStream);

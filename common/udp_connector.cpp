@@ -26,6 +26,7 @@ namespace FXNET
 
 		CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
 #ifdef _WIN32
+		refConnector.m_setIOOperations.erase(this);
 		m_dwLen = dwLen;
 		refConnector.m_funRecvOperator.SetIOReadOperation(this);
 		bool bReadable = true;
@@ -45,6 +46,13 @@ namespace FXNET
 			return dwError;
 		}
 
+		return 0;
+	}
+
+	int CUdpConnector::IOWriteOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
+	{
+		DELETE_WHEN_DESTRUCT(CUdpConnector::IOWriteOperation, this);
+		//TODO
 		return 0;
 	}
 
@@ -132,15 +140,20 @@ namespace FXNET
 	{
 	}
 
-	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream)
+	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
 	{
 
 #ifdef _WIN32
-		m_refUdpConnector.NewWriteOperation();
+		m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
 #else
 		dwSendLen = send(m_refUdpConnector.NativeSocket(), szBuff, wBufferSize, 0);
 		if (0 < dwSendLen)
 		{
+			if (pOStream)
+			{
+				(*pOStream) << "UDPSendOperator failed " << errno 
+					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 			return errno;
 		}
 #endif // _WIN32
@@ -267,22 +280,71 @@ namespace FXNET
 		return t;
 	}
 
-	IOOperationBase& CUdpConnector::NewWriteOperation()
+	CUdpConnector::IOWriteOperation& CUdpConnector::NewWriteOperation()
 	{
 		// TODO: 在此处插入 return 语句
-		CUdpConnector::IOReadOperation t;
+		CUdpConnector::IOWriteOperation t;
 #ifdef _WIN32
 		m_setIOOperations.insert(&t);
 #endif // _WIN32
 		return t;
 	}
 
-	IOOperationBase& CUdpConnector::NewErrorOperation(int dwError)
+	CUdpConnector::IOErrorOperation& CUdpConnector::NewErrorOperation(int dwError)
 	{
 		// TODO: 在此处插入 return 语句
-		CUdpConnector::IOReadOperation t;
+		CUdpConnector::IOErrorOperation t;
 		return t;
 	}
+
+#ifdef _WIN32
+	CUdpConnector& CUdpConnector::PostRecv(std::ostream* pOStream)
+	{
+		IOReadOperation& refIOReadOperation = NewReadOperation();
+
+		DWORD dwReadLen = 0;
+		DWORD dwFlags = 0;
+
+		if (SOCKET_ERROR == WSARecv(NativeSocket(), &refIOReadOperation.m_stWsaBuff
+			, 1, &dwReadLen, &dwFlags, &refIOReadOperation, NULL))
+		{
+			if (pOStream)
+			{
+				*pOStream << "PostRecv failed." << NativeSocket() << ", " << WSAGetLastError()
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+			}
+		}
+
+		return *this;
+	}
+
+	CUdpConnector& CUdpConnector::PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream)
+	{
+		IOWriteOperation& refIOWriteOperation = NewWriteOperation();
+		refIOWriteOperation.m_stWsaBuff.buf = pBuff;
+		refIOWriteOperation.m_stWsaBuff.len = wLen;
+
+		DWORD dwWriteLen = 0;
+		DWORD dwFlags = 0;
+
+		if (SOCKET_ERROR == WSASend(NativeSocket(), &refIOWriteOperation.m_stWsaBuff
+			, 1, &dwWriteLen, dwFlags, &refIOWriteOperation, NULL))
+		{
+			if (WSA_IO_PENDING != WSAGetLastError())
+			{
+				if (pOStream)
+				{
+					*pOStream << "PostRecv failed." << NativeSocket() << ", " << WSAGetLastError()
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+				}
+				delete &refIOWriteOperation;
+			}
+		}
+
+		return *this;
+	}
+
+#endif // _WIN32
 
 	void CUdpConnector::OnRead(std::ostream* refOStream)
 	{

@@ -200,15 +200,15 @@ namespace FXNET
 #ifdef _WIN32
 	int CUdpListener::PostAccept(std::ostream* pOStream)
 	{
-		IOReadOperation& refPeration = NewReadOperation();
+		IOReadOperation& refOperation = NewReadOperation();
 
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;
 
-		int dwSockAddr = sizeof(refPeration.m_stRemoteAddr);
+		int dwSockAddr = sizeof(refOperation.m_stRemoteAddr);
 
-		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refPeration.m_stWsaBuff, 1, &dwReadLen
-			, &dwFlags, (sockaddr*)(&refPeration.m_stRemoteAddr), &dwSockAddr, &refPeration, NULL))
+		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refOperation.m_stWsaBuff, 1, &dwReadLen
+			, &dwFlags, (sockaddr*)(&refOperation.m_stRemoteAddr), &dwSockAddr, &refOperation, NULL))
 		{
 			int dwError = WSAGetLastError();
 			if (dwError != WSA_IO_PENDING)
