@@ -118,7 +118,7 @@ namespace FXNET
 
 #ifdef _WIN32
 		CUdpConnector& PostRecv(std::ostream* pOStream);
-		CUdpConnector& PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
+		int PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
 #endif // _WIN32
 
 

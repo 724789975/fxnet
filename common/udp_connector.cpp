@@ -142,9 +142,8 @@ namespace FXNET
 
 	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
 	{
-
 #ifdef _WIN32
-		m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
+		return m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
 #else
 		dwSendLen = send(m_refUdpConnector.NativeSocket(), szBuff, wBufferSize, 0);
 		if (0 < dwSendLen)
@@ -318,7 +317,7 @@ namespace FXNET
 		return *this;
 	}
 
-	CUdpConnector& CUdpConnector::PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream)
+	int CUdpConnector::PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream)
 	{
 		IOWriteOperation& refIOWriteOperation = NewWriteOperation();
 		refIOWriteOperation.m_stWsaBuff.buf = pBuff;
@@ -339,9 +338,11 @@ namespace FXNET
 				}
 				delete &refIOWriteOperation;
 			}
+
+			return WSAGetLastError();
 		}
 
-		return *this;
+		return 0;
 	}
 
 #endif // _WIN32
