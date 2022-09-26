@@ -77,6 +77,15 @@ namespace FXNET
 		virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream) = 0;
 	};
 
+	class ReadStreamOperator
+	{
+	public:
+		virtual ~ReadStreamOperator() {};
+		virtual int operator() () = 0;
+	protected:
+	private:
+	};
+
 	enum ConnectionStatus
 	{
 		ST_IDLE,
@@ -106,10 +115,10 @@ namespace FXNET
 
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
 		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
-
 		BufferContral& SetRecvOperator(RecvOperator* p);
 		// TODO是否需要 不需要后面删掉
 		BufferContral& SetSendOperator(SendOperator* p);
+		BufferContral& SetReadStreamOperator(ReadStreamOperator* p);
 
 		BufferContral& SetAckOutTime(double dOutTime);
 
@@ -135,6 +144,7 @@ namespace FXNET
 		OnConnectedOperator* m_pOnConnectedOperator;
 		RecvOperator* m_pRecvOperator;
 		SendOperator* m_pSendOperator;
+		ReadStreamOperator* m_pReadStreamOperator;
 
 		// bytes send and recieved
 		unsigned int m_dwNumBytesSend;
@@ -221,7 +231,6 @@ namespace FXNET
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetOnRecvOperator(OnRecvOperator* p)
 	{
 		m_pOnRecvOperator = p;
-
 		return *this;
 	}
 
@@ -246,7 +255,14 @@ namespace FXNET
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetSendOperator(SendOperator* p)
 	{
 		m_pSendOperator = p;
+		return *this;
+	}
 
+	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetReadStreamOperator(ReadStreamOperator* p)
+	{
+		m_pReadStreamOperator = p;
 		return *this;
 	}
 
@@ -291,7 +307,7 @@ namespace FXNET
 
 			if (dwCopySize > 0)
 			{
-				memcpy((void*)(pBuffer + dwCopyOffset), pSendBuffer, dwCopySize);
+				memcpy((void*)(pBuffer + dwCopyOffset), pSendBuffer + wSendSize, dwCopySize);
 
 				wSize -= dwCopySize;
 				wSendSize += dwCopySize;
@@ -322,11 +338,11 @@ namespace FXNET
 
 		if (dTime < m_dSendTime) { return 0; }
 
-		// if (m_dwStatus == ST_SYN_RECV) {return 0;}
+		if (m_dwStatus == ST_SYN_RECV) {return 0;}
 
 		bool bForceRetry = false;
 
-		// if (m_dwStatus == ST_ESTABLISHED)
+		if (m_dwStatus == ST_ESTABLISHED)
 		{
 			//3次相同ack 开始快速重传
 			if (m_dwAckSameCount > 3)
@@ -386,6 +402,7 @@ namespace FXNET
 				}
 			}
 
+			(* m_pReadStreamOperator)();
 		}
 
 		//没有数据发送 那么创建一个空的 用来同步窗口数据
@@ -422,7 +439,7 @@ namespace FXNET
 			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
 			if (dwErrorCode)
 			{
-				//发送出错 断开连接
+				//发送出错(可能是正常错误 不一定需要断开)
 				return dwErrorCode;
 			}
 			else

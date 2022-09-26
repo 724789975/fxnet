@@ -20,7 +20,7 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpConnector;
-			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
@@ -34,7 +34,7 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpConnector;
-			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
@@ -93,6 +93,15 @@ namespace FXNET
 			CUdpConnector& m_refUdpConnector;
 		};
 
+		class UDPReadStreamOperator : public ReadStreamOperator
+		{
+		public:
+			UDPReadStreamOperator(CUdpConnector& refUdpConnector);
+			virtual int operator() ();
+		private:
+			CUdpConnector& m_refUdpConnector;
+		};
+
 		friend class IOReadOperation;
 		friend class IOErrorOperation;
 		friend class CUdpListener;
@@ -135,6 +144,7 @@ namespace FXNET
 		UDPOnConnectedOperator m_funOnConnectedOperator;
 		UDPRecvOperator m_funRecvOperator;
 		UDPSendOperator m_funSendOperator;
+		UDPReadStreamOperator m_funReadStreamOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
 
 #ifdef _WIN32

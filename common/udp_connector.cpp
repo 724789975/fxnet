@@ -26,6 +26,8 @@ namespace FXNET
 
 		CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
 #ifdef _WIN32
+		refConnector.PostRecv(pOStream);
+
 		refConnector.m_setIOOperations.erase(this);
 		m_dwLen = dwLen;
 		refConnector.m_funRecvOperator.SetIOReadOperation(this);
@@ -49,9 +51,28 @@ namespace FXNET
 		return 0;
 	}
 
-	int CUdpConnector::IOWriteOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
+	int CUdpConnector::IOWriteOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpConnector::IOWriteOperation, this);
+		CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
+
+#ifdef _WIN32
+		refConnector.m_setIOOperations.erase(this);
+#else
+		refConnector.m_bWritable = true;
+#endif // _WIN32
+
+		if (int dwError = refConnector.m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream))
+		{
+			//此处有报错
+			if (pOStream)
+			{
+				(*pOStream) << "IOWriteOperation failed " << dwError
+					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+
+			return dwError;
+		}
 		//TODO
 		return 0;
 	}
@@ -119,7 +140,7 @@ namespace FXNET
 
 		if (0 > wRecvSize)
 		{
-			m_bReadable = false;
+			m_refUdpConnector.m_bReadable = false;
 			return errno;
 		}
 #endif // _WIN32
@@ -159,27 +180,45 @@ namespace FXNET
 		return 0;
 	}
 
+	CUdpConnector::UDPReadStreamOperator::UDPReadStreamOperator(CUdpConnector& refUdpConnector)
+		: m_refUdpConnector(refUdpConnector)
+	{
+	}
+
+	int CUdpConnector::UDPReadStreamOperator::operator()()
+	{
+		//TODO
+		//unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(pSendBuffer, wSize, dTime);
+		unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(NULL, 0, 0.);
+		return wLen;
+	}
+
 	CUdpConnector::CUdpConnector()
 		: m_stRemoteAddr({0})
 		, m_funOnRecvOperator(*this)
 		, m_funOnConnectedOperator(*this)
 		, m_funRecvOperator(*this)
 		, m_funSendOperator(*this)
+		, m_funReadStreamOperator(*this)
 	{
 		m_oBuffContral.SetOnRecvOperator(&m_funOnRecvOperator)
 			.SetOnConnectedOperator(&m_funOnConnectedOperator)
 			.SetRecvOperator(&m_funRecvOperator)
-			.SetSendOperator(&m_funSendOperator);
+			.SetSendOperator(&m_funSendOperator)
+			.SetReadStreamOperator(&m_funReadStreamOperator)
+			;
 	}
 
 	CUdpConnector::~CUdpConnector()
 	{
+#ifdef _WIN32
 		for (std::set<IOOperationBase*>::iterator it = m_setIOOperations.begin();
 			it != m_setIOOperations.end(); ++it)
 		{
 			delete* it;
 		}
 		m_setIOOperations.clear();
+#endif // _WIN32
 	}
 
 	int CUdpConnector::Init(std::ostream* pOStream, int dwState)
@@ -217,7 +256,7 @@ namespace FXNET
 #ifdef _WIN32
 		bool bReadable = true;
 #else
-		bool& bReadable = refConnector.m_bReadable;
+		bool& bReadable = m_bReadable;
 #endif // _WIN32
 		m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream);
 
@@ -476,5 +515,7 @@ namespace FXNET
 
 		return 0;
 	}
+
+
 
 };
