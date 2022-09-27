@@ -46,7 +46,7 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpConnector;
-			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 		};
 
 		class UDPOnRecvOperator : public OnRecvOperator
@@ -114,7 +114,7 @@ namespace FXNET
 
 		int Init(std::ostream* pOStream, int dwState);
 
-		virtual ISocketBase& Update(double dTimedouble, std::ostream* pOStream);
+		virtual int Update(double dTimedouble, std::ostream* pOStream);
 
 		sockaddr_in& GetRemoteAddr() { return m_stRemoteAddr; }
 		CUdpConnector& SetRemoteAddr(sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
@@ -133,7 +133,7 @@ namespace FXNET
 
 		virtual void OnRead(std::ostream* refOStream);
 		virtual void OnWrite(std::ostream* pOStream);
-		virtual void OnError(std::ostream* pOStream);
+		virtual void OnError(int dwError, std::ostream* pOStream);
 		void OnConnected(std::ostream* pOStream);
 	protected:
 	private:

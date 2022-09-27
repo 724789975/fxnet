@@ -85,10 +85,16 @@ namespace FXNET
 			if (m_dCurrentTime - m_dLoatUpdateTime >= 0.05)
 			{
 				m_dLoatUpdateTime = m_dCurrentTime;
-				for (std::set<ISocketBase*>::iterator it = m_setConnectSockets.begin();
-					it != m_setConnectSockets.end();)
+				for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = m_mapSockets.begin();
+					it != m_mapSockets.end();)
 				{
-					(*it)->Update(m_dCurrentTime, &refOStream);
+					std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
+					if (int dwError = it_tmp->second->Update(m_dCurrentTime, &refOStream))
+					{
+						DeregisterIO(it_tmp->second->NativeSocket(), &refOStream);
+						it_tmp->second->NewErrorOperation(dwError)(*it_tmp->second, 0, &refOStream);
+						m_mapSockets.erase(it_tmp);
+					}
 				}
 			}
 
@@ -435,6 +441,8 @@ namespace FXNET
 			{
 				if (int dwError = (*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream))
 				{
+					m_mapSockets.erase(poSock->NativeSocket());
+					DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
 				}
 			}
@@ -472,6 +480,8 @@ namespace FXNET
 			//TODO 删除这个op 还是执行？ 先删除好了
 			//(*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream);
 			delete (IOOperationBase*)(pstPerIoData);
+			m_mapSockets.erase(poSock->NativeSocket());
+			DeregisterIO(poSock->NativeSocket(), pOStream);
 			poSock->NewErrorOperation(WSAGetLastError())(*poSock, dwByteTransferred, pOStream);
 		}
 #else
@@ -506,6 +516,8 @@ namespace FXNET
 
 			if (pEvent->events & (EPOLLERR | EPOLLHUP))
 			{
+				m_mapSockets.erase(poSock->NativeSocket());
+				DeregisterIO(poSock->NativeSocket(), pOStream);
 				poSock->NewErrorOperation(errno)(*poSock, 0, pOStream);
 			}
 			else
@@ -514,6 +526,8 @@ namespace FXNET
 				{
 					if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
 					{
+						m_mapSockets.erase(poSock->NativeSocket());
+						DeregisterIO(poSock->NativeSocket(), pOStream);
 						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					}
 				}
@@ -521,6 +535,8 @@ namespace FXNET
 				{
 					if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
 					{
+						m_mapSockets.erase(poSock->NativeSocket());
+						DeregisterIO(poSock->NativeSocket(), pOStream);
 						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					}
 				}

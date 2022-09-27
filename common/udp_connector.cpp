@@ -73,13 +73,17 @@ namespace FXNET
 
 			return dwError;
 		}
-		//TODO
 		return 0;
 	}
 
-	int CUdpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
+	int CUdpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpConnector::IOErrorOperation, this);
+		//处理错误
+		refSocketBase.OnError(m_dwError, pOStream);
+
+		//TODO
+		delete& refSocketBase;
 		return 0;
 	}
 
@@ -244,23 +248,40 @@ namespace FXNET
 		return 0;
 	}
 
-	ISocketBase& CUdpConnector::Update(double dTimedouble, std::ostream* pOStream)
+	int CUdpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
-		// TODO: 在此处插入 return 语句
-
-		//TODO 需要将数据放入窗口 暂时未添加
-		//m_oBuffContral.Send(NULL, 0, dTimedouble);
 
 		m_oBuffContral.SendMessages(dTimedouble, pOStream);
+		if (int dwError = m_oBuffContral.SendMessages(dTimedouble, pOStream))
+		{
+			//此处有报错
+			if (pOStream)
+			{
+				(*pOStream) << "IOWriteOperation failed " << dwError
+					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+
+			return dwError;
+		}
 	
 #ifdef _WIN32
 		bool bReadable = true;
 #else
 		bool& bReadable = m_bReadable;
 #endif // _WIN32
-		m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream);
+		 if (int dwError = m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream))
+		 {
+			//此处有报错
+			if (pOStream)
+			{
+				(*pOStream) << "IOWriteOperation failed " << dwError
+					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
 
-		return *this;
+			return dwError;
+		 }
+
+		return 0;
 	}
 
 	int CUdpConnector::Connect(sockaddr_in address, std::ostream* pOStream)
@@ -309,30 +330,29 @@ namespace FXNET
 
 	CUdpConnector::IOReadOperation& CUdpConnector::NewReadOperation()
 	{
-		// TODO: 在此处插入 return 语句
-		CUdpConnector::IOReadOperation t;
+		CUdpConnector::IOReadOperation* pOperation = new CUdpConnector::IOReadOperation();
 #ifdef _WIN32
-		m_setIOOperations.insert(&t);
+		m_setIOOperations.insert(pOperation);
 #endif // _WIN32
 
-		return t;
+		return *pOperation;
 	}
 
 	CUdpConnector::IOWriteOperation& CUdpConnector::NewWriteOperation()
 	{
-		// TODO: 在此处插入 return 语句
-		CUdpConnector::IOWriteOperation t;
+		CUdpConnector::IOWriteOperation* pOperation = new CUdpConnector::IOWriteOperation();
 #ifdef _WIN32
-		m_setIOOperations.insert(&t);
+		m_setIOOperations.insert(pOperation);
 #endif // _WIN32
-		return t;
+
+		return *pOperation;
 	}
 
 	CUdpConnector::IOErrorOperation& CUdpConnector::NewErrorOperation(int dwError)
 	{
-		// TODO: 在此处插入 return 语句
-		CUdpConnector::IOErrorOperation t;
-		return t;
+		CUdpConnector::IOErrorOperation* pOperation = new CUdpConnector::IOErrorOperation();
+		pOperation->m_dwError = dwError;
+		return *pOperation;
 	}
 
 #ifdef _WIN32
@@ -394,7 +414,7 @@ namespace FXNET
 	{
 	}
 
-	void CUdpConnector::OnError(std::ostream* pOStream)
+	void CUdpConnector::OnError(int dwError, std::ostream* pOStream)
 	{
 	}
 

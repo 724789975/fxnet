@@ -47,7 +47,7 @@ namespace FXNET
 
 		virtual ~ISocketBase() {}
 		virtual const char* Name()const { return "CSocketBase"; }
-		virtual ISocketBase& Update(double dTime, std::ostream* POStream) = 0;
+		virtual int Update(double dTime, std::ostream* POStream) = 0;
 
 		static NativeHandleType InvalidNativeHandle() { return (NativeHandleType)-1; };
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
@@ -62,7 +62,7 @@ namespace FXNET
 
 		virtual void OnRead(std::ostream* refOStream) = 0;
 		virtual void OnWrite(std::ostream* pOStream) = 0;
-		virtual void OnError(std::ostream* pOStream) = 0;
+		virtual void OnError(int dwError, std::ostream* pOStream) = 0;
 	protected:
 		NativeHandleType m_hNativeHandle;
 		sockaddr_in m_stLocalAddr;

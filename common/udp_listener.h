@@ -47,7 +47,7 @@ namespace FXNET
 		};
 
 		virtual const char* Name()const { return "CUdpListener"; }
-		virtual ISocketBase& Update(double dTimedouble, std::ostream* pOStream);
+		virtual int Update(double dTimedouble, std::ostream* pOStream);
 
 		int Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream);
 
@@ -56,6 +56,7 @@ namespace FXNET
 
 		virtual void OnRead(std::ostream* refOStream);
 		virtual void OnWrite(std::ostream* pOStream);
+
 	protected:
 	private:
 		static const unsigned int UDP_ACCEPT_HASH_SIZE = 64;

@@ -131,7 +131,6 @@ namespace FXNET
 		 */
 		unsigned short Send(const char* pSendBuffer, unsigned short wSize, double dTime);
 
-		//TCP不需要?
 		int SendMessages(double dTime, std::ostream* pOStream);
 
 		int ReceiveMessages(double dTime, bool& refbReadable, std::ostream* refOStream);
@@ -330,15 +329,13 @@ namespace FXNET
 
 			if (--m_dwAckTimeoutRetry <= 0)
 			{
-				//TODO
-				// OnClose();
-				return 1;
+				return CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY;
 			}
 		}
 
 		if (dTime < m_dSendTime) { return 0; }
 
-		if (m_dwStatus == ST_SYN_RECV) {return 0;}
+		//if (m_dwStatus == ST_SYN_RECV) {return 0;}
 
 		bool bForceRetry = false;
 
@@ -486,7 +483,7 @@ namespace FXNET
 						{
 							break;
 						}
-						//TODO 发送出错 断开连接
+						//发送出错 断开连接
 						return dwErrorCode;
 					}
 					else
@@ -538,7 +535,7 @@ namespace FXNET
 			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
 			if (dwErrorCode)
 			{
-				//TODO 发送出错 断开连接
+				//发送出错 断开连接
 				return dwErrorCode;
 			}
 			else
