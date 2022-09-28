@@ -18,262 +18,6 @@
 
 namespace FXNET
 {
-	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
-	{
-		int dwError = 0;
-		sockaddr_in& refLocalAddr = GetLocalAddr();
-		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
-		refLocalAddr.sin_family = AF_INET;
-
-		if (szIp) { refLocalAddr.sin_addr.s_addr = inet_addr(szIp); }
-
-		refLocalAddr.sin_port = htons(wPort);
-
-		// 创建socket
-#ifdef _WIN32
-		NativeSocket() = WSASocket( AF_INET
-			,SOCK_DGRAM ,0 ,NULL ,0 ,WSA_FLAG_OVERLAPPED);
-#else
-		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
-#endif // _WIN32
-
-
-		if (NativeSocket() == -1)
-		{
-#ifdef _WIN32
-			dwError = WSAGetLastError();
-#else // _WIN32
-			dwError = errno;
-#endif // _WIN32
-
-			if (pOStream)
-			{
-				(*pOStream) << "socket create failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-			return dwError;
-		}
-
-#ifdef _WIN32
-		unsigned long ul = 1;
-		if (SOCKET_ERROR == ioctlsocket(NativeSocket(), FIONBIO, (unsigned long*)&ul))
-#else
-		if (fcntl(NativeSocket(), F_SETFL, fcntl(NativeSocket(), F_GETFL) | O_NONBLOCK))
-#endif // _WIN32
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-#ifdef _WIN32
-			dwError = WSAGetLastError();
-#else // _WIN32
-			dwError = errno;
-#endif // _WIN32
-
-			if (pOStream)
-			{
-				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-			return dwError;
-		}
-
-#ifndef _WIN32
-		if (fcntl(NativeSocket(), F_SETFD, FD_CLOEXEC))
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-			dwError = errno;
-
-			if (*pOStream)
-			{
-				(*pOStream) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-			return dwError;
-		}
-#endif // _WIN32
-
-		// 地址重用
-		int nReuse = 1;
-		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*) & nReuse, sizeof(nReuse)))
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-#ifdef _WIN32
-			dwError = WSAGetLastError();
-#else // _WIN32
-			dwError = errno;
-#endif // _WIN32
-
-			if (pOStream)
-			{
-				(*pOStream) << "socket set SO_REUSEADDR failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-			return dwError;
-		}
-
-		// bind
-		if (bind(NativeSocket(), (sockaddr*)&refLocalAddr , sizeof(refLocalAddr)))
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-#ifdef _WIN32
-			dwError = WSAGetLastError();
-#else // _WIN32
-			dwError = errno;
-#endif // _WIN32
-			if (pOStream)
-			{
-				(*pOStream) << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
-					<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-			return dwError;
-		}
-
-#ifdef _WIN32
-		FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream);
-#else
-		m_oAcceptPool.Init();
-		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
-
-		FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLIN, this, pOStream);
-#endif // _WIN32
-
-#ifdef _WIN32
-		dwError = PostAccept(pOStream);
-#endif // _WIN32
-
-		return dwError;
-	}
-
-	CUdpListener::IOReadOperation& CUdpListener::NewReadOperation()
-	{
-		IOReadOperation& refPeration = *(new IOReadOperation());
-#ifdef _WIN32
-
-		memset(&refPeration, 0, sizeof(OVERLAPPED));
-
-		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
-		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
-		memset(refPeration.m_stWsaBuff.buf, 0, refPeration.m_stWsaBuff.len);
-#endif // _WIN32
-		return refPeration;
-	}
-
-	void CUdpListener::OnRead(std::ostream* pOStream)
-	{
-	}
-
-	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream)
-	{
-		CUdpConnector* pUdpSock = new CUdpConnector;
-		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
-		{
-			if (pOStream)
-			{
-				(*pOStream) << "client connect failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-
-			//post 到iomodule 移除
-			return *this;
-		}
-
-		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_RECV))
-		{
-			if (pOStream)
-			{
-				(*pOStream) << "client connect failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			}
-
-			//post 到iomodule 移除
-			return *this;
-		}
-
-
-		return *this;
-	}
-
-#ifdef _WIN32
-	int CUdpListener::PostAccept(std::ostream* pOStream)
-	{
-		IOReadOperation& refOperation = NewReadOperation();
-
-		DWORD dwReadLen = 0;
-		DWORD dwFlags = 0;
-
-		int dwSockAddr = sizeof(refOperation.m_stRemoteAddr);
-
-		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refOperation.m_stWsaBuff, 1, &dwReadLen
-			, &dwFlags, (sockaddr*)(&refOperation.m_stRemoteAddr), &dwSockAddr, &refOperation, NULL))
-		{
-			int dwError = WSAGetLastError();
-			if (dwError != WSA_IO_PENDING)
-			{
-				if (pOStream)
-				{
-					(*pOStream) << "WSARecvFrom errno : " << dwError << ", handle : " << NativeSocket()
-						<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
-				}
-				return dwError;
-			}
-		}
-		return 0;
-	}
-#else
-	unsigned int CUdpListener::GenerateAcceptHash(const sockaddr_in& addr)
-	{
-		unsigned int h = addr.sin_addr.s_addr ^ addr.sin_port;
-		h ^= h >> 16;
-		h ^= h >> 8;
-		return h & (UDP_ACCEPT_HASH_SIZE - 1);
-	}
-
-	CUdpListener::AcceptReq* CUdpListener::GetAcceptReq(const sockaddr_in& addr)
-	{
-		for (AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)]; pReq != NULL; pReq = pReq->m_pNext)
-		{
-			if (pReq->addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
-				pReq->addr.sin_port == addr.sin_port)
-				return pReq;
-		}
-
-		return NULL;
-	}
-	void CUdpListener::AddAcceptReq(AcceptReq* pReq)
-	{
-		if (pReq && pReq->m_pNext == NULL)
-		{
-			unsigned int h = GenerateAcceptHash(pReq->addr);
-			pReq->m_pNext = m_arroAcceptQueue[h];
-			m_arroAcceptQueue[h] = pReq;
-		}
-	}
-
-	void CUdpListener::RemoveAcceptReq(const sockaddr_in& addr)
-	{
-		AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)];
-		AcceptReq* pPrev = NULL;
-
-		while (pReq != NULL)
-		{
-			if (pReq->addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
-				pReq->addr.sin_port == addr.sin_port)
-			{
-				if (pPrev) pPrev->m_pNext = pReq->m_pNext;
-				m_oAcceptPool.Free(pReq);
-				break;
-			}
-
-			pPrev = pReq;
-			pReq = pReq->m_pNext;
-		}
-	}
-#endif // _WIN32
-
 	int CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpListener::IOReadOperation, this);
@@ -481,11 +225,278 @@ namespace FXNET
 		return 0;
 	}
 
-	int CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream)
+	int CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
-		delete this;
+		DELETE_WHEN_DESTRUCT(CUdpListener::IOErrorOperation, this);
+		if (pOStream)
+		{
+			(*pOStream) << "IOErrorOperation failed(" << m_dwError << ")"
+				<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+		}
 		return 0;
 	}
+
+	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
+	{
+		int dwError = 0;
+		sockaddr_in& refLocalAddr = GetLocalAddr();
+		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
+		refLocalAddr.sin_family = AF_INET;
+
+		if (szIp) { refLocalAddr.sin_addr.s_addr = inet_addr(szIp); }
+
+		refLocalAddr.sin_port = htons(wPort);
+
+		// 创建socket
+#ifdef _WIN32
+		NativeSocket() = WSASocket( AF_INET
+			,SOCK_DGRAM ,0 ,NULL ,0 ,WSA_FLAG_OVERLAPPED);
+#else
+		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
+#endif // _WIN32
+
+
+		if (NativeSocket() == -1)
+		{
+#ifdef _WIN32
+			dwError = WSAGetLastError();
+#else // _WIN32
+			dwError = errno;
+#endif // _WIN32
+
+			if (pOStream)
+			{
+				(*pOStream) << "socket create failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return dwError;
+		}
+
+#ifdef _WIN32
+		unsigned long ul = 1;
+		if (SOCKET_ERROR == ioctlsocket(NativeSocket(), FIONBIO, (unsigned long*)&ul))
+#else
+		if (fcntl(NativeSocket(), F_SETFL, fcntl(NativeSocket(), F_GETFL) | O_NONBLOCK))
+#endif // _WIN32
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+#ifdef _WIN32
+			dwError = WSAGetLastError();
+#else // _WIN32
+			dwError = errno;
+#endif // _WIN32
+
+			if (pOStream)
+			{
+				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return dwError;
+		}
+
+#ifndef _WIN32
+		if (fcntl(NativeSocket(), F_SETFD, FD_CLOEXEC))
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			dwError = errno;
+
+			if (*pOStream)
+			{
+				(*pOStream) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return dwError;
+		}
+#endif // _WIN32
+
+		// 地址重用
+		int nReuse = 1;
+		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*) & nReuse, sizeof(nReuse)))
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+#ifdef _WIN32
+			dwError = WSAGetLastError();
+#else // _WIN32
+			dwError = errno;
+#endif // _WIN32
+
+			if (pOStream)
+			{
+				(*pOStream) << "socket set SO_REUSEADDR failed(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return dwError;
+		}
+
+		// bind
+		if (bind(NativeSocket(), (sockaddr*)&refLocalAddr , sizeof(refLocalAddr)))
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+#ifdef _WIN32
+			dwError = WSAGetLastError();
+#else // _WIN32
+			dwError = errno;
+#endif // _WIN32
+			if (pOStream)
+			{
+				(*pOStream) << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
+					<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ") ["
+					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return dwError;
+		}
+
+#ifdef _WIN32
+		FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream);
+#else
+		m_oAcceptPool.Init();
+		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
+
+		FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLIN, this, pOStream);
+#endif // _WIN32
+
+#ifdef _WIN32
+		dwError = PostAccept(pOStream);
+#endif // _WIN32
+
+		return dwError;
+	}
+
+	CUdpListener::IOReadOperation& CUdpListener::NewReadOperation()
+	{
+		IOReadOperation& refPeration = *(new IOReadOperation());
+#ifdef _WIN32
+
+		memset(&refPeration, 0, sizeof(OVERLAPPED));
+
+		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
+		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
+		memset(refPeration.m_stWsaBuff.buf, 0, refPeration.m_stWsaBuff.len);
+#endif // _WIN32
+		return refPeration;
+	}
+
+	void CUdpListener::OnRead(std::ostream* pOStream)
+	{
+	}
+
+	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream)
+	{
+		CUdpConnector* pUdpSock = new CUdpConnector;
+		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
+		{
+			if (pOStream)
+			{
+				(*pOStream) << "client connect failed(" << dwError << ")"
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+
+			//post 到iomodule 移除
+			return *this;
+		}
+
+		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_RECV))
+		{
+			if (pOStream)
+			{
+				(*pOStream) << "client connect failed(" << dwError << ")"
+					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+
+			//post 到iomodule 移除
+			return *this;
+		}
+
+#ifdef _WIN32
+		for (int i = 0; i < 16; ++i)
+		{
+			pUdpSock->PostRecv(pOStream);
+		}
+#endif // _WIN32
+
+		return *this;
+	}
+
+#ifdef _WIN32
+	int CUdpListener::PostAccept(std::ostream* pOStream)
+	{
+		IOReadOperation& refOperation = NewReadOperation();
+
+		DWORD dwReadLen = 0;
+		DWORD dwFlags = 0;
+
+		int dwSockAddr = sizeof(refOperation.m_stRemoteAddr);
+
+		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refOperation.m_stWsaBuff, 1, &dwReadLen
+			, &dwFlags, (sockaddr*)(&refOperation.m_stRemoteAddr), &dwSockAddr, &refOperation, NULL))
+		{
+			int dwError = WSAGetLastError();
+			if (dwError != WSA_IO_PENDING)
+			{
+				if (pOStream)
+				{
+					(*pOStream) << "WSARecvFrom errno : " << dwError << ", handle : " << NativeSocket()
+						<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				}
+				return dwError;
+			}
+		}
+		return 0;
+	}
+#else
+	unsigned int CUdpListener::GenerateAcceptHash(const sockaddr_in& addr)
+	{
+		unsigned int h = addr.sin_addr.s_addr ^ addr.sin_port;
+		h ^= h >> 16;
+		h ^= h >> 8;
+		return h & (UDP_ACCEPT_HASH_SIZE - 1);
+	}
+
+	CUdpListener::AcceptReq* CUdpListener::GetAcceptReq(const sockaddr_in& addr)
+	{
+		for (AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)]; pReq != NULL; pReq = pReq->m_pNext)
+		{
+			if (pReq->addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
+				pReq->addr.sin_port == addr.sin_port)
+				return pReq;
+		}
+
+		return NULL;
+	}
+	void CUdpListener::AddAcceptReq(AcceptReq* pReq)
+	{
+		if (pReq && pReq->m_pNext == NULL)
+		{
+			unsigned int h = GenerateAcceptHash(pReq->addr);
+			pReq->m_pNext = m_arroAcceptQueue[h];
+			m_arroAcceptQueue[h] = pReq;
+		}
+	}
+
+	void CUdpListener::RemoveAcceptReq(const sockaddr_in& addr)
+	{
+		AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)];
+		AcceptReq* pPrev = NULL;
+
+		while (pReq != NULL)
+		{
+			if (pReq->addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
+				pReq->addr.sin_port == addr.sin_port)
+			{
+				if (pPrev) pPrev->m_pNext = pReq->m_pNext;
+				m_oAcceptPool.Free(pReq);
+				break;
+			}
+
+			pPrev = pReq;
+			pReq = pReq->m_pNext;
+		}
+	}
+#endif // _WIN32
 
 };
 
