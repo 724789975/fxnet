@@ -745,7 +745,7 @@ namespace FXNET
 		{
 			unsigned char btLastAck = m_oRecvWindow.m_btBegin - 1;
 			unsigned char btNewAck = btLastAck;
-			bool bParseMessage = false;
+			//bool bParseMessage = false;
 
 			//计算新的ack
 			for (unsigned char i = m_oRecvWindow.m_btBegin; i != m_oRecvWindow.m_btEnd; i++)
@@ -784,7 +784,7 @@ namespace FXNET
 					m_oRecvWindow.m_btEnd++;
 
 					// 是否可以解析
-					bParseMessage = true;
+					//bParseMessage = true;
 
 					// 需要发送ack
 					m_bSendAck = true;

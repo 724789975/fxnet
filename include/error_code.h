@@ -30,6 +30,7 @@ enum UserError
 	CODE_ERROR_BEGIN = 3 << 30 | 1 << 29 | FACILITY_BEGIN << 16,
 	CODE_ERROR_NET_UDP_ALLOC_BUFF = 3 << 30 | 1 << 29 | FACILITY_NET << 16,			//UDP滑动窗口没有buff了
 	CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY,											//udp等待ack超时（15s）
+	CODE_ERROR_NET_PARSE_MESSAGE,													//解析错误
 	CODE_ERROR_END = 3 << 30 | 1 << 29 | FACILITY_END << 16 | 15,
 	////////////////////////////////////错误//////////////////////////////////////
 };

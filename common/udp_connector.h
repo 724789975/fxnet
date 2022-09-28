@@ -3,6 +3,8 @@
 
 #include "udp_socket.h"
 #include "buff_contral.h"
+#include "include/message_stream.h"
+#include "include/message_header.h"
 
 #ifndef _WIN32
 #include<netinet/in.h>
@@ -53,7 +55,7 @@ namespace FXNET
 		{
 		public:
 			UDPOnRecvOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* refOStream);
+			virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -62,7 +64,7 @@ namespace FXNET
 		{
 		public:
 			UDPOnConnectedOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() (std::ostream* refOStream);
+			virtual int operator() (std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -146,6 +148,11 @@ namespace FXNET
 		UDPSendOperator m_funSendOperator;
 		UDPReadStreamOperator m_funReadStreamOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
+
+		MessageStream<64 * 1024> m_oSendBuff;
+		MessageStream<64 * 1024> m_oRecvBuff;
+
+		MessageParseBase* m_pMessageParse;
 
 #ifdef _WIN32
 		//windows下 如果删除了事件 会有内存泄露

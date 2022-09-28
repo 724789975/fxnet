@@ -27,17 +27,4 @@
  */
 #define UDP_WINDOW_BUFF_SIZE 512
 
-namespace FXNET
-{
-	class Message
-	{
-	public:
-	protected:
-	private:
-	};
-
-
-
-};
-
 #endif	//! __SLIDING_WINDOW_DEF_H__

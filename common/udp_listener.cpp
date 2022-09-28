@@ -411,6 +411,9 @@ namespace FXNET
 			return *this;
 		}
 
+		static BinaryMessageParse s_oBinaryMessageParse;
+		pUdpSock->m_pMessageParse = &s_oBinaryMessageParse;
+
 #ifdef _WIN32
 		for (int i = 0; i < 16; ++i)
 		{

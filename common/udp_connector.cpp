@@ -1,5 +1,6 @@
 #include "udp_connector.h"
 #include "iothread.h"
+#include "include/message_header.h"
 
 #ifdef _WIN32
 #ifndef macro_closesocket
@@ -92,9 +93,26 @@ namespace FXNET
 	{
 	}
 
-	int CUdpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize, std::ostream* refOStream)
+	int CUdpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize, std::ostream* pOStream)
 	{
 		//收到的内容
+		m_refUdpConnector.m_oRecvBuff.PushData(szBuff, wSize);
+		if (!m_refUdpConnector.m_pMessageParse->CheckRecvMessage())
+		{
+			return 0;
+		}
+		MessageOperatorBase* pOperator = (*m_refUdpConnector.m_pMessageParse)
+			.Init(m_refUdpConnector.m_oRecvBuff.GetData(), m_refUdpConnector.m_oRecvBuff.GetUseLenth())
+			.ParseMessage();
+		if (NULL == pOperator)
+		{
+			if (pOStream)
+			{
+				(*pOStream) << "UDPOnRecvOperator failed " << CODE_ERROR_NET_PARSE_MESSAGE
+					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return CODE_ERROR_NET_PARSE_MESSAGE;
+		}
 		return 0;
 	}
 
