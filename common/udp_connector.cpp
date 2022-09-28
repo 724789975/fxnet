@@ -94,6 +94,7 @@ namespace FXNET
 
 	int CUdpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize, std::ostream* refOStream)
 	{
+		//收到的内容
 		return 0;
 	}
 
