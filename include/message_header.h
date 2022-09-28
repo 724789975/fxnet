@@ -2,19 +2,12 @@
 #define __MESSAGE_HEADER_H__
 
 #include "netstream.h"
+#include "message_event.h"
 
 #include <string>
 
 namespace FXNET
 {
-	class MessageOperatorBase
-	{
-	public:
-		virtual void operator ()() = 0;
-	protected:
-	private:
-	};
-
 	class MessageParseBase
 	{
 	public:
@@ -24,7 +17,7 @@ namespace FXNET
 
 		virtual bool					CheckRecvMessage();
 		virtual unsigned short			GetMessageLen() = 0;
-		virtual MessageOperatorBase	*	ParseMessage() = 0;
+		virtual MessageEventBase	*	ParseMessage() = 0;
 	protected:
 		char* m_pBuff;
 		unsigned int m_dwLen;
@@ -49,7 +42,7 @@ namespace FXNET
 	{
 	public:
 
-		class MessageOperator : public MessageOperatorBase
+		class MessageOperator : public MessageEventBase
 		{
 		public:
 			virtual void operator ()() {}
@@ -60,7 +53,7 @@ namespace FXNET
 		};
 
 		virtual unsigned short			GetMessageLen();
-		virtual MessageOperatorBase	 *	ParseMessage();
+		virtual MessageEventBase	 *	ParseMessage();
 	protected:
 	private:
 		virtual unsigned int			GetHeaderLength() { return 10; }
@@ -81,7 +74,7 @@ namespace FXNET
 		return 0;
 	}
 
-	inline MessageOperatorBase* BinaryMessageParse::ParseMessage()
+	inline MessageEventBase* BinaryMessageParse::ParseMessage()
 	{
 		CNetStream oNetStream(m_pBuff, m_dwLen);
 		unsigned short wLen = 0;

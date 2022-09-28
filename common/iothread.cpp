@@ -70,7 +70,7 @@ namespace FXNET
 
 		std::ostream& refOStream = std::cout;
 		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " start, "
-			<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]";
+			<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
 		while (!m_bStop)
 		{
@@ -201,6 +201,18 @@ namespace FXNET
 	double FxIoModule::FxGetCurrentTime()
 	{
 		return m_dCurrentTime;
+	}
+
+	void FxIoModule::PushMessageEvent(MessageEventBase* pMessageEvent)
+	{
+		CLockImp oImp(m_lockEventLock);
+		m_dequeEvent.push_back(pMessageEvent);
+	}
+
+	void FxIoModule::SwapEvent(std::deque<MessageEventBase*>& refDeque)
+	{
+		CLockImp oImp(m_lockEventLock);
+		refDeque.swap(m_dequeEvent);
 	}
 
 #ifdef _WIN32
@@ -369,7 +381,7 @@ namespace FXNET
 
 	}
 
-	FxIoModule& FxIoModule::PostEvent(EventBase* pEvent)
+	FxIoModule& FxIoModule::PostEvent(IOEventBase* pEvent)
 	{
 #ifdef _WIN32
 		PostQueuedCompletionStatus(GetHandle(), 0, 0, pEvent);
@@ -379,7 +391,6 @@ namespace FXNET
 #endif //_WIN32
 		return *this;
 	}
-
 
 #ifndef _WIN32
 	int FxIoModule::GetHandle()
@@ -446,7 +457,7 @@ namespace FXNET
 					poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
 				}
 			}
-			else {(*(EventBase*)(pstPerIoData))();}
+			else {(*(IOEventBase*)(pstPerIoData))();}
 
 			pstPerIoData = NULL;
 			poSock = NULL;
@@ -463,7 +474,8 @@ namespace FXNET
 			{
 				if (pOStream)
 				{
-					*pOStream << "GetQueuedCompletionStatus FALSE " << WSAGetLastError();
+					*pOStream << "GetQueuedCompletionStatus FALSE " << WSAGetLastError()
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
 				}
 				return true;
 			}
@@ -500,7 +512,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << "get event error "
-						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]";
+						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
 				}
 				return false;
 			}
@@ -510,7 +522,7 @@ namespace FXNET
 			{
 				unsigned long lPoint;
 				read(GetHandle(), &lPoint, sizeof(lPoint));
-				(*(EventBase*)((void*)lPoint))();
+				(*(IOEventBase*)((void*)lPoint))();
 				return true;
 			}
 

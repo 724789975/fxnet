@@ -101,7 +101,7 @@ namespace FXNET
 		{
 			return 0;
 		}
-		MessageOperatorBase* pOperator = (*m_refUdpConnector.m_pMessageParse)
+		MessageEventBase* pOperator = (*m_refUdpConnector.m_pMessageParse)
 			.Init(m_refUdpConnector.m_oRecvBuff.GetData(), m_refUdpConnector.m_oRecvBuff.GetUseLenth())
 			.ParseMessage();
 		if (NULL == pOperator)

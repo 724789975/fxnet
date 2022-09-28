@@ -4,10 +4,13 @@
 #include "thread.h"
 #include "singleton.h"
 #include "socket_base.h"
+#include "cas_lock.h"
+#include "include/message_event.h"
 
 #include <vector>
 #include <set>
 #include <map>
+#include <deque>
 #ifdef _WIN32
 #else
 #include <sys/epoll.h>
@@ -22,19 +25,6 @@ namespace FXNET
 	class FxIoModule : public IFxThread, public TSingleton<FxIoModule>
 	{
 	public:
-
-		class EventBase
-#ifdef _WIN32
-			: public OVERLAPPED
-#endif // _WIN32
-		{
-		public:
-			virtual ~EventBase() {}
-			virtual void operator()() = 0;
-		protected:
-		private:
-		};
-
 		FxIoModule();
 		virtual ~FxIoModule();
 
@@ -48,6 +38,8 @@ namespace FXNET
 		void					Uninit();
 
 		double					FxGetCurrentTime();
+		void					PushMessageEvent(MessageEventBase* pMessageEvent);
+		void					SwapEvent(std::deque<MessageEventBase*>& refDeque);
 
 #ifdef _WIN32
 		// win下为完成端口 linux下为epoll
@@ -62,7 +54,7 @@ namespace FXNET
 #endif // _WIN32
 		bool					DeregisterIO(ISocketBase::NativeSocketType hSock, std::ostream* pOStream);
 
-		FxIoModule&				PostEvent(EventBase* pEvent);
+		FxIoModule&				PostEvent(IOEventBase* pEvent);
 	private:
 		void					__DealSock();
 		bool					__DealData(std::ostream* pOStream);
@@ -86,6 +78,10 @@ namespace FXNET
 		double					m_dLoatUpdateTime;
 
 		std::map<ISocketBase::NativeSocketType, ISocketBase*> m_mapSockets;
+
+		std::deque<MessageEventBase*> m_dequeEvent;
+
+		CCasLock				m_lockEventLock;
 	};
 
 };
