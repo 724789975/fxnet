@@ -19,15 +19,6 @@
 
 //#define 
 
-#define DELETE_WHEN_DESTRUCT(CLASS_NAME, __point)\
-class _\
-{\
-public:\
-	_(CLASS_NAME* _p) : p(_p) {}\
-	~_() { delete p; }\
-	CLASS_NAME* p;\
-}____(__point);\
-
 
 namespace FXNET
 {

@@ -5,12 +5,23 @@
 #include <WinSock2.h>
 #endif // _WIN32
 
+#include <ostream>
+
+#define DELETE_WHEN_DESTRUCT(CLASS_NAME, __point)\
+class _\
+{\
+public:\
+	_(CLASS_NAME* _p) : p(_p) {}\
+	~_() { delete p; }\
+	CLASS_NAME* p;\
+}____(__point);\
+
 
 class MessageEventBase
 {
 public:
 	virtual ~MessageEventBase() {}
-	virtual void operator ()() = 0;
+	virtual void operator ()(std::ostream* pOStream) = 0;
 protected:
 private:
 };

@@ -236,6 +236,12 @@ namespace FXNET
 		return 0;
 	}
 
+	int CUdpListener::Update(double dTimedouble, std::ostream* pOStream)
+	{
+		//TODO
+		return 0;
+	}
+
 	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
 	{
 		int dwError = 0;
@@ -380,7 +386,23 @@ namespace FXNET
 		return refPeration;
 	}
 
+	IOOperationBase& CUdpListener::NewWriteOperation()
+	{
+		IOReadOperation oPeration;
+		return oPeration;
+	}
+
+	CUdpListener::IOErrorOperation& CUdpListener::NewErrorOperation(int dwError)
+	{
+		IOErrorOperation& refPeration = *(new IOErrorOperation());
+		return refPeration;
+	}
+
 	void CUdpListener::OnRead(std::ostream* pOStream)
+	{
+	}
+
+	void CUdpListener::OnWrite(std::ostream* pOStream)
 	{
 	}
 
