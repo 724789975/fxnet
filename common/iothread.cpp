@@ -70,7 +70,7 @@ namespace FXNET
 
 		std::ostream& refOStream = std::cout;
 		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " start, "
-			<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 
 		while (!m_bStop)
 		{
@@ -93,7 +93,6 @@ namespace FXNET
 					{
 						DeregisterIO(it_tmp->second->NativeSocket(), &refOStream);
 						it_tmp->second->NewErrorOperation(dwError)(*it_tmp->second, 0, &refOStream);
-						m_mapSockets.erase(it_tmp);
 					}
 				}
 			}
@@ -141,6 +140,8 @@ namespace FXNET
 	{
 #ifdef _WIN32
 		// 初始化的时候 先获取下 创建完成端口 //
+		WSADATA wsaData;
+		WSAStartup(MAKEWORD(2, 2), &wsaData);
 		m_hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 
 		if (m_hCompletionPort == NULL)
@@ -148,7 +149,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "CreateIoCompletionPort error " << WSAGetLastError()
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -169,7 +170,7 @@ namespace FXNET
 		if (!Start())
 		{
 			*pOStream << "start error "
-				<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			return false;
 		}
 
@@ -229,7 +230,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "hSock : " << hSock
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -239,7 +240,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "get handle error"
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -249,13 +250,13 @@ namespace FXNET
 			int dwErr = WSAGetLastError();
 			if (pOStream)
 			{
-				*pOStream << "CreateIoCompletionPort errno " << WSAGetLastError()
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				*pOStream << "CreateIoCompletionPort errno " << dwErr
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
 
-		//m_setConnectSockets.insert(poSock);
+		m_mapSockets[hSock] = poSock;
 		return true;
 	}
 #else
@@ -266,7 +267,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "hSock : " << hSock
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -276,7 +277,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "m_hEpoll < 0"
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -290,12 +291,12 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "epoll_ctl errno " << errno
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
 
-		//m_setConnectSockets.insert(poSock);
+		m_mapSockets[hSock] = poSock;
 		return true;
 	}
 
@@ -306,7 +307,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << hSock << " m_hEpoll < 0"
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -316,7 +317,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << hSock
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -331,7 +332,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "epoll_ctl errno : " << errno
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -344,14 +345,13 @@ namespace FXNET
 	{
 #ifdef _WIN32
 		CancelIo((ISocketBase::NativeHandleType)hSock);
-		return true;
 #else
 		if (m_hEpoll < 0)
 		{
 			if (pOStream)
 			{
 				*pOStream << "m_hEpoll < 0"
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -361,7 +361,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << hSock
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
@@ -372,19 +372,20 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "epoll_ctl errno : " << errno
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return false;
 		}
-		return true;
 #endif // _WIN32
+		m_mapSockets.erase(hSock);
+		return true;
 
 	}
 
 	FxIoModule& FxIoModule::PostEvent(IOEventBase* pEvent)
 	{
 #ifdef _WIN32
-		PostQueuedCompletionStatus(GetHandle(), 0, 0, pEvent);
+		PostQueuedCompletionStatus(GetHandle(), 0, 0, (OVERLAPPED*)pEvent);
 #else
 		unsigned long lPoint = (unsigned long)pEvent;
 		write(GetHandle(), &lPoint, sizeof(lPoint));
@@ -450,14 +451,16 @@ namespace FXNET
 		{
 			if (poSock)
 			{
-				if (int dwError = (*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream))
+				if (int dwError = (*(IOOperationBase*)(OVERLAPPED*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream))
 				{
-					m_mapSockets.erase(poSock->NativeSocket());
 					DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
 				}
 			}
-			else {(*(IOEventBase*)(pstPerIoData))();}
+			else
+			{
+				(* (IOEventBase*)(OVERLAPPED*)pstPerIoData)(pOStream);
+			}
 
 			pstPerIoData = NULL;
 			poSock = NULL;
@@ -466,7 +469,8 @@ namespace FXNET
 
 		if (bRet == FALSE)
 		{
-			if (WAIT_TIMEOUT == WSAGetLastError())
+			int dwError = WSAGetLastError();
+			if (WAIT_TIMEOUT == dwError)
 			{
 				return true;
 			}
@@ -474,8 +478,8 @@ namespace FXNET
 			{
 				if (pOStream)
 				{
-					*pOStream << "GetQueuedCompletionStatus FALSE " << WSAGetLastError()
-						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+					*pOStream << "GetQueuedCompletionStatus FALSE " << dwError
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				}
 				return true;
 			}
@@ -484,7 +488,8 @@ namespace FXNET
 			{
 				if (pOStream)
 				{
-					*pOStream << "GetQueuedCompletionStatus FALSE " << WSAGetLastError();
+					*pOStream << "GetQueuedCompletionStatus FALSE " << dwError
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				}
 				return true;
 			}
@@ -492,9 +497,8 @@ namespace FXNET
 			//TODO 删除这个op 还是执行？ 先删除好了
 			//(*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream);
 			delete (IOOperationBase*)(pstPerIoData);
-			m_mapSockets.erase(poSock->NativeSocket());
 			DeregisterIO(poSock->NativeSocket(), pOStream);
-			poSock->NewErrorOperation(WSAGetLastError())(*poSock, dwByteTransferred, pOStream);
+			poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
 		}
 #else
 
@@ -512,7 +516,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << "get event error "
-						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				}
 				return false;
 			}
@@ -522,15 +526,15 @@ namespace FXNET
 			{
 				unsigned long lPoint;
 				read(GetHandle(), &lPoint, sizeof(lPoint));
-				(*(IOEventBase*)((void*)lPoint))();
+				(*(IOEventBase*)((void*)lPoint))(pOStream);
 				return true;
 			}
 
 			if (pEvent->events & (EPOLLERR | EPOLLHUP))
 			{
-				m_mapSockets.erase(poSock->NativeSocket());
+				int dwError = errno;
 				DeregisterIO(poSock->NativeSocket(), pOStream);
-				poSock->NewErrorOperation(errno)(*poSock, 0, pOStream);
+				poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 			}
 			else
 			{
@@ -538,7 +542,6 @@ namespace FXNET
 				{
 					if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
 					{
-						m_mapSockets.erase(poSock->NativeSocket());
 						DeregisterIO(poSock->NativeSocket(), pOStream);
 						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					}
@@ -547,7 +550,6 @@ namespace FXNET
 				{
 					if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
 					{
-						m_mapSockets.erase(poSock->NativeSocket());
 						DeregisterIO(poSock->NativeSocket(), pOStream);
 						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					}

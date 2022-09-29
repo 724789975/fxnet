@@ -11,6 +11,8 @@
 int main()
 {
 	FXNET::StartIOModule();
+	FXNET::PostEvent(new FXNET::UDPListen("0.0.0.0", 10085));
+	FXNET::PostEvent(new FXNET::UDPConnect("127.0.0.1", 10085));
 
 	while (true)
 	{

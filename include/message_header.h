@@ -45,7 +45,7 @@ namespace FXNET
 		class MessageOperator : public MessageEventBase
 		{
 		public:
-			virtual void operator ()() {}
+			virtual void operator ()(std::ostream* pOStream) {}
 			int dwProtoId;
 			std::string szData;
 		protected:

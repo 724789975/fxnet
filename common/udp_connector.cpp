@@ -43,7 +43,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "IOReadOperation failed " << dwError
-					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			return dwError;
@@ -69,7 +69,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "IOWriteOperation failed " << dwError
-					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			return dwError;
@@ -109,7 +109,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "UDPOnRecvOperator failed " << CODE_ERROR_NET_PARSE_MESSAGE
-					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return CODE_ERROR_NET_PARSE_MESSAGE;
 		}
@@ -187,6 +187,7 @@ namespace FXNET
 	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
 	{
 #ifdef _WIN32
+		dwSendLen = wBufferSize;
 		return m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
 #else
 		dwSendLen = send(m_refUdpConnector.NativeSocket(), szBuff, wBufferSize, 0);
@@ -195,7 +196,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "UDPSendOperator failed " << errno 
-					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return errno;
 		}
@@ -248,18 +249,18 @@ namespace FXNET
 	{
 		if (m_oBuffContral.Init(dwState))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
 #else // _WIN32
 			int dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
 				(*pOStream) << "register io failed" << " ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return 1;
 		}
@@ -277,7 +278,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "IOWriteOperation failed " << dwError
-					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			return dwError;
@@ -294,7 +295,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "IOWriteOperation failed " << dwError
-					<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			return dwError;
@@ -307,7 +308,7 @@ namespace FXNET
 	{
 #ifdef _WIN32
 		NativeSocketType hSock = WSASocket(AF_INET
-			, SOCK_DGRAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
 		NativeSocketType hSock = socket(AF_INET, SOCK_DGRAM, 0);
 #endif // _WIN32
@@ -317,32 +318,38 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "create socket failed."
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
 			}
 			return -1;
 		}
 
-		CUdpConnector* pUdpSock = new CUdpConnector;
-		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
+		if (int dwError = SetRemoteAddr(address).Connect(hSock, address, pOStream))
 		{
 			if (pOStream)
 			{
 				(*pOStream) << "client connect failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 		}
 
-		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_SEND))
+		if (int dwError = Init(pOStream, ST_SYN_SEND))
 		{
 			if (pOStream)
 			{
 				(*pOStream) << "client connect failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			//post 到iomodule 移除
 			return 1;
 		}
+
+#ifdef _WIN32
+		for (int i = 0; i < 16; ++i)
+		{
+			PostRecv(pOStream);
+		}
+#endif // _WIN32
 
 		return 0;
 	}
@@ -351,6 +358,9 @@ namespace FXNET
 	{
 		CUdpConnector::IOReadOperation* pOperation = new CUdpConnector::IOReadOperation();
 #ifdef _WIN32
+		pOperation->m_stWsaBuff.buf = pOperation->m_szRecvBuff;
+		pOperation->m_stWsaBuff.len = sizeof(pOperation->m_szRecvBuff);
+		memset(pOperation->m_stWsaBuff.buf, 0, pOperation->m_stWsaBuff.len);
 		m_setIOOperations.insert(pOperation);
 #endif // _WIN32
 
@@ -383,12 +393,16 @@ namespace FXNET
 		DWORD dwFlags = 0;
 
 		if (SOCKET_ERROR == WSARecv(NativeSocket(), &refIOReadOperation.m_stWsaBuff
-			, 1, &dwReadLen, &dwFlags, &refIOReadOperation, NULL))
+			, 1, &dwReadLen, &dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOReadOperation, NULL))
 		{
-			if (pOStream)
+			int dwError = WSAGetLastError();
+			if (WSA_IO_PENDING != dwError)
 			{
-				*pOStream << "PostRecv failed." << NativeSocket() << ", " << WSAGetLastError()
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+				if (pOStream)
+				{
+					*pOStream << "PostRecv failed." << NativeSocket() << ", " << dwError
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
+				}
 			}
 		}
 
@@ -404,20 +418,22 @@ namespace FXNET
 		DWORD dwWriteLen = 0;
 		DWORD dwFlags = 0;
 
+		auto a = sendto;
 		if (SOCKET_ERROR == WSASend(NativeSocket(), &refIOWriteOperation.m_stWsaBuff
-			, 1, &dwWriteLen, dwFlags, &refIOWriteOperation, NULL))
+			, 1, &dwWriteLen, dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOWriteOperation, NULL))
 		{
-			if (WSA_IO_PENDING != WSAGetLastError())
+			int dwError = WSAGetLastError();
+			if (WSA_IO_PENDING != dwError)
 			{
 				if (pOStream)
 				{
-					*pOStream << "PostRecv failed." << NativeSocket() << ", " << WSAGetLastError()
-						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+					*pOStream << "PostSend failed." << NativeSocket() << ", " << dwError
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
 				}
 				delete &refIOWriteOperation;
 			}
 
-			return WSAGetLastError();
+			return dwError;
 		}
 
 		return 0;
@@ -452,18 +468,18 @@ namespace FXNET
 		if (fcntl(NativeSocket(), F_SETFL, fcntl(NativeSocket(), F_GETFL) | O_NONBLOCK))
 #endif //_WIN32
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
 #else // _WIN32
 			int dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
 				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -471,14 +487,15 @@ namespace FXNET
 #ifndef _WIN32
 		if (fcntl(NativeSocket(), F_SETFD, FD_CLOEXEC))
 		{
+			int dwError = errno;
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			if (pOStream)
 			{
-				(*pOStream) << "socket set nonblock failed(" << errno << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
-			return errno;
+			return dwError;
 		}
 #endif
 
@@ -486,18 +503,18 @@ namespace FXNET
 		int ttl = 128;
 		if (setsockopt(NativeSocket(), IPPROTO_IP, IP_TTL, (char*)&ttl, sizeof(ttl)))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
 #else // _WIN32
 			int dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
 				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -510,18 +527,18 @@ namespace FXNET
 		// connect
 		if (connect(NativeSocket(), (sockaddr*)&address, sizeof(address)))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
 #else // _WIN32
 			int dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
 				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -534,18 +551,18 @@ namespace FXNET
 #endif // _WIN32
 			)
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
 #else // _WIN32
 			int dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
 				(*pOStream) << "register io failed" << " ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			return 1;

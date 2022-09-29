@@ -24,48 +24,44 @@ namespace FXNET
 
 		CUdpListener& refSock = (CUdpListener&) refSocketBase;
 
-#ifdef _WIN32
-		refSock.PostAccept(pOStream);
-#endif // _WIN32
-
 		if (0 == dwLen)
 		{
 			//TODO
 		}
 
 #ifdef _WIN32
-		UDPPacketHeader oUDPPacketHeader = { 0 };
+		UDPPacketHeader& oUDPPacketHeader = *(UDPPacketHeader*)m_stWsaBuff.buf;
 
 		sockaddr_in& stRemoteAddr = m_stRemoteAddr;
 
 		if (dwLen != sizeof(oUDPPacketHeader))
 		{
 			*pOStream << refSocketBase.NativeSocket()
-				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			return 0;
 		}
 
 		if (oUDPPacketHeader.m_btAck != 0)
 		{
-			*pOStream << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
-				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+			*pOStream << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			return 0;
 		}
 		if (oUDPPacketHeader.m_btSyn != 1)
 		{
-			*pOStream << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
-				<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+			*pOStream << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			return 0;
 		}
 
 		NativeSocketType hSock = WSASocket(AF_INET
-			, SOCK_DGRAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (hSock == -1)
 		{
 			if (pOStream)
 			{
 				*pOStream << refSock.NativeSocket() << " create socket failed."
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
 			}
 			return 0;
 		}
@@ -76,8 +72,8 @@ namespace FXNET
 		{
 			if (pOStream)
 			{
-				*pOStream << refSock.NativeSocket() << ", errno(" << errno << ")"
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+				*pOStream << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
 			}
 			macro_closesocket(hSock);
 			return 0;
@@ -88,9 +84,9 @@ namespace FXNET
 		{
 			if (pOStream)
 			{
-				*pOStream << refSock.NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
+				*pOStream << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
 					<< inet_ntoa(refSock.m_stLocalAddr.sin_addr) << ":" << (int)ntohs(refSock.m_stLocalAddr.sin_port)
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			macro_closesocket(hSock);
 			return 0;
@@ -98,6 +94,11 @@ namespace FXNET
 
 		// send back
 		refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
+
+#ifdef _WIN32
+		//refSock.PostAccept(pOStream);
+#endif // _WIN32
+
 #else
 		for (;;)
 		{
@@ -113,8 +114,8 @@ namespace FXNET
 
 				if (errno != EAGAIN && errno != EWOULDBLOCK)
 				{
-					*pOStream << "error accept : " << refSocketBase.NativeSocket()
-						<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+					*pOStream << "error accept : " << refSocketBase.NativeSocket() << ", " << errno
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				}
 
 				break;
@@ -123,20 +124,20 @@ namespace FXNET
 			if (dwLen != sizeof(oUDPPacketHeader))
 			{
 				*pOStream << refSocketBase.NativeSocket()
-					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				continue;
 			}
 
 			if (oUDPPacketHeader.m_btAck != 0)
 			{
 				*pOStream << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck <<  ", " << refSocketBase.NativeSocket()
-					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				continue;
 			}
 			if (oUDPPacketHeader.m_btSyn != 1)
 			{
 				*pOStream << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn <<  ", " << refSocketBase.NativeSocket()
-					<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				continue;
 			}
 
@@ -165,7 +166,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << refSock.NativeSocket() << " create socket failed."
-						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
 				}
 				refSock.m_oAcceptPool.Free(req);
 				continue;
@@ -181,7 +182,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << refSock.NativeSocket() << ", errno(" << errno << ")"
-						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";;
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
 				}
 				macro_closesocket(req->m_oAcceptSocket);
 				refSock.m_oAcceptPool.Free(req);
@@ -195,7 +196,7 @@ namespace FXNET
 				{
 					*pOStream << refSock.NativeSocket() << ", errno(" << errno << ") " << "bind failed on "
 						<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
-						<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				}
 				macro_closesocket(req->m_oAcceptSocket);
 				refSock.m_oAcceptPool.Free(req);
@@ -231,7 +232,7 @@ namespace FXNET
 		if (pOStream)
 		{
 			(*pOStream) << "IOErrorOperation failed(" << m_dwError << ")"
-				<< " [" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 		}
 		return 0;
 	}
@@ -256,7 +257,7 @@ namespace FXNET
 		// 创建socket
 #ifdef _WIN32
 		NativeSocket() = WSASocket( AF_INET
-			,SOCK_DGRAM ,0 ,NULL ,0 ,WSA_FLAG_OVERLAPPED);
+			,SOCK_DGRAM , IPPROTO_UDP,NULL ,0 ,WSA_FLAG_OVERLAPPED);
 #else
 		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
 #endif // _WIN32
@@ -273,7 +274,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "socket create failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -285,18 +286,18 @@ namespace FXNET
 		if (fcntl(NativeSocket(), F_SETFL, fcntl(NativeSocket(), F_GETFL) | O_NONBLOCK))
 #endif // _WIN32
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
 				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -304,14 +305,14 @@ namespace FXNET
 #ifndef _WIN32
 		if (fcntl(NativeSocket(), F_SETFD, FD_CLOEXEC))
 		{
+			dwError = errno;
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-			dwError = errno;
 
 			if (*pOStream)
 			{
 				(*pOStream) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -321,18 +322,18 @@ namespace FXNET
 		int nReuse = 1;
 		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*) & nReuse, sizeof(nReuse)))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
 				(*pOStream) << "socket set SO_REUSEADDR failed(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -340,18 +341,18 @@ namespace FXNET
 		// bind
 		if (bind(NativeSocket(), (sockaddr*)&refLocalAddr , sizeof(refLocalAddr)))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			if (pOStream)
 			{
 				(*pOStream) << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 					<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ") ["
-					<< __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -376,8 +377,6 @@ namespace FXNET
 	{
 		IOReadOperation& refPeration = *(new IOReadOperation());
 #ifdef _WIN32
-
-		memset(&refPeration, 0, sizeof(OVERLAPPED));
 
 		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
 		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
@@ -406,6 +405,11 @@ namespace FXNET
 	{
 	}
 
+	void CUdpListener::OnError(int dwError, std::ostream* pOStream)
+	{
+
+	}
+
 	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream)
 	{
 		CUdpConnector* pUdpSock = new CUdpConnector;
@@ -414,7 +418,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "client connect failed(" << dwError << ")"
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			//post 到iomodule 移除
@@ -426,7 +430,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "client connect failed(" << dwError << ")"
-					<< "[" << __FILE__ << ", " << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 
 			//post 到iomodule 移除
@@ -457,7 +461,7 @@ namespace FXNET
 		int dwSockAddr = sizeof(refOperation.m_stRemoteAddr);
 
 		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refOperation.m_stWsaBuff, 1, &dwReadLen
-			, &dwFlags, (sockaddr*)(&refOperation.m_stRemoteAddr), &dwSockAddr, &refOperation, NULL))
+			, &dwFlags, (sockaddr*)(&refOperation.m_stRemoteAddr), &dwSockAddr, (OVERLAPPED*)(IOOperationBase*)(&refOperation), NULL))
 		{
 			int dwError = WSAGetLastError();
 			if (dwError != WSA_IO_PENDING)
@@ -465,7 +469,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					(*pOStream) << "WSARecvFrom errno : " << dwError << ", handle : " << NativeSocket()
-						<< "[" << __FILE__ << ", " << __FILE__ << ", " << __FUNCTION__ << "]\n";
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 				}
 				return dwError;
 			}

@@ -429,29 +429,6 @@ namespace FXNET
 		}
 		else { m_dSendDataTime = dTime + m_dSendDataFrequency; }
 
-		//如果有待发送数据 那么 先发送待发送数据
-		if (m_oSendWindow.m_btpWaitSendBuff)
-		{
-			int dwLen = 0;
-			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
-			if (dwErrorCode)
-			{
-				//发送出错(可能是正常错误 不一定需要断开)
-				return dwErrorCode;
-			}
-			else
-			{
-				m_oSendWindow.m_btpWaitSendBuff += dwLen;
-				m_oSendWindow.m_dwWaitSendSize -= dwLen;
-				if (0 == m_oSendWindow.m_dwWaitSendSize)
-				{
-					m_oSendWindow.m_btpWaitSendBuff = NULL;
-				}
-				m_dwNumBytesSend += dwLen;
-			}
-		}
-		//如果待发送数据已发 那么就继续发送
-		if (!m_oSendWindow.m_btpWaitSendBuff)
 		{
 			//开始发送
 			for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
@@ -470,13 +447,13 @@ namespace FXNET
 					unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[btId]];
 
 					// packet header
-					UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
-					packet.m_btStatus = m_dwStatus;
-					packet.m_btSyn = i;
-					packet.m_btAck = m_oRecvWindow.m_btBegin - 1;
+					UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
+					oPacket.m_btStatus = m_dwStatus;
+					oPacket.m_btSyn = i;
+					oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
 					int dwLen = 0;
-					int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
+					int dwErrorCode = (*m_pSendOperator)((char*)pBuffer, wSize, dwLen, pOStream);
 					if (dwErrorCode)
 					{
 						if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
@@ -488,17 +465,6 @@ namespace FXNET
 					}
 					else
 					{
-						m_oSendWindow.m_btpWaitSendBuff = pBuffer + dwLen;
-						m_oSendWindow.m_dwWaitSendSize = wSize - dwLen;
-						if (0 == m_oSendWindow.m_dwWaitSendSize)
-						{
-							m_oSendWindow.m_btpWaitSendBuff = NULL;
-						}
-						else
-						{
-							//等待下次发送
-							break;
-						}
 						m_dwNumBytesSend += dwLen;
 					}
 
@@ -522,30 +488,18 @@ namespace FXNET
 		}
 
 		// send ack
-		if (!m_oSendWindow.m_btpWaitSendBuff && m_bSendAck)
+		if (m_bSendAck)
 		{
-			m_oSendWindow.m_oSendAckPacket.m_btStatus = m_dwStatus;
-			m_oSendWindow.m_oSendAckPacket.m_btSyn = m_oSendWindow.m_btBegin - 1;
-			m_oSendWindow.m_oSendAckPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
-
-			m_oSendWindow.m_btpWaitSendBuff = (unsigned char*)(&m_oSendWindow.m_oSendAckPacket);
-			m_oSendWindow.m_dwWaitSendSize = sizeof(m_oSendWindow.m_oSendAckPacket);
+			UDPPacketHeader oPacket;
+			oPacket.m_btStatus = m_dwStatus;
+			oPacket.m_btSyn = m_oSendWindow.m_btBegin - 1;
+			oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
 			int dwLen = 0;
-			int dwErrorCode = (*m_pSendOperator)((char*)m_oSendWindow.m_btpWaitSendBuff, m_oSendWindow.m_dwWaitSendSize, dwLen, pOStream);
-			if (dwErrorCode)
+			if (int dwErrorCode = (*m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, pOStream))
 			{
 				//发送出错 断开连接
 				return dwErrorCode;
-			}
-			else
-			{
-				m_oSendWindow.m_btpWaitSendBuff += dwLen;
-				m_oSendWindow.m_dwWaitSendSize -= dwLen;
-				if (0 == m_oSendWindow.m_dwWaitSendSize)
-				{
-					m_oSendWindow.m_btpWaitSendBuff = NULL;
-				}
 			}
 
 			m_dSendTime = dTime + m_dSendFrequency;
@@ -604,20 +558,18 @@ namespace FXNET
 
 			if (dwLen < (unsigned short)sizeof(UDPPacketHeader))
 			{
-				refbReadable = false;
 				pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 				m_oRecvWindow.m_btFreeBufferId = btBufferId;
 				continue;
 			}
 			if (!m_bConnected)
 			{
-				if (dwLen > (unsigned short)sizeof(UDPPacketHeader))
-				{
-					refbReadable = false;
-					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
-					m_oRecvWindow.m_btFreeBufferId = btBufferId;
-					break;
-				}
+				//if (dwLen > (unsigned short)sizeof(UDPPacketHeader))
+				//{
+				//	pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+				//	m_oRecvWindow.m_btFreeBufferId = btBufferId;
+				//	break;
+				//}
 				UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
 				m_dwStatus = ST_ESTABLISHED;
 				if (ST_ESTABLISHED == packet.m_btStatus)

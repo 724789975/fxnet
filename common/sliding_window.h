@@ -131,20 +131,6 @@ namespace FXNET
 			return *this;
 		}
 		
-		/**
-		 * @brief 待发送的数据(tcp下才会真正用到)
-		 */
-		unsigned char* m_btpWaitSendBuff;
-		/**
-		 * @brief 待发送的长度(tcp下才会真正用到)
-		 */
-		unsigned int m_dwWaitSendSize;
-
-		/**
-		 * @brief 用来同步ack(tcp下需要缓存) 
-		 */
-		UDPPacketHeader m_oSendAckPacket;
-
 	};
 } // namespace FXNET
 

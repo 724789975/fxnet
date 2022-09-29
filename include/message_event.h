@@ -35,6 +35,13 @@ class IOEventBase
 #endif // _WIN32
 {
 public:
+	IOEventBase()
+	{
+#ifdef _WIN32
+		memset((OVERLAPPED*)this, 0, sizeof(OVERLAPPED));
+#endif // _WIN32
+
+	}
 	virtual ~IOEventBase() {}
 protected:
 private:

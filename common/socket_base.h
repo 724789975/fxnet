@@ -73,7 +73,12 @@ namespace FXNET
 #endif // _WIN32
 	{
 	public:
-		IOOperationBase() : m_dwError(0) {}
+		IOOperationBase() : m_dwError(0)
+		{
+#ifdef _WIN32
+			memset((OVERLAPPED*)this, 0, sizeof(OVERLAPPED));
+#endif // _WIN32
+		}
 		virtual ~IOOperationBase() {}
 		virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream) = 0;
 
