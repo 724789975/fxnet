@@ -96,6 +96,7 @@ namespace FXNET
 		refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
 
 #ifdef _WIN32
+		//TODO 要打开注释
 		//refSock.PostAccept(pOStream);
 #endif // _WIN32
 

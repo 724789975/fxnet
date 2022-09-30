@@ -67,6 +67,7 @@ namespace FXNET
 		HANDLE					m_hCompletionPort;
 #else
 		int						m_hEpoll;
+		int						m_hEvent;
 		epoll_event* m_pEvents;
 		//TEventQueue<ISocketBase*>	m_oDelayCloseSockQueue;
 #endif // _WIN32

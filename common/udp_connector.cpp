@@ -191,7 +191,7 @@ namespace FXNET
 		return m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
 #else
 		dwSendLen = send(m_refUdpConnector.NativeSocket(), szBuff, wBufferSize, 0);
-		if (0 < dwSendLen)
+		if (0 > dwSendLen)
 		{
 			if (pOStream)
 			{
@@ -247,6 +247,7 @@ namespace FXNET
 
 	int CUdpConnector::Init(std::ostream* pOStream, int dwState)
 	{
+		m_oBuffContral.SetAckOutTime(5.);
 		if (m_oBuffContral.Init(dwState))
 		{
 #ifdef _WIN32
@@ -270,8 +271,6 @@ namespace FXNET
 
 	int CUdpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
-
-		m_oBuffContral.SendMessages(dTimedouble, pOStream);
 		if (int dwError = m_oBuffContral.SendMessages(dTimedouble, pOStream))
 		{
 			//此处有报错

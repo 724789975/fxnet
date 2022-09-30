@@ -8,6 +8,7 @@
 #else
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/eventfd.h>
 #endif
 
 #include <iostream>
@@ -58,22 +59,22 @@ namespace FXNET
 
 	void FxIoModule::ThrdFunc()
 	{
-#ifdef _WIN32
-		SYSTEMTIME st;
-		GetSystemTime(&st);
-		m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
-#else
-		static struct timeval tv;
-		gettimeofday(&tv, NULL);
-		m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
-#endif
-
 		std::ostream& refOStream = std::cout;
 		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " start, "
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 
 		while (!m_bStop)
 		{
+#ifdef _WIN32
+			SYSTEMTIME st;
+			GetSystemTime(&st);
+			m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+#else
+			static struct timeval tv;
+			gettimeofday(&tv, NULL);
+			m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+#endif
+
 			std::ostream& refOStream = std::cout;
 			if (!__DealData(&refOStream))
 			{
@@ -157,15 +158,41 @@ namespace FXNET
 		m_pEvents = new epoll_event[MAX_EVENT_NUM];
 		if (NULL == m_pEvents)
 		{
+			*pOStream << "start error "
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			return false;
 		}
 
 		m_hEpoll = epoll_create(MAX_EVENT_NUM);
 		if (m_hEpoll < 0)
 		{
+			*pOStream << "start error "
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			return false;
 		}
-		//m_oDelayCloseSockQueue.Init(2 * dwMaxSock);
+
+		m_hEvent = eventfd(0, EFD_NONBLOCK);
+		if (m_hEvent < 0)
+		{
+			*pOStream << "start error "
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+			return false;
+		}
+
+		epoll_event e;
+		e.events = EPOLLIN;
+		e.data.ptr = 0;
+
+		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, m_hEvent, &e) < 0)
+		{
+			if (pOStream)
+			{
+				*pOStream << "epoll_ctl errno " << errno
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			}
+			return false;
+		}
+
 #endif // _WIN32
 		if (!Start())
 		{
@@ -388,7 +415,7 @@ namespace FXNET
 		PostQueuedCompletionStatus(GetHandle(), 0, 0, (OVERLAPPED*)pEvent);
 #else
 		unsigned long lPoint = (unsigned long)pEvent;
-		write(GetHandle(), &lPoint, sizeof(lPoint));
+		write(m_hEvent, &lPoint, sizeof(lPoint));
 #endif //_WIN32
 		return *this;
 	}
@@ -525,8 +552,11 @@ namespace FXNET
 			if (NULL == poSock)
 			{
 				unsigned long lPoint;
-				read(GetHandle(), &lPoint, sizeof(lPoint));
-				(*(IOEventBase*)((void*)lPoint))(pOStream);
+				int n = read(m_hEvent, &lPoint, sizeof(lPoint));
+				if (sizeof(lPoint) == n)
+				{
+					(*(IOEventBase*)((void*)lPoint))(pOStream);
+				}
 				return true;
 			}
 

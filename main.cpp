@@ -11,11 +11,23 @@
 int main()
 {
 	FXNET::StartIOModule();
-	FXNET::PostEvent(new FXNET::UDPListen("0.0.0.0", 10085));
-	FXNET::PostEvent(new FXNET::UDPConnect("127.0.0.1", 10085));
+	for (int i = 0; i < 1000; ++i)
+	{
+#ifdef _WIN32
+		Sleep(1);
+#else
+		usleep(1000);
+#endif // _WIN32
+	}
 
 	while (true)
 	{
+		bool b = false;
+		if (b)
+		{
+			FXNET::PostEvent(new FXNET::UDPListen("0.0.0.0", 10085));
+			FXNET::PostEvent(new FXNET::UDPConnect("127.0.0.1", 10085));
+		}
 		std::deque<MessageEventBase*> dequeMessage;
 		FXNET::SwapEvent(dequeMessage);
 
