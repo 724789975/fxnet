@@ -41,7 +41,12 @@ namespace FXNET
 		if (szIp) { stRemoteAddr.sin_addr.s_addr = inet_addr(szIp); }
 
 		stRemoteAddr.sin_port = htons(wPort);
-		pConnector->Connect(stRemoteAddr, pOStream);
+		static BinaryMessageParse s_oBinaryMessageParse;
+		pConnector->m_pMessageParse = &s_oBinaryMessageParse;
+		if (int dwError = pConnector->SetRemoteAddr(stRemoteAddr).Connect(stRemoteAddr, pOStream))
+		{
+			pConnector->NewErrorOperation(dwError)(*pConnector, 0, pOStream);
+		}
 	}
 
 };

@@ -4,6 +4,16 @@
 #include <fcntl.h>
 
 #ifdef _WIN32
+#ifndef __FUNCTION_DETAIL__
+#define __FUNCTION_DETAIL__ __FUNCSIG__
+#endif
+#else
+#ifndef __FUNCTION_DETAIL__
+#define __FUNCTION_DETAIL__ __PRETTY_FUNCTION__
+#endif
+#endif //!_WIN32
+
+#ifdef _WIN32
 #include <process.h>
 #else
 #include <unistd.h>
@@ -61,7 +71,7 @@ namespace FXNET
 	{
 		std::ostream& refOStream = std::cout;
 		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " start, "
-			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
 		while (!m_bStop)
 		{
@@ -150,7 +160,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "CreateIoCompletionPort error " << WSAGetLastError()
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -159,7 +169,7 @@ namespace FXNET
 		if (NULL == m_pEvents)
 		{
 			*pOStream << "start error "
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
 
@@ -167,7 +177,7 @@ namespace FXNET
 		if (m_hEpoll < 0)
 		{
 			*pOStream << "start error "
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
 
@@ -175,7 +185,7 @@ namespace FXNET
 		if (m_hEvent < 0)
 		{
 			*pOStream << "start error "
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
 
@@ -188,7 +198,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "epoll_ctl errno " << errno
-					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -197,7 +207,7 @@ namespace FXNET
 		if (!Start())
 		{
 			*pOStream << "start error "
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
 
@@ -257,7 +267,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "hSock : " << hSock
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -267,7 +277,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "get handle error"
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -278,7 +288,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "CreateIoCompletionPort errno " << dwErr
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -294,7 +304,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "hSock : " << hSock
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -304,13 +314,12 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "m_hEpoll < 0"
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
 		epoll_event e;
 		e.events = dwEvents;
-		e.events |= EPOLLET;
 		e.data.ptr = poSock;
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, hSock, &e) < 0)
@@ -318,7 +327,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "epoll_ctl errno " << errno
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -334,7 +343,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << hSock << " m_hEpoll < 0"
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -344,14 +353,13 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << hSock
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
 
 		epoll_event e;
 		e.events = dwEvents;
-		e.events |= EPOLLET;
 		e.data.ptr = poSock;
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_MOD, hSock, &e) < 0)
@@ -359,7 +367,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "epoll_ctl errno : " << errno
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -378,7 +386,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "m_hEpoll < 0"
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -388,7 +396,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << hSock
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -399,7 +407,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "epoll_ctl errno : " << errno
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return false;
 		}
@@ -415,6 +423,7 @@ namespace FXNET
 		PostQueuedCompletionStatus(GetHandle(), 0, 0, (OVERLAPPED*)pEvent);
 #else
 		unsigned long lPoint = (unsigned long)pEvent;
+		std::cout << lPoint << "\n";
 		write(m_hEvent, &lPoint, sizeof(lPoint));
 #endif //_WIN32
 		return *this;
@@ -506,7 +515,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << "GetQueuedCompletionStatus FALSE " << dwError
-						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				}
 				return true;
 			}
@@ -516,7 +525,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << "GetQueuedCompletionStatus FALSE " << dwError
-						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				}
 				return true;
 			}
@@ -543,7 +552,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << "get event error "
-						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				}
 				return false;
 			}
@@ -551,15 +560,30 @@ namespace FXNET
 			ISocketBase* poSock = (ISocketBase*)pEvent->data.ptr;
 			if (NULL == poSock)
 			{
-				unsigned long lPoint;
-				int n = read(m_hEvent, &lPoint, sizeof(lPoint));
-				if (sizeof(lPoint) == n)
+				if (pEvent->events & EPOLLIN)
 				{
-					(*(IOEventBase*)((void*)lPoint))(pOStream);
+					unsigned long lPoint;
+					int n = read(m_hEvent, &lPoint, sizeof(lPoint));
+					std::cout << lPoint << "\n";
+					if (sizeof(lPoint) == n)
+					{
+						(*(IOEventBase*)((void*)lPoint))(pOStream);
+					}
+				}
+				else
+				{
+					if (pOStream)
+					{
+						*pOStream << pEvent->events << ", " << m_hEvent << ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					}
 				}
 				return true;
 			}
 
+			if (pOStream)
+			{
+				*pOStream << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name() << ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			}
 			if (pEvent->events & (EPOLLERR | EPOLLHUP))
 			{
 				int dwError = errno;

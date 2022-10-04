@@ -50,6 +50,7 @@ namespace FXNET
 		virtual int Update(double dTimedouble, std::ostream* pOStream);
 
 		int Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream);
+		int Listen(std::ostream* pOStream);
 
 		virtual IOReadOperation& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();

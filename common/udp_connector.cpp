@@ -3,6 +3,16 @@
 #include "include/message_header.h"
 
 #ifdef _WIN32
+#ifndef __FUNCTION_DETAIL__
+#define __FUNCTION_DETAIL__ __FUNCSIG__
+#endif
+#else
+#ifndef __FUNCTION_DETAIL__
+#define __FUNCTION_DETAIL__ __PRETTY_FUNCTION__
+#endif
+#endif //!_WIN32
+
+#ifdef _WIN32
 #ifndef macro_closesocket
 #define macro_closesocket closesocket
 #endif //macro_closesocket
@@ -37,13 +47,21 @@ namespace FXNET
 		refConnector.m_bReadable = true;
 		bool& bReadable = refConnector.m_bReadable;
 #endif // _WIN32
+
+		if (pOStream)
+		{
+			*pOStream << refConnector.NativeSocket() << " ip:" << refConnector.GetLocalAddr().sin_addr.s_addr << ", port:" << refConnector.GetLocalAddr().sin_port
+				<< " remote_ip:" << refConnector.GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << refConnector.GetRemoteAddr().sin_port
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
+
 		if (int dwError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
 		{
 			//此处有报错
 			if (pOStream)
 			{
 				(*pOStream) << "IOReadOperation failed " << dwError
-					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
 			return dwError;
@@ -69,7 +87,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "IOWriteOperation failed " << dwError
-					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
 			return dwError;
@@ -80,6 +98,13 @@ namespace FXNET
 	int CUdpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpConnector::IOErrorOperation, this);
+
+		if (pOStream)
+		{
+			(*pOStream) << "IOErrorOperation failed(" << m_dwError << ")"
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
+
 		//处理错误
 		refSocketBase.OnError(m_dwError, pOStream);
 
@@ -109,7 +134,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "UDPOnRecvOperator failed " << CODE_ERROR_NET_PARSE_MESSAGE
-					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return CODE_ERROR_NET_PARSE_MESSAGE;
 		}
@@ -186,6 +211,11 @@ namespace FXNET
 
 	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
 	{
+		if (pOStream)
+		{
+			(*pOStream) << m_refUdpConnector.NativeSocket()
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
 #ifdef _WIN32
 		dwSendLen = wBufferSize;
 		return m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
@@ -196,7 +226,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "UDPSendOperator failed " << errno 
-					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return errno;
 		}
@@ -261,7 +291,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "register io failed" << " ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return 1;
 		}
@@ -276,29 +306,29 @@ namespace FXNET
 			//此处有报错
 			if (pOStream)
 			{
-				(*pOStream) << "IOWriteOperation failed " << dwError
-					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				(*pOStream) << "IOWriteOperation failed ("<< dwError << "), " << NativeSocket()
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
 			return dwError;
 		}
-	
-#ifdef _WIN32
-		bool bReadable = true;
-#else
-		bool& bReadable = m_bReadable;
-#endif // _WIN32
-		 if (int dwError = m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream))
-		 {
-			//此处有报错
-			if (pOStream)
-			{
-				(*pOStream) << "IOWriteOperation failed " << dwError
-					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
-			}
 
-			return dwError;
-		 }
+//#ifdef _WIN32
+//		bool bReadable = true;
+//#else
+//		bool& bReadable = m_bReadable;
+//#endif // _WIN32
+//		 if (int dwError = m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream))
+//		 {
+//			//此处有报错
+//			if (pOStream)
+//			{
+//				(*pOStream) << "IOWriteOperation failed " << dwError
+//					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+//			}
+//
+//			return dwError;
+//		 }
 
 		return 0;
 	}
@@ -317,9 +347,21 @@ namespace FXNET
 			if (pOStream)
 			{
 				*pOStream << "create socket failed."
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 			}
 			return -1;
+		}
+
+		if (int dwError = Init(pOStream, ST_SYN_SEND))
+		{
+			if (pOStream)
+			{
+				(*pOStream) << "client connect failed(" << dwError << ") ["
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+			}
+
+			//post 到iomodule 移除
+			return dwError;
 		}
 
 		if (int dwError = SetRemoteAddr(address).Connect(hSock, address, pOStream))
@@ -331,17 +373,8 @@ namespace FXNET
 			}
 		}
 
-		if (int dwError = Init(pOStream, ST_SYN_SEND))
-		{
-			if (pOStream)
-			{
-				(*pOStream) << "client connect failed(" << dwError << ") ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
-			}
-
-			//post 到iomodule 移除
-			return 1;
-		}
+		socklen_t dwAddrLen = sizeof(GetLocalAddr());
+		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
 
 #ifdef _WIN32
 		for (int i = 0; i < 16; ++i)
@@ -400,7 +433,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << "PostRecv failed." << NativeSocket() << ", " << dwError
-						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 				}
 			}
 		}
@@ -427,7 +460,7 @@ namespace FXNET
 				if (pOStream)
 				{
 					*pOStream << "PostSend failed." << NativeSocket() << ", " << dwError
-						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";;
+						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 				}
 				delete &refIOWriteOperation;
 			}
@@ -454,6 +487,12 @@ namespace FXNET
 
 	void CUdpConnector::OnConnected(std::ostream* pOStream)
 	{
+		if (pOStream)
+		{
+			*pOStream << NativeSocket() << " ip:" << GetLocalAddr().sin_addr.s_addr << ", port:" << GetLocalAddr().sin_port
+				<< " remote_ip:" << GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << GetRemoteAddr().sin_port
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
 	}
 
 	int CUdpConnector::Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream)
@@ -478,7 +517,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return dwError;
 		}
@@ -492,7 +531,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return dwError;
 		}
@@ -513,7 +552,7 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return dwError;
 		}
@@ -546,7 +585,7 @@ namespace FXNET
 #ifdef _WIN32
 			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
 #else
-			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLIN | EPOLLOUT, this, pOStream)
+			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
 #endif // _WIN32
 			)
 		{
@@ -561,13 +600,17 @@ namespace FXNET
 			if (pOStream)
 			{
 				(*pOStream) << "register io failed" << " ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+					<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
 			return 1;
 		}
-	
 
+		if (pOStream)
+		{
+			(*pOStream) << NativeSocket() << ", " << m_oBuffContral.GetState()
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
 		return 0;
 	}
 

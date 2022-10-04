@@ -34,7 +34,7 @@ namespace FXNET
 
 	inline bool MessageParseBase::CheckRecvMessage()
 	{
-		return m_dwLen >= GetMessageLen();
+		return m_dwLen && m_dwLen >= GetMessageLen();
 	}
 
 	//�ṹΪ {unsigned short wLen; char szMagic[4]; int dwProtoId;}

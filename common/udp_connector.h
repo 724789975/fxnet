@@ -90,7 +90,7 @@ namespace FXNET
 		{
 		public:
 			UDPSendOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream);
+			virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -107,6 +107,8 @@ namespace FXNET
 		friend class IOReadOperation;
 		friend class IOErrorOperation;
 		friend class CUdpListener;
+
+		friend void UdpConnect(const char* szIp, unsigned short wPort, std::ostream* pOStream);
 
 		CUdpConnector();
 		~CUdpConnector();

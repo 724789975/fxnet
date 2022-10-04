@@ -113,6 +113,8 @@ namespace FXNET
 
 		int Init(int dwState);
 
+		int GetState()const;
+
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
 		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
 		BufferContral& SetRecvOperator(RecvOperator* p);
@@ -166,7 +168,6 @@ namespace FXNET
 
 		bool m_bConnected;
 
-	private:
 		double m_dAckRecvTime;
 		int m_dwAckTimeoutRetry;
 		unsigned int m_dwStatus;
@@ -182,7 +183,17 @@ namespace FXNET
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>::BufferContral()
-	{ }
+		: m_dwNumBytesSend(0)
+		, m_dwNumBytesReceived(0)
+		, m_dSendTime(0.)
+		, m_dSendFrequency(0.02)
+		, m_dwNumPacketsSend(0)
+		, m_dwNumPacketsRetry(0)
+		, m_bConnected(false)
+		, m_btAckLast(0)
+		, m_btSynLast(0)
+	{
+	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>::~BufferContral()
@@ -193,6 +204,7 @@ namespace FXNET
 	{
 		m_dwStatus = dwState;
 		m_dDelayTime = 0;
+		m_dSendFrequency = 0.05;
 		m_dDelayAverage = 3 * m_dSendFrequency;
 		m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
 		m_dSendTime = 0;
@@ -223,6 +235,12 @@ namespace FXNET
 
 		m_bConnected = false;
 		return 0;
+	}
+
+	template <unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
+	int BufferContral<BUFF_SIZE, WINDOW_SIZE>::GetState() const
+	{
+		return m_dwStatus;
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
@@ -270,6 +288,7 @@ namespace FXNET
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SetAckOutTime(double dOutTime)
 	{
 		m_dAckOutTime = dOutTime;
+		return *this;
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
@@ -422,6 +441,13 @@ namespace FXNET
 					oPacket.m_btSyn = m_oSendWindow.m_btEnd;
 					oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
+					if (pOStream)
+					{
+						*pOStream << "status:" << (int)oPacket.m_btStatus << ", syn:" << (int)oPacket.m_btSyn << ", ack:" << (int)oPacket.m_btAck
+							<< ", m_oSendWindow.m_btEnd:" << (int)m_oSendWindow.m_btEnd << ", m_oRecvWindow.m_btBegin::" << (int)m_oRecvWindow.m_btBegin
+							<< "\n";
+					}
+
 					// 添加到发送窗口
 					m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(oPacket), dTime, m_dRetryTime);
 				}
@@ -429,61 +455,59 @@ namespace FXNET
 		}
 		else { m_dSendDataTime = dTime + m_dSendDataFrequency; }
 
+		//开始发送
+		for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 		{
-			//开始发送
-			for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
+			//如果发送长度超过拥塞窗口 就停止
+			if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl) { break; }
+
+			unsigned char btId = i % _SendWindow::window_size;
+			unsigned short wSize = m_oSendWindow.m_warrSeqSize[btId];
+
+			//开始发送 或者 重传
+			if (dTime >= m_oSendWindow.m_darrSeqRetry[btId] || bForceRetry)
 			{
-				//如果发送长度超过拥塞窗口 就停止
-				if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl) { break; }
+				bForceRetry = false;
 
-				unsigned char btId = i % _SendWindow::window_size;
-				unsigned short wSize = m_oSendWindow.m_warrSeqSize[btId];
+				unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[btId]];
 
-				//开始发送 或者 重传
-				if (dTime >= m_oSendWindow.m_darrSeqRetry[btId] || bForceRetry)
+				// packet header
+				UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
+				oPacket.m_btStatus = m_dwStatus;
+				oPacket.m_btSyn = i;
+				oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
+
+				int dwLen = 0;
+				int dwErrorCode = (*m_pSendOperator)((char*)pBuffer, wSize, dwLen, pOStream);
+				if (dwErrorCode)
 				{
-					bForceRetry = false;
-
-					unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[m_oSendWindow.m_btarrSeqBufferId[btId]];
-
-					// packet header
-					UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
-					oPacket.m_btStatus = m_dwStatus;
-					oPacket.m_btSyn = i;
-					oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
-
-					int dwLen = 0;
-					int dwErrorCode = (*m_pSendOperator)((char*)pBuffer, wSize, dwLen, pOStream);
-					if (dwErrorCode)
+					if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
 					{
-						if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
-						{
-							break;
-						}
-						//发送出错 断开连接
-						return dwErrorCode;
+						break;
 					}
-					else
-					{
-						m_dwNumBytesSend += dwLen;
-					}
-
-					// 发送包数量
-					m_dwNumPacketsSend++;
-
-					// 重试次数
-					if (dTime != m_oSendWindow.m_darrSeqTime[btId]) { m_dwNumPacketsRetry++; }
-
-					m_dSendTime = dTime + m_dSendFrequency;
-					m_dSendDataTime = dTime + m_dSendDataFrequency;
-					m_bSendAck = false;
-
-					m_oSendWindow.m_dwarrSeqRetryCount[btId]++;
-					//m_oSendWindow.m_darrSeqRetryTime[id] *= 2;
-					m_oSendWindow.m_darrSeqRetryTime[btId] = 1.5 * m_dRetryTime;
-					if (m_oSendWindow.m_darrSeqRetryTime[btId] > 0.2) m_oSendWindow.m_darrSeqRetryTime[btId] = 0.2;
-					m_oSendWindow.m_darrSeqRetry[btId] = dTime + m_oSendWindow.m_darrSeqRetryTime[btId];
+					//发送出错 断开连接
+					return dwErrorCode;
 				}
+				else
+				{
+					m_dwNumBytesSend += dwLen;
+				}
+
+				// 发送包数量
+				m_dwNumPacketsSend++;
+
+				// 重试次数
+				if (dTime != m_oSendWindow.m_darrSeqTime[btId]) { m_dwNumPacketsRetry++; }
+
+				m_dSendTime = dTime + m_dSendFrequency;
+				m_dSendDataTime = dTime + m_dSendDataFrequency;
+				m_bSendAck = false;
+
+				m_oSendWindow.m_dwarrSeqRetryCount[btId]++;
+				//m_oSendWindow.m_darrSeqRetryTime[id] *= 2;
+				m_oSendWindow.m_darrSeqRetryTime[btId] = 1.5 * m_dRetryTime;
+				if (m_oSendWindow.m_darrSeqRetryTime[btId] > 0.2) m_oSendWindow.m_darrSeqRetryTime[btId] = 0.2;
+				m_oSendWindow.m_darrSeqRetry[btId] = dTime + m_oSendWindow.m_darrSeqRetryTime[btId];
 			}
 		}
 
@@ -532,13 +556,22 @@ namespace FXNET
 			int dwLen = 0;
 			int dwErrorCode = (*m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, dwLen, pOStream);
 
-			if (dwErrorCode && (EAGAIN != dwErrorCode))
+			if (dwErrorCode)
 			{
 				if (EINTR == dwErrorCode)
 				{
+					refbReadable = false;
 					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 					m_oRecvWindow.m_btFreeBufferId = btBufferId;
-					continue;
+					break;
+				}
+
+				if (EAGAIN == dwErrorCode)
+				{
+					refbReadable = false;
+					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
+					m_oRecvWindow.m_btFreeBufferId = btBufferId;
+					break;
 				}
 
 #ifdef _WIN32
@@ -576,6 +609,16 @@ namespace FXNET
 				{
 					(*m_pOnConnectedOperator)(pOStream);
 					m_bConnected = true;
+					
+					for (unsigned char i = m_oRecvWindow.m_btBegin; i != m_oRecvWindow.m_btEnd; ++i)
+					{
+						unsigned char btId = i % m_oRecvWindow.window_size;
+						m_oRecvWindow.m_btarrSeqBufferId[btId] = m_oRecvWindow.window_size;
+						m_oRecvWindow.m_warrSeqSize[btId] = 0;
+						m_oRecvWindow.m_darrSeqTime[btId] = 0;
+						m_oRecvWindow.m_darrSeqRetry[btId] = 0;
+						m_oRecvWindow.m_dwarrSeqRetryCount[btId] = 0;
+					}
 				}
 			}
 
@@ -584,6 +627,11 @@ namespace FXNET
 
 			// packet header
 			UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
+
+			if (pOStream)
+			{
+				*pOStream << "status:" << (int)packet.m_btStatus << ", syn:" << (int)packet.m_btSyn << ", ack:" << (int)packet.m_btAck << "\n";
+			}
 
 			//收到一个有效的ack 那么要更新发送窗口的状态
 			if (m_oSendWindow.IsValidIndex(packet.m_btAck))
@@ -670,6 +718,10 @@ namespace FXNET
 			{
 				unsigned char btId = packet.m_btSyn % _RecvWindow::window_size;
 
+				if (pOStream)
+				{
+					*pOStream << "recv new:" << (int)packet.m_btSyn << ", m_oRecvWindow.m_btarrSeqBufferId[btId]" << (int)m_oRecvWindow.m_btarrSeqBufferId[btId] << "\n";
+				}
 				if (m_oRecvWindow.m_btarrSeqBufferId[btId] >= _RecvWindow::window_size)
 				{
 					m_oRecvWindow.m_btarrSeqBufferId[btId] = btBufferId;
@@ -707,6 +759,11 @@ namespace FXNET
 					break;
 
 				btNewAck = i;
+
+				if (pOStream)
+				{
+					*pOStream << "recv new_ack:" << (int)btNewAck << "\n";
+				}
 			}
 
 			// 有新的ack

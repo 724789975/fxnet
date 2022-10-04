@@ -20,14 +20,11 @@ int main()
 #endif // _WIN32
 	}
 
+	FXNET::PostEvent(new FXNET::UDPListen("0.0.0.0", 10085));
+	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.103", 10085));
+
 	while (true)
 	{
-		bool b = false;
-		if (b)
-		{
-			FXNET::PostEvent(new FXNET::UDPListen("0.0.0.0", 10085));
-			FXNET::PostEvent(new FXNET::UDPConnect("127.0.0.1", 10085));
-		}
 		std::deque<MessageEventBase*> dequeMessage;
 		FXNET::SwapEvent(dequeMessage);
 
