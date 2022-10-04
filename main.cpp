@@ -23,8 +23,12 @@ int main()
 	FXNET::PostEvent(new FXNET::UDPListen("0.0.0.0", 10085));
 	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.103", 10085));
 
-	while (true)
+	for (int i = 0; ; ++i)
 	{
+		if (i == 10000)
+		{
+			FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.103", 10085));
+		}
 		std::deque<MessageEventBase*> dequeMessage;
 		FXNET::SwapEvent(dequeMessage);
 
