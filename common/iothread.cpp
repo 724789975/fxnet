@@ -182,18 +182,13 @@ namespace FXNET
 		}
 
 		//m_hEvent = eventfd(0, EFD_NONBLOCK);
-		m_hEvent = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+		//m_hEvent = eventfd(0, EFD_CLOEXEC);
+		m_hEvent = eventfd(0, EFD_CLOEXEC);
 		if (m_hEvent < 0)
 		{
 			*pOStream << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
-		}
-
-		unsigned long long qwRdata = 0;
-		if (read(m_hEvent, &qwRdata, sizeof(qwRdata)) == -1)
-		{
-			if (errno != EAGAIN) return false;
 		}
 
 		epoll_event e;
@@ -429,8 +424,12 @@ namespace FXNET
 #ifdef _WIN32
 		PostQueuedCompletionStatus(GetHandle(), 0, 0, (OVERLAPPED*)pEvent);
 #else
-		unsigned long long lPoint = (unsigned long long)pEvent;
-		std::cout << lPoint << "\n";
+		//unsigned long long lPoint = (unsigned long long)pEvent;
+		//std::cout << lPoint << "\n";
+		unsigned long long lPoint = 1LL;
+
+		CLockImp oImp(m_lockEventLock);
+		m_vecIOEvent.push_back(pEvent);
 		write(m_hEvent, &lPoint, sizeof(lPoint));
 #endif //_WIN32
 		return *this;
@@ -569,12 +568,18 @@ namespace FXNET
 			{
 				if (pEvent->events & EPOLLIN)
 				{
+					std::vector<IOEventBase*> vecTmp;
 					unsigned long long lPoint;
 					int n = read(m_hEvent, &lPoint, sizeof(lPoint));
-					std::cout << lPoint << "\n";
 					if (sizeof(lPoint) == n)
 					{
-						(*(IOEventBase*)((void*)lPoint))(pOStream);
+						CLockImp oImp(m_lockEventLock);
+						vecTmp.swap(m_vecIOEvent);
+						//(*(IOEventBase*)((void*)lPoint))(pOStream);
+					}
+					for (std::vector<IOEventBase*>::iterator it = vecTmp.begin(); it != vecTmp.end(); ++it)
+					{
+						(* (*it))(pOStream);
 					}
 				}
 				else

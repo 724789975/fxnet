@@ -81,7 +81,9 @@ namespace FXNET
 		std::map<ISocketBase::NativeSocketType, ISocketBase*> m_mapSockets;
 
 		std::deque<MessageEventBase*> m_dequeEvent;
-
+#ifndef _WIN32
+		std::vector<IOEventBase*> m_vecIOEvent;
+#endif // _WIN32
 		CCasLock				m_lockEventLock;
 	};
 
