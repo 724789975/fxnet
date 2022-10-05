@@ -18,9 +18,9 @@ namespace FXNET
 		enum { window_size = WINDOW_SIZE };
 
 		/**
-		 * @brief å·²å‘é€å¾…ç¡®è®¤/å·²æ¥æ”¶å¾…ç¡®è®¤
+		 * @brief ÒÑ·¢ËÍ´ıÈ·ÈÏ/ÒÑ½ÓÊÕ´ıÈ·ÈÏ
 		 *
-		 * @return unsigned char å¾…ç¡®è®¤æ•°é‡
+		 * @return unsigned char ´ıÈ·ÈÏÊıÁ¿
 		 */
 		inline unsigned char Count()
 		{
@@ -28,7 +28,7 @@ namespace FXNET
 		}
 
 		/**
-		 * @brief æ˜¯å¦æœ‰æ•ˆid
+		 * @brief ÊÇ·ñÓĞĞ§id
 		 *
 		 * @param btId
 		 * @return true
@@ -44,7 +44,7 @@ namespace FXNET
 		/**
 		 * @brief 
 		 * 
-		 * @return SlidingWindow& è¿”å›è‡ªèº«
+		 * @return SlidingWindow& ·µ»Ø×ÔÉí
 		 */
 		inline SlidingWindow& ClearBuffer()
 		{
@@ -61,45 +61,45 @@ namespace FXNET
 	protected:
 	public:
 		/**
-		 * @brief å‘é€/æ¥æ”¶ ç¼“å†²åŒº
+		 * @brief ·¢ËÍ/½ÓÊÕ »º³åÇø
 		 */
 		unsigned char m_btarrBuffer[WINDOW_SIZE][BUFF_SIZE];
 		/**
-		 * @brief ç©ºé—²çš„ç¼“å†²åŒºå¸§å·
+		 * @brief ¿ÕÏĞµÄ»º³åÇøÖ¡ºÅ
 		 */
 		unsigned char m_btFreeBufferId;
 
 		/**
-		 * @brief å‘é€/æ¥æ”¶ åŒºå¸§å·
+		 * @brief ·¢ËÍ/½ÓÊÕ ÇøÖ¡ºÅ
 		 */
 		unsigned char m_btarrSeqBufferId[WINDOW_SIZE];
 		/**
-		 * @brief å‘é€/æ¥æ”¶ å¸§å¤§å°
+		 * @brief ·¢ËÍ/½ÓÊÕ Ö¡´óĞ¡
 		 */
 		unsigned short m_warrSeqSize[WINDOW_SIZE];
 		/**
-		 * @brief å‘é€æ—¶é—´
+		 * @brief ·¢ËÍÊ±¼ä
 		 */
 		double m_darrSeqTime[WINDOW_SIZE];
 		/**
-		 * @brief é‡ä¼ æ—¶é—´(é‡ä¼ çš„å®šæ—¶å™¨)
+		 * @brief ÖØ´«Ê±¼ä(ÖØ´«µÄ¶¨Ê±Æ÷)
 		 */
 		double m_darrSeqRetry[WINDOW_SIZE];
 		/**
-		 * @brief é‡ä¼ æ—¶é—´é—´éš”(rto)
+		 * @brief ÖØ´«Ê±¼ä¼ä¸ô(rto)
 		 */
 		double m_darrSeqRetryTime[WINDOW_SIZE];
 		/**
-		 * @brief é‡ä¼ æ¬¡æ•°
+		 * @brief ÖØ´«´ÎÊı
 		 */
 		unsigned int m_dwarrSeqRetryCount[WINDOW_SIZE];
 
 		/**
-		 * @brief æ»‘åŠ¨çª—å£èµ·å§‹ä½ç½®
+		 * @brief »¬¶¯´°¿ÚÆğÊ¼Î»ÖÃ
 		 */
 		unsigned char m_btBegin;
 		/**
-		 * @brief æ»‘åŠ¨çª—å£ç»“æŸä½ç½®
+		 * @brief »¬¶¯´°¿Ú½áÊøÎ»ÖÃ
 		 */
 		unsigned char m_btEnd;
 		
@@ -110,13 +110,13 @@ namespace FXNET
 	{
 	public:
 		/**
-		 * @brief æ·»åŠ åˆ°å‘é€çª—å£
+		 * @brief Ìí¼Óµ½·¢ËÍ´°¿Ú
 		 * 
-		 * @param btId å¸§å·
-		 * @param btBuffId ç¼“å†²åŒºid
-		 * @param wPacketSize åŒ…å¤§å°
-		 * @param dTime æ·»åŠ æ—¶é—´
-		 * @param dRetryTime ç­‰å¾…å¤šä¹…åå¼€å§‹é‡è¯•
+		 * @param btId Ö¡ºÅ
+		 * @param btBuffId »º³åÇøid
+		 * @param wPacketSize °ü´óĞ¡
+		 * @param dTime Ìí¼ÓÊ±¼ä
+		 * @param dRetryTime µÈ´ı¶à¾Ãºó¿ªÊ¼ÖØÊÔ
 		 */
 		SendWindow& Add2SendWindow(unsigned char btId, unsigned char btBuffId, unsigned short wPacketSize, double dTime, double dRetryTime)
 		{

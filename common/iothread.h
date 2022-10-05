@@ -44,15 +44,15 @@ namespace FXNET
 #ifdef _WIN32
 		// win下为完成端口 linux下为epoll
 		HANDLE					GetHandle();
-		bool					RegisterIO(ISocketBase::NativeSocketType hSock, ISocketBase* poSock, std::ostream* pOStream);
+		int						RegisterIO(ISocketBase::NativeSocketType hSock, ISocketBase* poSock, std::ostream* pOStream);
 #else
-		bool					RegisterIO(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
-		bool					ChangeEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
+		int						RegisterIO(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
+		int						ChangeEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream);
 		int						GetHandle();
 		int						WaitEvents(int nMilliSecond);
 		epoll_event*			GetEvent(int nIndex);
 #endif // _WIN32
-		bool					DeregisterIO(ISocketBase::NativeSocketType hSock, std::ostream* pOStream);
+		int 					DeregisterIO(ISocketBase::NativeSocketType hSock, std::ostream* pOStream);
 
 		FxIoModule&				PostEvent(IOEventBase* pEvent);
 	private:

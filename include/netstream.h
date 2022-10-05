@@ -29,7 +29,7 @@ namespace FXNET
 		}
 		~CNetStream() {}
 
-		unsigned int GetDataLength() { return m_dwLen; }
+		size_t GetDataLength() { return m_dwLen; }
 
 		char* ReadData(unsigned int dwLen)
 		{
@@ -224,7 +224,7 @@ namespace FXNET
 			return NULL;
 		}
 
-		bool WriteData(char* pData, unsigned int dwLen)
+		bool WriteData(char* pData, size_t dwLen)
 		{
 			if (dwLen > m_dwLen)
 			{
@@ -236,7 +236,7 @@ namespace FXNET
 			return true;
 		}
 
-		bool WriteData(const char* pData, unsigned int dwLen)
+		bool WriteData(const char* pData, size_t dwLen)
 		{
 			if (dwLen > m_dwLen)
 			{
@@ -331,7 +331,7 @@ namespace FXNET
 
 	private:
 		char* m_pData;
-		unsigned int m_dwLen;
+		size_t m_dwLen;
 	};
 };
 

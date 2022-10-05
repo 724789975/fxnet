@@ -121,7 +121,7 @@ namespace FXNET
 		virtual int Update(double dTimedouble, std::ostream* pOStream);
 
 		sockaddr_in& GetRemoteAddr() { return m_stRemoteAddr; }
-		CUdpConnector& SetRemoteAddr(sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
+		CUdpConnector& SetRemoteAddr(const sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
 
 		int Connect(sockaddr_in address, std::ostream* pOStream);
 
@@ -141,7 +141,7 @@ namespace FXNET
 		void OnConnected(std::ostream* pOStream);
 	protected:
 	private:
-		int Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
+		int Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 		sockaddr_in m_stRemoteAddr;
 
 		UDPOnRecvOperator m_funOnRecvOperator;

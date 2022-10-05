@@ -10,7 +10,6 @@ namespace FXNET
 	{
 	public:
 		virtual const char* Name()const { return "CUdpSocket"; }
-		virtual ISocketBase& Update(double dTime);
 	protected:
 	private:
 	};

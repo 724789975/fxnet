@@ -18,10 +18,10 @@ namespace FXNET
 	/**
 	 * @brief 
 	 * CUdpListener
-	 * notice ä¸ºé˜²æ­¢æ”¶åˆ°åŒä¸€ä¸ªåœ°å€å‘æ¥çš„å¤šä¸ªæ¶ˆæ¯ windowsä¸‹æ¯æ¬¡æŠ•æ”¾ä¸€ä¸ªWSARecvfrom
-	 * linuxä¸‹ä¼šåœ¨å¤„ç†æ—¶ åˆ¤æ–­æ˜¯ä¸æ˜¯åŒä¸ªé“¾æ¥
-	 * è¿™æ ·windowsä¸‹å°±ä¼šå¸¦æ¥å‰¯ä½œç”¨ æ¥å—è¿æ¥çš„æ•ˆç‡ä¼šå˜ä½
-	 * é™¤éä¸ä½¿ç”¨é‡å io
+	 * notice Îª·ÀÖ¹ÊÕµ½Í¬Ò»¸öµØÖ··¢À´µÄ¶à¸öÏûÏ¢ windowsÏÂÃ¿´ÎÍ¶·ÅÒ»¸öWSARecvfrom
+	 * linuxÏÂ»áÔÚ´¦ÀíÊ± ÅĞ¶ÏÊÇ²»ÊÇÍ¬¸öÁ´½Ó
+	 * ÕâÑùwindowsÏÂ¾Í»á´øÀ´¸±×÷ÓÃ ½ÓÊÜÁ¬½ÓµÄĞ§ÂÊ»á±äµÍ
+	 * ³ı·Ç²»Ê¹ÓÃÖØµşio
 	 */
 	class CUdpListener : public CUdpSocket
 	{
@@ -50,7 +50,6 @@ namespace FXNET
 		virtual int Update(double dTimedouble, std::ostream* pOStream);
 
 		int Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream);
-		int Listen(std::ostream* pOStream);
 
 		virtual IOReadOperation& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
@@ -65,8 +64,7 @@ namespace FXNET
 		static const unsigned int UDP_ACCEPT_HASH_SIZE = 64;
 		static const unsigned int UDP_ACCEPT_MAX_SIZE = 2048;
 
-
-		CUdpListener& OnClientConnected(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream);
+		CUdpListener& OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 
 #ifdef _WIN32
 		int PostAccept(std::ostream* pOStream);
@@ -77,13 +75,13 @@ namespace FXNET
 			sockaddr_in addr;
 			NativeSocketType m_oAcceptSocket;
 		};
-		//è¿™äº›å‡½æ•°åªæ˜¯ä¸ºäº†é˜²æ­¢è¿æ¥è¿‡æ¥çš„æ—¶å€™é‡å¤å»ºç«‹
+		//ÕâĞ©º¯ÊıÖ»ÊÇÎªÁË·ÀÖ¹Á¬½Ó¹ıÀ´µÄÊ±ºòÖØ¸´½¨Á¢
 		unsigned int GenerateAcceptHash(const sockaddr_in & addr);
 		AcceptReq* GetAcceptReq(const sockaddr_in & addr);
 		void AddAcceptReq(AcceptReq* pReq);
 		void RemoveAcceptReq(const sockaddr_in & addr);
 
-		//é˜²æ­¢åŒä¸€è¿æ¥ åŒä¸€æ—¶é—´è¯·æ±‚å¤šæ¬¡
+		//·ÀÖ¹Í¬Ò»Á¬½Ó Í¬Ò»Ê±¼äÇëÇó¶à´Î
 		AcceptReq* m_arroAcceptQueue[UDP_ACCEPT_HASH_SIZE];
 		CCasLockQueue<AcceptReq, UDP_ACCEPT_MAX_SIZE> m_oAcceptPool;
 #endif // _WIN32

@@ -27,11 +27,11 @@ namespace FXNET
 		virtual ~OnRecvOperator() {};
 
 		/**
-		 * @brief æ¥æ”¶å‡½æ•°
+		 * @brief ½ÓÊÕº¯Êı
 		 *
-		 * @param szBuff æ¥æ”¶çš„æ•°æ®
-		 * @param dwSize æ¥æ”¶çš„é•¿åº¦
-		 * @return int é”™è¯¯ç 
+		 * @param szBuff ½ÓÊÕµÄÊı¾İ
+		 * @param dwSize ½ÓÊÕµÄ³¤¶È
+		 * @return int ´íÎóÂë
 		 */
 		virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* refOStream) = 0;
 	};
@@ -41,7 +41,7 @@ namespace FXNET
 	public:
 		virtual ~OnConnectedOperator() {};
 		/**
-		 * @brief è¿æ¥å¤„ç†
+		 * @brief Á¬½Ó´¦Àí
 		 *
 		 */
 		virtual int operator() (std::ostream* refOStream) = 0;
@@ -52,12 +52,12 @@ namespace FXNET
 	public:
 		virtual ~RecvOperator() {};
 		/**
-		 * @brief æ¥æ”¶å‡½æ•°
+		 * @brief ½ÓÊÕº¯Êı
 		 *
-		 * @param pBuff æ¥æ”¶çš„æ•°æ®
-		 * @param wBuffSize æ¥æ”¶ç¼“å†²åŒºçš„é•¿åº¦
-		 * @param wRecvSize æ¥æ”¶çš„é•¿åº¦
-		 * @return int é”™è¯¯ç 
+		 * @param pBuff ½ÓÊÕµÄÊı¾İ
+		 * @param wBuffSize ½ÓÊÕ»º³åÇøµÄ³¤¶È
+		 * @param wRecvSize ½ÓÊÕµÄ³¤¶È
+		 * @return int ´íÎóÂë
 		 */
 		virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* refOStream) = 0;
 	};
@@ -67,12 +67,12 @@ namespace FXNET
 	public:
 		virtual ~SendOperator() {};
 		/**
-		 * @brief å‘é€å¤„ç†å‡½æ•°
+		 * @brief ·¢ËÍ´¦Àíº¯Êı
 		 *
-		 * @param szBuff è¦å‘é€çš„æ•°æ®
-		 * @param wBufferSize è¦å‘é€çš„é•¿åº¦
-		 * @param wSendLen å‘é€é•¿åº¦
-		 * @return int é”™è¯¯ç 
+		 * @param szBuff Òª·¢ËÍµÄÊı¾İ
+		 * @param wBufferSize Òª·¢ËÍµÄ³¤¶È
+		 * @param wSendLen ·¢ËÍ³¤¶È
+		 * @return int ´íÎóÂë
 		 */
 		virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream) = 0;
 	};
@@ -89,10 +89,10 @@ namespace FXNET
 	enum ConnectionStatus
 	{
 		ST_IDLE,
-		ST_SYN_SEND,		//ä½¿ç”¨
-		ST_SYN_RECV,		//ä½¿ç”¨
+		ST_SYN_SEND,		//Ê¹ÓÃ
+		ST_SYN_RECV,		//Ê¹ÓÃ
 		ST_SYN_RECV_WAIT,
-		ST_ESTABLISHED,		//ä½¿ç”¨
+		ST_ESTABLISHED,		//Ê¹ÓÃ
 		ST_FIN_WAIT_1,
 		ST_FIN_WAIT_2,
 	};
@@ -118,18 +118,18 @@ namespace FXNET
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
 		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
 		BufferContral& SetRecvOperator(RecvOperator* p);
-		// TODOæ˜¯å¦éœ€è¦ ä¸éœ€è¦åé¢åˆ æ‰
+		// TODOÊÇ·ñĞèÒª ²»ĞèÒªºóÃæÉ¾µô
 		BufferContral& SetSendOperator(SendOperator* p);
 		BufferContral& SetReadStreamOperator(ReadStreamOperator* p);
 
 		BufferContral& SetAckOutTime(double dOutTime);
 
 		/**
-		 * @brief å°†æ•°æ®æ”¾å…¥å‘é€ç¼“å†²åŒº
+		 * @brief ½«Êı¾İ·ÅÈë·¢ËÍ»º³åÇø
 		 *
-		 * @param pSendBuffer å¾…å‘é€æ•°æ®
-		 * @param wSize è¦å‘é€çš„é•¿åº¦
-		 * @return unsigned short æ”¾å…¥å‘é€ç¼“å†²çš„é•¿åº¦ <= wSize
+		 * @param pSendBuffer ´ı·¢ËÍÊı¾İ
+		 * @param wSize Òª·¢ËÍµÄ³¤¶È
+		 * @return unsigned short ·ÅÈë·¢ËÍ»º³åµÄ³¤¶È <= wSize
 		 */
 		unsigned short Send(const char* pSendBuffer, unsigned short wSize, double dTime);
 
@@ -178,7 +178,7 @@ namespace FXNET
 		unsigned char m_btAckLast;
 		unsigned char m_btSynLast;
 
-		double m_dAckOutTime; //é»˜è®¤æ˜¯5
+		double m_dAckOutTime; //Ä¬ÈÏÊÇ5
 	};
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
@@ -221,15 +221,15 @@ namespace FXNET
 		m_dSendWindowControl = 1;
 		m_dSendWindowThreshhold = _SendWindow::window_size;
 
-		// æ¸…ç©ºæ»‘åŠ¨çª—å£
+		// Çå¿Õ»¬¶¯´°¿Ú
 		m_oRecvWindow.ClearBuffer();
 		m_oSendWindow.ClearBuffer();
 
-		// åˆå§‹åŒ–å‘é€çª—å£
+		// ³õÊ¼»¯·¢ËÍ´°¿Ú
 		m_oSendWindow.m_btBegin = 1;
 		m_oSendWindow.m_btEnd = m_oSendWindow.m_btBegin;
 
-		// åˆå§‹åŒ–æ¥æ”¶çª—å£
+		// ³õÊ¼»¯½ÓÊÕ´°¿Ú
 		m_oRecvWindow.m_btBegin = 1;
 		m_oRecvWindow.m_btEnd = m_oRecvWindow.m_btBegin + _RecvWindow::window_size;
 
@@ -299,25 +299,25 @@ namespace FXNET
 		while ((m_oSendWindow.m_btFreeBufferId < _SendWindow::window_size) && // there is a free buffer
 			(wSize > 0))
 		{
-			//é•¿åº¦ä¸ä¼šå¤§äºæ‹¥å¡çª—å£
+			//³¤¶È²»»á´óÓÚÓµÈû´°¿Ú
 			if (m_oSendWindow.m_btEnd - m_oSendWindow.m_btBegin > m_dSendWindowControl) break;
 
 			unsigned char btId = m_oSendWindow.m_btEnd % _SendWindow::window_size;
 
-			// è·å–ä¸€ä¸ªå¸§
+			// »ñÈ¡Ò»¸öÖ¡
 			unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
 			m_oSendWindow.m_btFreeBufferId = m_oSendWindow.m_btarrBuffer[btBufferId][0];
 
-			// å‘é€çš„ç¼“å­˜
+			// ·¢ËÍµÄ»º´æ
 			unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
 
-			// å¤„ç†æ•°æ®å¤´
+			// ´¦ÀíÊı¾İÍ·
 			UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
 			oPacket.m_btStatus = m_dwStatus;
 			oPacket.m_btSyn = m_oSendWindow.m_btEnd;
 			oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
-			// å¤åˆ¶æ•°æ®
+			// ¸´ÖÆÊı¾İ
 			unsigned int dwCopyOffset = sizeof(oPacket);
 			unsigned int dwCopySize = _SendWindow::buff_size - dwCopyOffset;
 			if (dwCopySize > wSize)
@@ -331,7 +331,7 @@ namespace FXNET
 				wSendSize += dwCopySize;
 			}
 
-			// æ·»åŠ åˆ°å‘é€çª—å£
+			// Ìí¼Óµ½·¢ËÍ´°¿Ú
 			m_oSendWindow.Add2SendWindow(btId, btBufferId, dwCopySize + dwCopyOffset, dTime, m_dRetryTime);
 		}
 
@@ -360,7 +360,7 @@ namespace FXNET
 
 		if (m_dwStatus == ST_ESTABLISHED)
 		{
-			//3æ¬¡ç›¸åŒack å¼€å§‹å¿«é€Ÿé‡ä¼ 
+			//3´ÎÏàÍ¬ack ¿ªÊ¼¿ìËÙÖØ´«
 			if (m_dwAckSameCount > 3)
 			{
 				if (m_bQuickRetry == false)
@@ -379,7 +379,7 @@ namespace FXNET
 				}
 				else
 				{
-					//ç›¸åŒackæ—¶ æ‹¥å¡æ§åˆ¶çª—å£+1
+					//ÏàÍ¬ackÊ± ÓµÈû¿ØÖÆ´°¿Ú+1
 					m_dSendWindowControl += 1;
 					if (m_dSendWindowControl > _SendWindow::window_size)
 					{
@@ -389,7 +389,7 @@ namespace FXNET
 			}
 			else
 			{
-				//æœ‰æ–°çš„ack é‚£ä¹ˆå¿«é€Ÿé‡ä¼ ç»“æŸ
+				//ÓĞĞÂµÄack ÄÇÃ´¿ìËÙÖØ´«½áÊø
 				if (m_bQuickRetry == true)
 				{
 					m_dSendWindowControl = m_dSendWindowThreshhold;
@@ -397,11 +397,11 @@ namespace FXNET
 				}
 			}
 
-			//å¦‚æœè¶…æ—¶(è¶…è¿‡rto) é‚£ä¹ˆé‡æ–°è¿›å…¥æ…¢å¯åŠ¨
+			//Èç¹û³¬Ê±(³¬¹ırto) ÄÇÃ´ÖØĞÂ½øÈëÂıÆô¶¯
 			for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 			{
 				unsigned char btId = i % _SendWindow::window_size;
-				unsigned short size = m_oSendWindow.m_warrSeqSize[btId];
+				//unsigned short size = m_oSendWindow.m_warrSeqSize[btId];
 
 				if (m_oSendWindow.m_dwarrSeqRetryCount[btId] > 0
 					&& dTime >= m_oSendWindow.m_warrSeqSize[btId])
@@ -421,7 +421,7 @@ namespace FXNET
 			(* m_pReadStreamOperator)();
 		}
 
-		//æ²¡æœ‰æ•°æ®å‘é€ é‚£ä¹ˆåˆ›å»ºä¸€ä¸ªç©ºçš„ ç”¨æ¥åŒæ­¥çª—å£æ•°æ®
+		//Ã»ÓĞÊı¾İ·¢ËÍ ÄÇÃ´´´½¨Ò»¸ö¿ÕµÄ ÓÃÀ´Í¬²½´°¿ÚÊı¾İ
 		if (m_oSendWindow.m_btBegin == m_oSendWindow.m_btEnd)
 		{
 			if (dTime >= m_dSendDataTime)
@@ -430,7 +430,7 @@ namespace FXNET
 				{
 					unsigned char btId = m_oSendWindow.m_btEnd % m_oSendWindow.window_size;
 
-					// è·å–ç¼“å­˜
+					// »ñÈ¡»º´æ
 					unsigned char btBufferId = m_oSendWindow.m_btFreeBufferId;
 					m_oSendWindow.m_btFreeBufferId = m_oSendWindow.m_btarrBuffer[btBufferId][0];
 					unsigned char* pBuffer = m_oSendWindow.m_btarrBuffer[btBufferId];
@@ -448,23 +448,23 @@ namespace FXNET
 							<< "\n";
 					}
 
-					// æ·»åŠ åˆ°å‘é€çª—å£
+					// Ìí¼Óµ½·¢ËÍ´°¿Ú
 					m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(oPacket), dTime, m_dRetryTime);
 				}
 			}
 		}
 		else { m_dSendDataTime = dTime + m_dSendDataFrequency; }
 
-		//å¼€å§‹å‘é€
+		//¿ªÊ¼·¢ËÍ
 		for (unsigned char i = m_oSendWindow.m_btBegin; i != m_oSendWindow.m_btEnd; i++)
 		{
-			//å¦‚æœå‘é€é•¿åº¦è¶…è¿‡æ‹¥å¡çª—å£ å°±åœæ­¢
+			//Èç¹û·¢ËÍ³¤¶È³¬¹ıÓµÈû´°¿Ú ¾ÍÍ£Ö¹
 			if (i - m_oSendWindow.m_btBegin >= m_dSendWindowControl) { break; }
 
 			unsigned char btId = i % _SendWindow::window_size;
 			unsigned short wSize = m_oSendWindow.m_warrSeqSize[btId];
 
-			//å¼€å§‹å‘é€ æˆ–è€… é‡ä¼ 
+			//¿ªÊ¼·¢ËÍ »òÕß ÖØ´«
 			if (dTime >= m_oSendWindow.m_darrSeqRetry[btId] || bForceRetry)
 			{
 				bForceRetry = false;
@@ -485,7 +485,7 @@ namespace FXNET
 					{
 						break;
 					}
-					//å‘é€å‡ºé”™ æ–­å¼€è¿æ¥
+					//·¢ËÍ³ö´í ¶Ï¿ªÁ¬½Ó
 					return dwErrorCode;
 				}
 				else
@@ -493,10 +493,10 @@ namespace FXNET
 					m_dwNumBytesSend += dwLen;
 				}
 
-				// å‘é€åŒ…æ•°é‡
+				// ·¢ËÍ°üÊıÁ¿
 				m_dwNumPacketsSend++;
 
-				// é‡è¯•æ¬¡æ•°
+				// ÖØÊÔ´ÎÊı
 				if (dTime != m_oSendWindow.m_darrSeqTime[btId]) { m_dwNumPacketsRetry++; }
 
 				m_dSendTime = dTime + m_dSendFrequency;
@@ -522,7 +522,7 @@ namespace FXNET
 			int dwLen = 0;
 			if (int dwErrorCode = (*m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, pOStream))
 			{
-				//å‘é€å‡ºé”™ æ–­å¼€è¿æ¥
+				//·¢ËÍ³ö´í ¶Ï¿ªÁ¬½Ó
 				return dwErrorCode;
 			}
 
@@ -538,7 +538,7 @@ namespace FXNET
 	{
 		// packet received
 		bool bPacketReceived = false;
-		bool bCloseConnection = false;
+		//bool bCloseConnection = false;
 
 		while (refbReadable)
 		{
@@ -632,10 +632,10 @@ namespace FXNET
 				*pOStream << "status:" << (int)packet.m_btStatus << ", syn:" << (int)packet.m_btSyn << ", ack:" << (int)packet.m_btAck << "\n";
 			}
 
-			//æ”¶åˆ°ä¸€ä¸ªæœ‰æ•ˆçš„ack é‚£ä¹ˆè¦æ›´æ–°å‘é€çª—å£çš„çŠ¶æ€
+			//ÊÕµ½Ò»¸öÓĞĞ§µÄack ÄÇÃ´Òª¸üĞÂ·¢ËÍ´°¿ÚµÄ×´Ì¬
 			if (m_oSendWindow.IsValidIndex(packet.m_btAck))
 			{
-				// è·å¾—åˆ°çš„æ˜¯ä¸€ä¸ªæœ‰æ•ˆçš„åŒ…
+				// »ñµÃµ½µÄÊÇÒ»¸öÓĞĞ§µÄ°ü
 				m_dAckRecvTime = dTime;
 				m_dwAckTimeoutRetry = 3;
 
@@ -659,29 +659,29 @@ namespace FXNET
 					unsigned char id = m_oSendWindow.m_btBegin % _SendWindow::window_size;
 					unsigned char btBufferId = m_oSendWindow.m_btarrSeqBufferId[id];
 
-					//åªä½¿ç”¨æ²¡æœ‰é‡å‘çš„åŒ…è®¡ç®—å»¶è¿Ÿ
+					//Ö»Ê¹ÓÃÃ»ÓĞÖØ·¢µÄ°ü¼ÆËãÑÓ³Ù
 					if (m_oSendWindow.m_btarrSeqBufferId[id] == 1)
 					{
-						// rtt(æ”¶åŒ…å»¶è¿Ÿæ—¶é—´)
+						// rtt(ÊÕ°üÑÓ³ÙÊ±¼ä)
 						rtt = dTime - m_oSendWindow.m_darrSeqTime[id];
-						//ä½¿ç”¨ rtt ä¸ m_dDelayTime è·å– dErrTime
+						//Ê¹ÓÃ rtt Óë m_dDelayTime »ñÈ¡ dErrTime
 						dErrTime = rtt - m_dDelayTime;
-						//ä½¿ç”¨ dErrTime é‡æ–°è®¡ç®— m_dDelayTime
+						//Ê¹ÓÃ dErrTime ÖØĞÂ¼ÆËã m_dDelayTime
 						m_dDelayTime = m_dDelayTime + err_factor * dErrTime;
-						//ä½¿ç”¨ dErrTime é‡æ–°è®¡ç®— m_dDelayAverage
+						//Ê¹ÓÃ dErrTime ÖØĞÂ¼ÆËã m_dDelayAverage
 						m_dDelayAverage = m_dDelayAverage + average_factor * (fabs(dErrTime) - m_dDelayAverage);
 					}
 
-					// é‡Šæ”¾ç¼“å­˜
+					// ÊÍ·Å»º´æ
 					m_oSendWindow.m_btarrBuffer[btBufferId][0] = m_oSendWindow.m_btFreeBufferId;
 					m_oSendWindow.m_btFreeBufferId = btBufferId;
 					m_oSendWindow.m_btBegin++;
 
-					//æ”¶åˆ°æ–°çš„ack
-					//å¦‚æœ m_SendWindowControl æ¯” m_dSendWindowThreshhold å¤§ ä¸ºæ‹¥å¡é¿å…
-					//å¦åˆ™ä¸ºæ…¢å¯åŠ¨
-					//æ‹¥å¡é¿å…ä¸­ m_SendWindowControl æ¯æ¬¡å¢åŠ  1 / m_dSendWindowControl
-					//æ…¢å¯åŠ¨ä¸­ m_SendWindowControl æ¯æ¬¡å¢åŠ  1
+					//ÊÕµ½ĞÂµÄack
+					//Èç¹û m_SendWindowControl ±È m_dSendWindowThreshhold ´ó ÎªÓµÈû±ÜÃâ
+					//·ñÔòÎªÂıÆô¶¯
+					//ÓµÈû±ÜÃâÖĞ m_SendWindowControl Ã¿´ÎÔö¼Ó 1 / m_dSendWindowControl
+					//ÂıÆô¶¯ÖĞ m_SendWindowControl Ã¿´ÎÔö¼Ó 1
 					if (m_dSendWindowControl <= m_dSendWindowThreshhold)
 					{
 						m_dSendWindowControl += 1;
@@ -697,12 +697,12 @@ namespace FXNET
 					}
 				}
 
-				//ä½¿ç”¨ m_dDelayTime å’Œ m_dDelayAverage è®¡ç®—é‡è¯•çš„æ—¶é—´
+				//Ê¹ÓÃ m_dDelayTime ºÍ m_dDelayAverage ¼ÆËãÖØÊÔµÄÊ±¼ä
 				m_dRetryTime = m_dDelayTime + retry_factor * m_dDelayAverage;
 				if (m_dRetryTime < m_dSendFrequency) m_dRetryTime = m_dSendFrequency;
 			}
 
-			//æ”¶åˆ°ç›¸åŒack(è¶…è¿‡3æ¬¡è¦å¼€å§‹é€‰æ‹©é‡ä¼ )
+			//ÊÕµ½ÏàÍ¬ack(³¬¹ı3´ÎÒª¿ªÊ¼Ñ¡ÔñÖØ´«)
 			if (m_btAckLast == m_oSendWindow.m_btBegin - 1)
 			{
 				m_dwAckSameCount++;
@@ -712,7 +712,7 @@ namespace FXNET
 				m_dwAckSameCount = 0;
 			}
 
-			//æ¥æ”¶åˆ°çš„æ˜¯ä¸€ä¸ªæœ‰æ•ˆçš„åŒ…
+			//½ÓÊÕµ½µÄÊÇÒ»¸öÓĞĞ§µÄ°ü
 			if (m_oRecvWindow.IsValidIndex(packet.m_btSyn))
 			{
 				unsigned char btId = packet.m_btSyn % _RecvWindow::window_size;
@@ -727,33 +727,33 @@ namespace FXNET
 					m_oRecvWindow.m_warrSeqSize[btId] = dwLen;
 					bPacketReceived = true;
 
-					// æ²¡æœ‰æ›´å¤šçš„æ¥æ”¶ç¼“å†² é‚£ä¹ˆå…ˆå¤„ç†æ¥æ”¶
+					// Ã»ÓĞ¸ü¶àµÄ½ÓÊÕ»º³å ÄÇÃ´ÏÈ´¦Àí½ÓÊÕ
 					if (m_oRecvWindow.m_btFreeBufferId >= _RecvWindow::window_size) { break; }
 					else { continue; }
 				}
 			}
 
-			// é‡Šæ”¾buffer
+			// ÊÍ·Åbuffer
 			pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 			m_oRecvWindow.m_btFreeBufferId = btBufferId;
 		}
 
 		if (m_oSendWindow.m_btBegin == m_oSendWindow.m_btEnd) { m_dwAckSameCount = 0; }
 
-		// è®°å½•æœ€åä¸€ä¸ªack
+		// ¼ÇÂ¼×îºóÒ»¸öack
 		m_btAckLast = m_oSendWindow.m_btBegin - 1;
 
-		// æ›´æ–°æ¥æ”¶çª—å£
+		// ¸üĞÂ½ÓÊÕ´°¿Ú
 		if (bPacketReceived)
 		{
 			unsigned char btLastAck = m_oRecvWindow.m_btBegin - 1;
 			unsigned char btNewAck = btLastAck;
 			//bool bParseMessage = false;
 
-			//è®¡ç®—æ–°çš„ack
+			//¼ÆËãĞÂµÄack
 			for (unsigned char i = m_oRecvWindow.m_btBegin; i != m_oRecvWindow.m_btEnd; i++)
 			{
-				// æ¥æ”¶åˆ°çš„buffæ˜¯å¦æœ‰æ•ˆ
+				// ½ÓÊÕµ½µÄbuffÊÇ·ñÓĞĞ§
 				if (m_oRecvWindow.m_btarrSeqBufferId[i % _RecvWindow::window_size] >= _RecvWindow::window_size)
 					break;
 
@@ -765,7 +765,7 @@ namespace FXNET
 				}
 			}
 
-			// æœ‰æ–°çš„ack
+			// ÓĞĞÂµÄack
 			if (btNewAck != btLastAck)
 			{
 				while (m_oRecvWindow.m_btBegin != (unsigned char)(btNewAck + 1))
@@ -781,25 +781,25 @@ namespace FXNET
 						return dwError;
 					}
 
-					// æ¥æ”¶æˆåŠŸ é‡Šæ”¾ç¼“å­˜
+					// ½ÓÊÕ³É¹¦ ÊÍ·Å»º´æ
 					m_oRecvWindow.m_btarrBuffer[btBufferId][0] = m_oRecvWindow.m_btFreeBufferId;
 					m_oRecvWindow.m_btFreeBufferId = btBufferId;
 
-					// ä»é˜Ÿåˆ—ç§»é™¤
+					// ´Ó¶ÓÁĞÒÆ³ı
 					m_oRecvWindow.m_warrSeqSize[btId] = 0;
 					m_oRecvWindow.m_btarrSeqBufferId[btId] = _RecvWindow::window_size;
 					m_oRecvWindow.m_btBegin++;
 					m_oRecvWindow.m_btEnd++;
 
-					// æ˜¯å¦å¯ä»¥è§£æ
+					// ÊÇ·ñ¿ÉÒÔ½âÎö
 					//bParseMessage = true;
 
-					// éœ€è¦å‘é€ack
+					// ĞèÒª·¢ËÍack
 					m_bSendAck = true;
 				}
 			}
 
-			// æ ‡è®°æœ€åä¸€ä¸ªsyn
+			// ±ê¼Ç×îºóÒ»¸ösyn
 			m_btSynLast = m_oRecvWindow.m_btBegin - 1;
 		}
 

@@ -20,7 +20,7 @@ int main()
 #endif // _WIN32
 	}
 
-	FXNET::PostEvent(new FXNET::UDPListen("0.0.0.0", 10085));
+	FXNET::PostEvent(new FXNET::UDPListen("192.168.10.103", 10085));
 	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.103", 10085));
 
 	for (int i = 0; ; ++i)

@@ -13,12 +13,11 @@
 
 #include <ostream>
 
+#include <iostream>
+
 #ifdef _WIN32
 #pragma comment(lib,"ws2_32.lib")
 #endif //_WIN32
-
-//#define 
-
 
 namespace FXNET
 {
@@ -78,8 +77,9 @@ namespace FXNET
 #ifdef _WIN32
 			memset((OVERLAPPED*)this, 0, sizeof(OVERLAPPED));
 #endif // _WIN32
+			std::cout << __FUNCTION__ << ", " << this << "\n";
 		}
-		virtual ~IOOperationBase() {}
+		virtual ~IOOperationBase() { std::cout << __FUNCTION__ << ", " << this << "\n"; }
 		virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream) = 0;
 
 		int m_dwError;

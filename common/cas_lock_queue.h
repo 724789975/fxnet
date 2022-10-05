@@ -49,7 +49,7 @@ namespace FXNET
 	template<typename T, unsigned int Size>
 	inline CCasLockQueue<T, Size>& CCasLockQueue<T, Size>::Init()
 	{
-		for (int i = 0; i < Size; ++i)
+		for (unsigned int i = 0; i < Size; ++i)
 		{
 			m_oElements[i].m_pNext = m_oElements + i;
 			m_oElements[i].m_dwUseCount = 0;

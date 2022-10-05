@@ -2,28 +2,28 @@
 #define __SLIDING_WINDOW_DEF_H__
 
 /**
- * @brief å‘é€ç¼“å­˜å¸§æ•°é‡
+ * @brief ·¢ËÍ»º´æÖ¡ÊýÁ¿
  */
 #define TCP_SEND_WINDOW_SIZE 32
 /**
- * @brief å‘é€ç¼“å­˜å¸§é•¿åº¦
+ * @brief ·¢ËÍ»º´æÖ¡³¤¶È
  */
 #define TCP_SEND_WINDOW_BUFF_SIZE 512
 /**
- * @brief æŽ¥æ”¶ç¼“å­˜å¸§æ•°é‡
+ * @brief ½ÓÊÕ»º´æÖ¡ÊýÁ¿
  */
 #define TCP_RECV_WINDOW_SIZE 32
 /**
- * @brief æŽ¥æ”¶ç¼“å­˜å¸§é•¿åº¦
+ * @brief ½ÓÊÕ»º´æÖ¡³¤¶È
  */
 #define TCP_RECV_WINDOW_BUFF_SIZE 512
 
 /**
- * @brief å‘é€ç¼“å­˜å¸§æ•°é‡
+ * @brief ·¢ËÍ»º´æÖ¡ÊýÁ¿
  */
 #define UDP_WINDOW_SIZE 32
 /**
- * @brief å‘é€ç¼“å­˜å¸§é•¿åº¦
+ * @brief ·¢ËÍ»º´æÖ¡³¤¶È
  */
 #define UDP_WINDOW_BUFF_SIZE 512
 

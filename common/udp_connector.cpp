@@ -57,7 +57,7 @@ namespace FXNET
 
 		if (int dwError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
 		{
-			//æ­¤å¤„æœ‰æŠ¥é”™
+			//´Ë´¦ÓĞ±¨´í
 			if (pOStream)
 			{
 				(*pOStream) << "IOReadOperation failed " << dwError
@@ -83,7 +83,7 @@ namespace FXNET
 
 		if (int dwError = refConnector.m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream))
 		{
-			//æ­¤å¤„æœ‰æŠ¥é”™
+			//´Ë´¦ÓĞ±¨´í
 			if (pOStream)
 			{
 				(*pOStream) << "IOWriteOperation failed " << dwError
@@ -105,7 +105,7 @@ namespace FXNET
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
-		//å¤„ç†é”™è¯¯
+		//´¦Àí´íÎó
 		refSocketBase.OnError(m_dwError, pOStream);
 
 		//TODO
@@ -120,7 +120,7 @@ namespace FXNET
 
 	int CUdpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize, std::ostream* pOStream)
 	{
-		//æ”¶åˆ°çš„å†…å®¹
+		//ÊÕµ½µÄÄÚÈİ
 		m_refUdpConnector.m_oRecvBuff.PushData(szBuff, wSize);
 		if (!m_refUdpConnector.m_pMessageParse->CheckRecvMessage())
 		{
@@ -163,7 +163,7 @@ namespace FXNET
 	int CUdpConnector::UDPRecvOperator::operator()(char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* refOStream)
 	{
 #ifdef _WIN32
-		//æ²¡æœ‰å¯è¯»äº‹ä»¶
+		//Ã»ÓĞ¿É¶ÁÊÂ¼ş
 		if (!m_pReadOperation)
 		{
 			return CODE_SUCCESS_NO_BUFF_READ;
@@ -298,7 +298,7 @@ namespace FXNET
 	{
 		if (int dwError = m_oBuffContral.SendMessages(dTimedouble, pOStream))
 		{
-			//æ­¤å¤„æœ‰æŠ¥é”™
+			//´Ë´¦ÓĞ±¨´í
 			if (pOStream)
 			{
 				(*pOStream) << "IOWriteOperation failed ("<< dwError << "), " << NativeSocket()
@@ -315,7 +315,7 @@ namespace FXNET
 //#endif // _WIN32
 //		 if (int dwError = m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream))
 //		 {
-//			//æ­¤å¤„æœ‰æŠ¥é”™
+//			//´Ë´¦ÓĞ±¨´í
 //			if (pOStream)
 //			{
 //				(*pOStream) << "IOWriteOperation failed " << dwError
@@ -355,7 +355,7 @@ namespace FXNET
 					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
-			//post åˆ°iomodule ç§»é™¤
+			//post µ½iomodule ÒÆ³ı
 			return dwError;
 		}
 
@@ -490,7 +490,7 @@ namespace FXNET
 		}
 	}
 
-	int CUdpConnector::Connect(NativeSocketType hSock, sockaddr_in address, std::ostream* pOStream)
+	int CUdpConnector::Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
 		NativeSocket() = hSock;
 
@@ -576,7 +576,7 @@ namespace FXNET
 			return dwError;
 		}
 
-		if (!
+		if (int dwError =
 #ifdef _WIN32
 			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
 #else
@@ -584,11 +584,6 @@ namespace FXNET
 #endif // _WIN32
 			)
 		{
-#ifdef _WIN32
-			int dwError = WSAGetLastError();
-#else // _WIN32
-			int dwError = errno;
-#endif // _WIN32
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
@@ -598,7 +593,7 @@ namespace FXNET
 					<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
-			return 1;
+			return dwError;
 		}
 
 		if (pOStream)
