@@ -102,10 +102,11 @@ namespace FXNET
 					it != m_mapSockets.end();)
 				{
 					std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
-					if (int dwError = it_tmp->second->Update(m_dCurrentTime, &refOStream))
+					ISocketBase* pISock = it_tmp->second;
+					if (int dwError = pISock->Update(m_dCurrentTime, &refOStream))
 					{
-						it_tmp->second->NewErrorOperation(dwError)(*it_tmp->second, 0, &refOStream);
-						DeregisterIO(it_tmp->second->NativeSocket(), &refOStream);
+						DeregisterIO(pISock->NativeSocket(), &refOStream);
+						pISock->NewErrorOperation(dwError)(*it_tmp->second, 0, &refOStream);
 					}
 				}
 			}
