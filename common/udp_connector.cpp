@@ -169,15 +169,15 @@ namespace FXNET
 			return CODE_SUCCESS_NO_BUFF_READ;
 		}
 
-		wBuffSize = (unsigned short)m_pReadOperation->m_dwLen;
+		wRecvSize = (unsigned short)m_pReadOperation->m_dwLen;
 		if (0 == m_pReadOperation)
 		{
 			return CODE_SUCCESS_NET_EOF;
 		}
 
-		assert(wBuffSize <= UDP_WINDOW_BUFF_SIZE);
+		assert(wRecvSize <= UDP_WINDOW_BUFF_SIZE);
 		assert(m_pReadOperation->m_dwLen <= UDP_WINDOW_BUFF_SIZE);
-		memcpy(pBuff, m_pReadOperation->m_stWsaBuff.buf, m_pReadOperation->m_dwLen);
+		memcpy(pBuff, m_pReadOperation->m_stWsaBuff.buf, wRecvSize);
 		SetIOReadOperation(NULL);
 #else
 		wRecvSize = recv(m_refUdpConnector.NativeSocket(), pBuff, wBuffSize, 0);
@@ -278,22 +278,17 @@ namespace FXNET
 	int CUdpConnector::Init(std::ostream* pOStream, int dwState)
 	{
 		m_oBuffContral.SetAckOutTime(5.);
-		if (m_oBuffContral.Init(dwState))
+		if (int dwError = m_oBuffContral.Init(dwState))
 		{
-#ifdef _WIN32
-			int dwError = WSAGetLastError();
-#else // _WIN32
-			int dwError = errno;
-#endif // _WIN32
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			if (pOStream)
 			{
-				(*pOStream) << "register io failed" << " ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+				(*pOStream) << "init failed:" << dwError
+					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
-			return 1;
+			return dwError;
 		}
 
 		return 0;

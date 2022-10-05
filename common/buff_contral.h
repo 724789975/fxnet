@@ -560,10 +560,9 @@ namespace FXNET
 			{
 				if (EINTR == dwErrorCode)
 				{
-					refbReadable = false;
 					pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
 					m_oRecvWindow.m_btFreeBufferId = btBufferId;
-					break;
+					continue;
 				}
 
 				if (EAGAIN == dwErrorCode)

@@ -15,6 +15,7 @@
 
 #ifdef _WIN32
 #include <process.h>
+//#include <ntifs.h>
 #else
 #include <unistd.h>
 #include <sys/time.h>
@@ -102,8 +103,8 @@ namespace FXNET
 					std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
 					if (int dwError = it_tmp->second->Update(m_dCurrentTime, &refOStream))
 					{
-						DeregisterIO(it_tmp->second->NativeSocket(), &refOStream);
 						it_tmp->second->NewErrorOperation(dwError)(*it_tmp->second, 0, &refOStream);
+						DeregisterIO(it_tmp->second->NativeSocket(), &refOStream);
 					}
 				}
 			}
@@ -382,6 +383,14 @@ namespace FXNET
 	{
 #ifdef _WIN32
 		CancelIo((ISocketBase::NativeHandleType)hSock);
+
+		//MY_IO_STATUS_BLOCK IoStatusBlock = {};
+		//MY_FILE_COMPLETION_INFORMATION FileInformation = {};
+		//FileInformation.Port = (HANDLE)NULL;
+		//FileInformation.Key = 0;
+		//const int _FileCompletionInformation = 30;
+		//const int _FileReplaceCompletionInformation = 61;
+		//LONG nRet = My_NtSetInformationFile((HANDLE)hSock, &IoStatusBlock, &FileInformation, sizeof(FileInformation), _FileReplaceCompletionInformation);
 #else
 		if (m_hEpoll < 0)
 		{

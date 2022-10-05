@@ -53,6 +53,16 @@ namespace FXNET
 			return 0;
 		}
 
+		if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
+		{
+			if (pOStream)
+			{
+				*pOStream << refSocketBase.NativeSocket()
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			}
+			return 0;
+		}
+
 		if (oUDPPacketHeader.m_btAck != 0)
 		{
 			*pOStream << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
@@ -91,24 +101,32 @@ namespace FXNET
 			return 0;
 		}
 
+		sockaddr_in oConnectAddr = refSock.m_stLocalAddr;
+		oConnectAddr.sin_addr.s_addr = inet_addr("192.168.10.103");
+		oConnectAddr.sin_port = refSock.m_stLocalAddr.sin_port;
 		// bind
-		if (bind(hSock, (sockaddr*)&refSock.m_stLocalAddr, sizeof(m_stLocalAddr)))
+		//if (bind(hSock, (sockaddr*)&refSock.m_stLocalAddr, sizeof(m_stLocalAddr)))
+		if (bind(hSock, (sockaddr*)&oConnectAddr, sizeof(oConnectAddr)))
 		{
 			if (pOStream)
 			{
 				*pOStream << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
-					<< inet_ntoa(refSock.m_stLocalAddr.sin_addr) << ":" << (int)ntohs(refSock.m_stLocalAddr.sin_port)
+					<< inet_ntoa(oConnectAddr.sin_addr) << ":" << (int)ntohs(oConnectAddr.sin_port)
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			macro_closesocket(hSock);
 			return 0;
 		}
 
+		//FxIoModule::Instance()->DeregisterIO(refSock.NativeSocket(), pOStream);
+
 		// send back
+		//refSock.OnClientConnected(refSock.NativeSocket(), m_stRemoteAddr, pOStream);
 		refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
 
-		//TODO 要打开注释
-		//refSock.PostAccept(pOStream);
+		//refSock.Listen(pOStream);
+
+		refSock.PostAccept(pOStream);
 #else
 		for (;;)
 		{
