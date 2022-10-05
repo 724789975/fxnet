@@ -404,7 +404,7 @@ namespace FXNET
 				//unsigned short size = m_oSendWindow.m_warrSeqSize[btId];
 
 				if (m_oSendWindow.m_dwarrSeqRetryCount[btId] > 0
-					&& dTime >= m_oSendWindow.m_warrSeqSize[btId])
+					&& dTime >= m_oSendWindow.m_darrSeqRetry[btId])
 				{
 					m_dSendWindowThreshhold = m_dSendWindowControl / 2;
 					if (m_dSendWindowThreshhold < 2) { m_dSendWindowThreshhold = 2; }
@@ -639,7 +639,7 @@ namespace FXNET
 				m_dAckRecvTime = dTime;
 				m_dwAckTimeoutRetry = 3;
 
-				// static value for calculate delay
+				// 用于计算delay的因子
 				static const double err_factor = 0.125;
 				static const double average_factor = 0.25;
 				static const double retry_factor = 2;
