@@ -243,7 +243,13 @@ namespace FXNET
 	{
 		//TODO
 		//unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(pSendBuffer, wSize, dTime);
-		unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(NULL, 0, 0.);
+		if (0 == m_refUdpConnector.m_vecSendBuff.size())
+		{
+			return 0;
+		}
+		unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(m_refUdpConnector.m_vecSendBuff[0]->data()
+			, m_refUdpConnector.m_vecSendBuff[0]->size());
+		m_refUdpConnector.m_vecSendBuff[0]->erase(0, wLen);
 		return wLen;
 	}
 

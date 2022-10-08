@@ -151,7 +151,7 @@ namespace FXNET
 		UDPReadStreamOperator m_funReadStreamOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
 
-		MessageStream<64 * 1024> m_oSendBuff;
+		std::vector<std::string*> m_vecSendBuff;
 		MessageStream<64 * 1024> m_oRecvBuff;
 
 		MessageParseBase* m_pMessageParse;

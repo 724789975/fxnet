@@ -18,6 +18,9 @@ namespace FXNET
 		virtual bool					CheckRecvMessage();
 		virtual unsigned short			GetMessageLen() = 0;
 		virtual MessageEventBase	*	ParseMessage() = 0;
+
+		virtual std::string*			MakeMessage(int dwProtoId, const char* szData, int dwLen) = 0;
+
 	protected:
 		char* m_pBuff;
 		unsigned int m_dwLen;
@@ -46,14 +49,16 @@ namespace FXNET
 		{
 		public:
 			virtual void operator ()(std::ostream* pOStream) {}
-			int dwProtoId;
-			std::string szData;
+			int m_dwProtoId;
+			std::string m_szData;
 		protected:
 		private:
 		};
 
 		virtual unsigned short			GetMessageLen();
 		virtual MessageEventBase	 *	ParseMessage();
+
+		std::string*					MakeMessage(int dwProtoId, const char* szData, int dwLen);
 	protected:
 	private:
 		virtual unsigned int			GetHeaderLength() { return 10; }
@@ -88,11 +93,24 @@ namespace FXNET
 		}
 
 		MessageOperator* pOperator = new MessageOperator;
-		oNetStream.ReadInt(pOperator->dwProtoId);
+		oNetStream.ReadInt(pOperator->m_dwProtoId);
 
-		pOperator->szData.append(oNetStream.ReadData(wLen - GetHeaderLength()), wLen - GetHeaderLength());
+		pOperator->m_szData.append(oNetStream.ReadData(wLen - GetHeaderLength()), wLen - GetHeaderLength());
 		
 		return pOperator;
+	}
+
+	inline std::string* BinaryMessageParse::MakeMessage(int dwProtoId, const char* szData, int dwLen)
+	{
+		std::string* pszData = new std::string;
+		pszData->resize(dwLen + GetHeaderLength());
+
+		CNetStream oNetStream(pszData->data(), pszData->size());
+		oNetStream.WriteShort((unsigned short)pszData->size());
+		oNetStream.WriteInt(s_dwMagic);
+		oNetStream.WriteData(szData, dwLen);
+
+		return pszData;
 	}
 
 	

@@ -37,6 +37,8 @@ namespace FXNET
 		bool					Init(std::ostream* pOStream);
 		void					Uninit();
 
+		ISocketBase*			GetSocket(ISocketBase::NativeSocketType hSock);
+
 		double					FxGetCurrentTime();
 		void					PushMessageEvent(MessageEventBase* pMessageEvent);
 		void					SwapEvent(std::deque<MessageEventBase*>& refDeque);

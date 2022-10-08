@@ -131,7 +131,7 @@ namespace FXNET
 		 * @param wSize 要发送的长度
 		 * @return unsigned short 放入发送缓冲的长度 <= wSize
 		 */
-		unsigned short Send(const char* pSendBuffer, unsigned short wSize, double dTime);
+		unsigned short Send(const char* pSendBuffer, unsigned short wSize);
 
 		int SendMessages(double dTime, std::ostream* pOStream);
 
@@ -293,7 +293,7 @@ namespace FXNET
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline unsigned short BufferContral<BUFF_SIZE, WINDOW_SIZE>
-		::Send(const char* pSendBuffer, unsigned short wSize, double dTime)
+		::Send(const char* pSendBuffer, unsigned short wSize)
 	{
 		unsigned short wSendSize = 0;
 		while ((m_oSendWindow.m_btFreeBufferId < _SendWindow::window_size) && // there is a free buffer
@@ -332,7 +332,8 @@ namespace FXNET
 			}
 
 			// 添加到发送窗口
-			m_oSendWindow.Add2SendWindow(btId, btBufferId, dwCopySize + dwCopyOffset, dTime, m_dRetryTime);
+			m_oSendWindow.Add2SendWindow(btId, btBufferId, dwCopySize + dwCopyOffset
+				, FxIoModule::Instance()->FxGetCurrentTime(), m_dRetryTime);
 		}
 
 		return wSendSize;

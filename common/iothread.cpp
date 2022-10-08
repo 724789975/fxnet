@@ -241,6 +241,16 @@ namespace FXNET
 #endif // _WIN32
 	}
 
+	ISocketBase* FxIoModule::GetSocket(ISocketBase::NativeSocketType hSock)
+	{
+		std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = m_mapSockets.find(hSock);
+		if (m_mapSockets.end() == it)
+		{
+			return nullptr;
+		}
+		return it->second;
+	}
+
 	double FxIoModule::FxGetCurrentTime()
 	{
 		return m_dCurrentTime;
