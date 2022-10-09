@@ -1,5 +1,5 @@
-#ifndef __SESSION_H__
-#define __SESSION_H__
+#ifndef __ISESSION_H__
+#define __ISESSION_H__
 
 
 namespace FXNET
@@ -16,4 +16,4 @@ namespace FXNET
 
 }
 
-#endif //!__SESSION_H__
+#endif //!__ISESSION_H__
