@@ -2,6 +2,7 @@
 #define __UDP_CONNECTOR_H__
 
 #include "udp_socket.h"
+#include "connector_socket.h"
 #include "buff_contral.h"
 #include "include/message_stream.h"
 #include "include/message_header.h"
@@ -15,7 +16,7 @@
 
 namespace FXNET
 {
-	class CUdpConnector : public CUdpSocket
+	class CUdpConnector : public CConnectorSocket
 	{
 	public:
 		class IOReadOperation : public IOOperationBase
@@ -151,7 +152,7 @@ namespace FXNET
 		UDPReadStreamOperator m_funReadStreamOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
 
-		std::vector<std::string*> m_vecSendBuff;
+		std::deque<std::string*> m_dequeSendBuff;
 		MessageStream<64 * 1024> m_oRecvBuff;
 
 		MessageParseBase* m_pMessageParse;

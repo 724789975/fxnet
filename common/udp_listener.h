@@ -3,6 +3,7 @@
 
 #include "include/sliding_window_def.h"
 #include "udp_socket.h"
+#include "listen_socket.h"
 #include "cas_lock_queue.h"
 
 #include <sstream>
@@ -23,7 +24,7 @@ namespace FXNET
 	 * 这样windows下就会带来副作用 接受连接的效率会变低
 	 * 除非不使用重叠io
 	 */
-	class CUdpListener : public CUdpSocket
+	class CUdpListener : public CListenSocket
 	{
 	public:
 		class IOReadOperation : public IOOperationBase
