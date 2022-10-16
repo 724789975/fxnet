@@ -442,12 +442,12 @@ namespace FXNET
 					oPacket.m_btSyn = m_oSendWindow.m_btEnd;
 					oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
-					//if (pOStream)
-					//{
-					//	*pOStream << "status:" << (int)oPacket.m_btStatus << ", syn:" << (int)oPacket.m_btSyn << ", ack:" << (int)oPacket.m_btAck
-					//		<< ", m_oSendWindow.m_btEnd:" << (int)m_oSendWindow.m_btEnd << ", m_oRecvWindow.m_btBegin:" << (int)m_oRecvWindow.m_btBegin
-					//		<< "\n";
-					//}
+					if (pOStream)
+					{
+						*pOStream << "status:" << (int)oPacket.m_btStatus << ", syn:" << (int)oPacket.m_btSyn << ", ack:" << (int)oPacket.m_btAck
+							<< ", m_oSendWindow.m_btEnd:" << (int)m_oSendWindow.m_btEnd << ", m_oRecvWindow.m_btBegin:" << (int)m_oRecvWindow.m_btBegin
+							<< "\n";
+					}
 
 					// 添加到发送窗口
 					m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(oPacket), dTime, m_dRetryTime);

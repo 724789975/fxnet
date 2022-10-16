@@ -231,11 +231,11 @@ namespace FXNET
 
 	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
 	{
-		//if (pOStream)
-		//{
-		//	(*pOStream) << m_refUdpConnector.NativeSocket()
-		//		<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-		//}
+		if (pOStream)
+		{
+			(*pOStream) << m_refUdpConnector.NativeSocket()
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
 #ifdef _WIN32
 		dwSendLen = wBufferSize;
 		return m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);

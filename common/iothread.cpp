@@ -348,7 +348,7 @@ namespace FXNET
 
 		if (pOStream)
 		{
-			*pOStream << "hSock : " << hSock
+			*pOStream << "hSock : " << hSock << ", event: " << dwEvents
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 		m_mapSockets[hSock] = poSock;
@@ -581,9 +581,20 @@ namespace FXNET
 				return false;
 			}
 
+			if (pOStream)
+			{
+				*pOStream << "event:" << pEvent->events
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			}
+
 			ISocketBase* poSock = (ISocketBase*)pEvent->data.ptr;
 			if (NULL == poSock)
 			{
+				if (pOStream)
+				{
+					*pOStream << "event:" << pEvent->events
+						<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				}
 				if (pEvent->events & EPOLLIN)
 				{
 					std::vector<IOEventBase*> vecTmp;
