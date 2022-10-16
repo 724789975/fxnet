@@ -346,6 +346,11 @@ namespace FXNET
 			return errno;
 		}
 
+		if (pOStream)
+		{
+			*pOStream << "hSock : " << hSock
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
 		m_mapSockets[hSock] = poSock;
 		return 0;
 	}
@@ -605,11 +610,11 @@ namespace FXNET
 				return true;
 			}
 
-			//if (pOStream)
-			//{
-			//	*pOStream << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name()
-			//		<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			//}
+			if (pOStream)
+			{
+				*pOStream << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name()
+					<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			}
 			if (pEvent->events & (EPOLLERR | EPOLLHUP))
 			{
 				int dwError = errno;

@@ -49,13 +49,6 @@ namespace FXNET
 		bool& bReadable = refConnector.m_bReadable;
 #endif // _WIN32
 
-		//if (pOStream)
-		//{
-		//	*pOStream << refConnector.NativeSocket() << " ip:" << refConnector.GetLocalAddr().sin_addr.s_addr << ", port:" << refConnector.GetLocalAddr().sin_port
-		//		<< " remote_ip:" << refConnector.GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << refConnector.GetRemoteAddr().sin_port
-		//		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-		//}
-
 		if (int dwError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
 		{
 			//此处有报错
@@ -68,6 +61,13 @@ namespace FXNET
 			return dwError;
 		}
 
+		if (pOStream)
+		{
+			*pOStream << refConnector.NativeSocket() << ", " << bReadable << " ip:" << refConnector.GetLocalAddr().sin_addr.s_addr << ", port:" << refConnector.GetLocalAddr().sin_port
+				<< " remote_ip:" << refConnector.GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << refConnector.GetRemoteAddr().sin_port
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
+
 		return 0;
 	}
 
@@ -76,6 +76,11 @@ namespace FXNET
 		DELETE_WHEN_DESTRUCT(CUdpConnector::IOWriteOperation, this);
 		CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
 
+		if (pOStream)
+		{
+			(*pOStream) << refConnector.NativeSocket()
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
 #ifdef _WIN32
 		refConnector.m_setIOOperations.erase(this);
 #else
@@ -136,10 +141,10 @@ namespace FXNET
 		std::string szData;
 		m_refUdpConnector.GetSession()->GetRecvBuff().PopData(szData);
 
-		if (pOStream)
-		{
-			*pOStream << szData << "\n";
-		}
+		//if (pOStream)
+		//{
+		//	*pOStream << szData << "\n";
+		//}
 		MessageEventBase* pOperator = m_refUdpConnector.GetSession()->NewRecvMessageEvent(szData);
 
 		if (NULL == pOperator)
@@ -175,7 +180,7 @@ namespace FXNET
 	{
 	}
 
-	int CUdpConnector::UDPRecvOperator::operator()(char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* refOStream)
+	int CUdpConnector::UDPRecvOperator::operator()(char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream)
 	{
 #ifdef _WIN32
 		//没有可读事件
@@ -261,19 +266,19 @@ namespace FXNET
 			return 0;
 		}
 
-		std::string sz((char*)m_refUdpConnector.GetSession()->GetSendBuff().GetData()
-			, m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
+		//std::string sz((char*)m_refUdpConnector.GetSession()->GetSendBuff().GetData()
+		//	, m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
 
 		//if (pOStream)
 		//{
 		//	*pOStream << sz << ", " << m_refUdpConnector.GetSession()->GetSendBuff().GetSize() << "\n";
 		//}
 
-		//unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(
-		//	(char*)m_refUdpConnector.GetSession()->GetSendBuff().GetData()
-		//	, m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
+		unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(
+			(char*)m_refUdpConnector.GetSession()->GetSendBuff().GetData()
+			, m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
 
-		unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(sz.c_str(), sz.size());
+		//unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(sz.c_str(), sz.size());
 
 		m_refUdpConnector.GetSession()->GetSendBuff().PopData(wLen);
 		return wLen;
@@ -330,6 +335,16 @@ namespace FXNET
 
 	int CUdpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
+		if (pOStream)
+		{
+			(*pOStream) << NativeSocket()
+#ifndef _WIN32
+				<< ", " << m_bReadable << ", " << m_bWritable
+#endif // !_WIN32
+
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
+		
 		if (int dwError = m_oBuffContral.SendMessages(dTimedouble, pOStream))
 		{
 			//此处有报错

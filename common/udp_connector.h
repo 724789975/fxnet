@@ -73,7 +73,7 @@ namespace FXNET
 		{
 		public:
 			UDPRecvOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* refOStream);
+			virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream);
 
 #ifdef _WIN32
 			UDPRecvOperator& SetIOReadOperation(IOReadOperation* pReadOperation);
