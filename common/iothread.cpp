@@ -1,5 +1,4 @@
-﻿#include "iothread.h"
-#include "socket_base.h"
+﻿#include "../include/iothread.h"
 #include "include/error_code.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -106,7 +105,7 @@ namespace FXNET
 					if (int dwError = pISock->Update(m_dCurrentTime, &refOStream))
 					{
 						DeregisterIO(pISock->NativeSocket(), &refOStream);
-						pISock->NewErrorOperation(dwError)(*it_tmp->second, 0, &refOStream);
+						pISock->NewErrorOperation(dwError)(*pISock, 0, &refOStream);
 					}
 				}
 			}
@@ -606,10 +605,11 @@ namespace FXNET
 				return true;
 			}
 
-			if (pOStream)
-			{
-				*pOStream << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name() << ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			}
+			//if (pOStream)
+			//{
+			//	*pOStream << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name()
+			//		<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			//}
 			if (pEvent->events & (EPOLLERR | EPOLLHUP))
 			{
 				int dwError = errno;

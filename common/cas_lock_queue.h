@@ -1,7 +1,7 @@
 #ifndef __CAS_QUEUE_H__
 #define __CAS_QUEUE_H__
 
-#include "cas_lock.h"
+#include "../include/cas_lock.h"
 
 namespace FXNET
 {

@@ -5,6 +5,7 @@
 #include "udp_socket.h"
 #include "listen_socket.h"
 #include "cas_lock_queue.h"
+#include "include/i_session.h"
 
 #include <sstream>
 
@@ -47,6 +48,7 @@ namespace FXNET
 			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 		};
 
+		CUdpListener(SessionMaker* pMaker);
 		virtual const char* Name()const { return "CUdpListener"; }
 		virtual int Update(double dTimedouble, std::ostream* pOStream);
 
@@ -86,6 +88,8 @@ namespace FXNET
 		AcceptReq* m_arroAcceptQueue[UDP_ACCEPT_HASH_SIZE];
 		CCasLockQueue<AcceptReq, UDP_ACCEPT_MAX_SIZE> m_oAcceptPool;
 #endif // _WIN32
+
+		SessionMaker* m_pSessionMaker;
 
 	};
 

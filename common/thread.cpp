@@ -1,11 +1,11 @@
-#include "thread.h"
+#include "../include/thread.h"
 
 #ifdef _WIN32
 #include <Windows.h>
 #include <process.h>
 
 #include <psapi.h>
-#include <cstddef>  
+#include <cstddef>
 #include <dbghelp.h>
 #else
 #include <pthread.h>

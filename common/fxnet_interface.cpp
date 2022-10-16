@@ -1,5 +1,5 @@
 #include "include/fxnet_interface.h"
-#include "iothread.h"
+#include "include/iothread.h"
 #include "udp_listener.h"
 #include "udp_connector.h"
 
@@ -24,15 +24,15 @@ namespace FXNET
 		FxIoModule::Instance()->SwapEvent(refDeque);
 	}
 
-	void UdpListen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
+	void UdpListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream)
 	{
-		CUdpListener* pListener = new CUdpListener;
+		CUdpListener* pListener = new CUdpListener(pSessionMaker);
 		pListener->Listen(szIp, wPort, pOStream);
 	}
 
-	void UdpConnect(const char* szIp, unsigned short wPort, std::ostream* pOStream)
+	void UdpConnect(const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream)
 	{
-		CUdpConnector* pConnector = new CUdpConnector;
+		CUdpConnector* pConnector = new CUdpConnector(pSession);
 
 		sockaddr_in stRemoteAddr;
 		memset(&stRemoteAddr, 0, sizeof(stRemoteAddr));
@@ -41,8 +41,6 @@ namespace FXNET
 		if (szIp) { stRemoteAddr.sin_addr.s_addr = inet_addr(szIp); }
 
 		stRemoteAddr.sin_port = htons(wPort);
-		static BinaryMessageParse s_oBinaryMessageParse;
-		pConnector->m_pMessageParse = &s_oBinaryMessageParse;
 		if (int dwError = pConnector->SetRemoteAddr(stRemoteAddr).Connect(stRemoteAddr, pOStream))
 		{
 			pConnector->NewErrorOperation(dwError)(*pConnector, 0, pOStream);

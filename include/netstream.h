@@ -13,6 +13,7 @@
 
 namespace FXNET
 {
+	//read write 不能同时使用
 	class CNetStream
 	{
 	public:
@@ -208,6 +209,21 @@ namespace FXNET
 			}
 			refStr = std::string(pData, dwStrLen);
 			if (dwStrLen != refStr.size())
+			{
+				return false;
+			}
+			return true;
+		}
+
+		bool ReadString(std::string& refStr, unsigned int dwLen)
+		{
+			char* pData = ReadData(dwLen);
+			if (!pData)
+			{
+				return false;
+			}
+			refStr = std::string(pData, dwLen);
+			if (dwLen != refStr.size())
 			{
 				return false;
 			}

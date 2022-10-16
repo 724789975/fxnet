@@ -4,7 +4,7 @@
 #include "include/sliding_window_def.h"
 #include "include/error_code.h"
 #include "sliding_window.h"
-#include "iothread.h"
+#include "../include/iothread.h"
 
 #include <math.h>
 #include <errno.h>
@@ -81,7 +81,7 @@ namespace FXNET
 	{
 	public:
 		virtual ~ReadStreamOperator() {};
-		virtual int operator() () = 0;
+		virtual int operator() (std::ostream* pOStream) = 0;
 	protected:
 	private:
 	};
@@ -419,7 +419,7 @@ namespace FXNET
 				}
 			}
 
-			(* m_pReadStreamOperator)();
+			(* m_pReadStreamOperator)(pOStream);
 		}
 
 		//没有数据发送 那么创建一个空的 用来同步窗口数据
@@ -442,12 +442,12 @@ namespace FXNET
 					oPacket.m_btSyn = m_oSendWindow.m_btEnd;
 					oPacket.m_btAck = m_oRecvWindow.m_btBegin - 1;
 
-					if (pOStream)
-					{
-						*pOStream << "status:" << (int)oPacket.m_btStatus << ", syn:" << (int)oPacket.m_btSyn << ", ack:" << (int)oPacket.m_btAck
-							<< ", m_oSendWindow.m_btEnd:" << (int)m_oSendWindow.m_btEnd << ", m_oRecvWindow.m_btBegin::" << (int)m_oRecvWindow.m_btBegin
-							<< "\n";
-					}
+					//if (pOStream)
+					//{
+					//	*pOStream << "status:" << (int)oPacket.m_btStatus << ", syn:" << (int)oPacket.m_btSyn << ", ack:" << (int)oPacket.m_btAck
+					//		<< ", m_oSendWindow.m_btEnd:" << (int)m_oSendWindow.m_btEnd << ", m_oRecvWindow.m_btBegin:" << (int)m_oRecvWindow.m_btBegin
+					//		<< "\n";
+					//}
 
 					// 添加到发送窗口
 					m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(oPacket), dTime, m_dRetryTime);
@@ -628,10 +628,10 @@ namespace FXNET
 			// packet header
 			UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
 
-			if (pOStream)
-			{
-				*pOStream << "status:" << (int)packet.m_btStatus << ", syn:" << (int)packet.m_btSyn << ", ack:" << (int)packet.m_btAck << "\n";
-			}
+			//if (pOStream)
+			//{
+			//	*pOStream << "status:" << (int)packet.m_btStatus << ", syn:" << (int)packet.m_btSyn << ", ack:" << (int)packet.m_btAck << "\n";
+			//}
 
 			//收到一个有效的ack 那么要更新发送窗口的状态
 			if (m_oSendWindow.IsValidIndex(packet.m_btAck))
@@ -718,10 +718,10 @@ namespace FXNET
 			{
 				unsigned char btId = packet.m_btSyn % _RecvWindow::window_size;
 
-				if (pOStream)
-				{
-					*pOStream << "recv new:" << (int)packet.m_btSyn << ", m_oRecvWindow.m_btarrSeqBufferId[btId]" << (int)m_oRecvWindow.m_btarrSeqBufferId[btId] << "\n";
-				}
+				//if (pOStream)
+				//{
+				//	*pOStream << "recv new:" << (int)packet.m_btSyn << ", m_oRecvWindow.m_btarrSeqBufferId[btId]" << (int)m_oRecvWindow.m_btarrSeqBufferId[btId] << "\n";
+				//}
 				if (m_oRecvWindow.m_btarrSeqBufferId[btId] >= _RecvWindow::window_size)
 				{
 					m_oRecvWindow.m_btarrSeqBufferId[btId] = btBufferId;
@@ -760,10 +760,10 @@ namespace FXNET
 
 				btNewAck = i;
 
-				if (pOStream)
-				{
-					*pOStream << "recv new_ack:" << (int)btNewAck << "\n";
-				}
+				//if (pOStream)
+				//{
+				//	*pOStream << "recv new_ack:" << (int)btNewAck << "\n";
+				//}
 			}
 
 			// 有新的ack

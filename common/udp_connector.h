@@ -2,10 +2,9 @@
 #define __UDP_CONNECTOR_H__
 
 #include "udp_socket.h"
-#include "connector_socket.h"
+#include "../include/connector_socket.h"
 #include "buff_contral.h"
-#include "include/message_stream.h"
-#include "include/message_header.h"
+
 
 #ifndef _WIN32
 #include<netinet/in.h>
@@ -100,7 +99,7 @@ namespace FXNET
 		{
 		public:
 			UDPReadStreamOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() ();
+			virtual int operator() (std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -109,11 +108,8 @@ namespace FXNET
 		friend class IOErrorOperation;
 		friend class CUdpListener;
 
-		friend void UdpConnect(const char* szIp, unsigned short wPort, std::ostream* pOStream);
-
-		CUdpConnector();
+		CUdpConnector(ISession* pSession);
 		~CUdpConnector();
-		
 
 		virtual const char* Name()const { return "CUdpConnector"; }
 
@@ -130,11 +126,11 @@ namespace FXNET
 		virtual IOWriteOperation& NewWriteOperation();
 		virtual IOErrorOperation& NewErrorOperation(int dwError);
 
+		virtual CUdpConnector& SendMessage(std::ostream* pOStream);
 #ifdef _WIN32
 		CUdpConnector& PostRecv(std::ostream* pOStream);
 		int PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
 #endif // _WIN32
-
 
 		virtual void OnRead(std::ostream* refOStream);
 		virtual void OnWrite(std::ostream* pOStream);
@@ -151,11 +147,6 @@ namespace FXNET
 		UDPSendOperator m_funSendOperator;
 		UDPReadStreamOperator m_funReadStreamOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
-
-		std::deque<std::string*> m_dequeSendBuff;
-		MessageStream<64 * 1024> m_oRecvBuff;
-
-		MessageParseBase* m_pMessageParse;
 
 #ifdef _WIN32
 		//windows下 如果删除了事件 会有内存泄露

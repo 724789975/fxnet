@@ -1,6 +1,7 @@
 #include "udp_connector.h"
-#include "iothread.h"
+#include "include/iothread.h"
 #include "include/message_header.h"
+#include "include/net_work_stream.h"
 
 #ifdef _WIN32
 #ifndef __FUNCTION_DETAIL__
@@ -48,12 +49,12 @@ namespace FXNET
 		bool& bReadable = refConnector.m_bReadable;
 #endif // _WIN32
 
-		if (pOStream)
-		{
-			*pOStream << refConnector.NativeSocket() << " ip:" << refConnector.GetLocalAddr().sin_addr.s_addr << ", port:" << refConnector.GetLocalAddr().sin_port
-				<< " remote_ip:" << refConnector.GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << refConnector.GetRemoteAddr().sin_port
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-		}
+		//if (pOStream)
+		//{
+		//	*pOStream << refConnector.NativeSocket() << " ip:" << refConnector.GetLocalAddr().sin_addr.s_addr << ", port:" << refConnector.GetLocalAddr().sin_port
+		//		<< " remote_ip:" << refConnector.GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << refConnector.GetRemoteAddr().sin_port
+		//		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		//}
 
 		if (int dwError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
 		{
@@ -121,14 +122,26 @@ namespace FXNET
 	int CUdpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize, std::ostream* pOStream)
 	{
 		//收到的内容
-		m_refUdpConnector.m_oRecvBuff.PushData(szBuff, wSize);
-		if (!m_refUdpConnector.m_pMessageParse->CheckRecvMessage())
+		if (0 == wSize)
 		{
 			return 0;
 		}
-		MessageEventBase* pOperator = (*m_refUdpConnector.m_pMessageParse)
-			.Init(m_refUdpConnector.m_oRecvBuff.GetData(), m_refUdpConnector.m_oRecvBuff.GetUseLenth())
-			.ParseMessage();
+
+		m_refUdpConnector.GetSession()->GetRecvBuff().PushData(szBuff, wSize);
+		if (!m_refUdpConnector.GetSession()->GetRecvBuff().CheckPackage())
+		{
+			return 0;
+		}
+
+		std::string szData;
+		m_refUdpConnector.GetSession()->GetRecvBuff().PopData(szData);
+
+		if (pOStream)
+		{
+			*pOStream << szData << "\n";
+		}
+		MessageEventBase* pOperator = m_refUdpConnector.GetSession()->NewRecvMessageEvent(szData);
+
 		if (NULL == pOperator)
 		{
 			if (pOStream)
@@ -138,6 +151,8 @@ namespace FXNET
 			}
 			return CODE_ERROR_NET_PARSE_MESSAGE;
 		}
+
+		FxIoModule::Instance()->PushMessageEvent(pOperator);
 		return 0;
 	}
 
@@ -211,11 +226,11 @@ namespace FXNET
 
 	int CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
 	{
-		if (pOStream)
-		{
-			(*pOStream) << m_refUdpConnector.NativeSocket()
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-		}
+		//if (pOStream)
+		//{
+		//	(*pOStream) << m_refUdpConnector.NativeSocket()
+		//		<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		//}
 #ifdef _WIN32
 		dwSendLen = wBufferSize;
 		return m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
@@ -239,30 +254,35 @@ namespace FXNET
 	{
 	}
 
-	int CUdpConnector::UDPReadStreamOperator::operator()()
+	int CUdpConnector::UDPReadStreamOperator::operator()(std::ostream* pOStream)
 	{
-		//TODO
-		//unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(pSendBuffer, wSize, dTime);
-		if (0 == m_refUdpConnector.m_dequeSendBuff.size())
+		if (0 == m_refUdpConnector.GetSession()->GetSendBuff().GetSize())
 		{
 			return 0;
 		}
-		unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(m_refUdpConnector.m_dequeSendBuff[0]->data()
-			, m_refUdpConnector.m_dequeSendBuff[0]->size());
-		if (wLen == m_refUdpConnector.m_dequeSendBuff[0]->size())
-		{
-			delete m_refUdpConnector.m_dequeSendBuff[0];
-			m_refUdpConnector.m_dequeSendBuff.pop_front();
-		}
-		else
-		{
-			m_refUdpConnector.m_dequeSendBuff[0]->erase(0, wLen);
-		}
+
+		std::string sz((char*)m_refUdpConnector.GetSession()->GetSendBuff().GetData()
+			, m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
+
+		//if (pOStream)
+		//{
+		//	*pOStream << sz << ", " << m_refUdpConnector.GetSession()->GetSendBuff().GetSize() << "\n";
+		//}
+
+		//unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(
+		//	(char*)m_refUdpConnector.GetSession()->GetSendBuff().GetData()
+		//	, m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
+
+		unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(sz.c_str(), sz.size());
+
+		m_refUdpConnector.GetSession()->GetSendBuff().PopData(wLen);
 		return wLen;
+
 	}
 
-	CUdpConnector::CUdpConnector()
-		: m_stRemoteAddr({0})
+	CUdpConnector::CUdpConnector(ISession* pSession)
+		: CConnectorSocket(pSession)
+		, m_stRemoteAddr({0})
 		, m_funOnRecvOperator(*this)
 		, m_funOnConnectedOperator(*this)
 		, m_funRecvOperator(*this)
@@ -315,29 +335,12 @@ namespace FXNET
 			//此处有报错
 			if (pOStream)
 			{
-				(*pOStream) << "IOWriteOperation failed ("<< dwError << "), " << NativeSocket()
+				(*pOStream) << "SendMessages failed ("<< dwError << "), " << NativeSocket()
 					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
 			return dwError;
 		}
-
-//#ifdef _WIN32
-//		bool bReadable = true;
-//#else
-//		bool& bReadable = m_bReadable;
-//#endif // _WIN32
-//		 if (int dwError = m_oBuffContral.ReceiveMessages(dTimedouble, bReadable, pOStream))
-//		 {
-//			//此处有报错
-//			if (pOStream)
-//			{
-//				(*pOStream) << "IOWriteOperation failed " << dwError
-//					<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-//			}
-//
-//			return dwError;
-//		 }
 
 		return 0;
 	}
@@ -425,6 +428,12 @@ namespace FXNET
 		return *pOperation;
 	}
 
+	CUdpConnector& CUdpConnector::SendMessage(std::ostream* pOStream)
+	{
+		m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream);
+		return *this;
+	}
+
 #ifdef _WIN32
 	CUdpConnector& CUdpConnector::PostRecv(std::ostream* pOStream)
 	{
@@ -502,6 +511,10 @@ namespace FXNET
 				<< " remote_ip:" << GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << GetRemoteAddr().sin_port
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
+
+		GetSession()->SetSock(NativeSocket());
+
+		FxIoModule::Instance()->PushMessageEvent(GetSession()->NewConnectedEvent());
 	}
 
 	int CUdpConnector::Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)

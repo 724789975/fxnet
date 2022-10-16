@@ -5,7 +5,7 @@
 #include "singleton.h"
 #include "socket_base.h"
 #include "cas_lock.h"
-#include "include/message_event.h"
+#include "message_event.h"
 
 #include <vector>
 #include <set>
@@ -71,7 +71,6 @@ namespace FXNET
 		int						m_hEpoll;
 		int						m_hEvent;
 		epoll_event* m_pEvents;
-		//TEventQueue<ISocketBase*>	m_oDelayCloseSockQueue;
 #endif // _WIN32
 
 		//存放连接指针 每0.05秒更新一次

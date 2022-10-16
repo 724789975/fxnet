@@ -1,5 +1,5 @@
 #include "udp_listener.h"
-#include "iothread.h"
+#include "../include/iothread.h"
 #include "udp_connector.h"
 
 #ifdef _WIN32
@@ -101,17 +101,13 @@ namespace FXNET
 			return 0;
 		}
 
-		sockaddr_in oConnectAddr = refSock.m_stLocalAddr;
-		oConnectAddr.sin_addr.s_addr = inet_addr("192.168.10.103");
-		oConnectAddr.sin_port = refSock.m_stLocalAddr.sin_port;
 		// bind
-		//if (bind(hSock, (sockaddr*)&refSock.m_stLocalAddr, sizeof(m_stLocalAddr)))
-		if (bind(hSock, (sockaddr*)&oConnectAddr, sizeof(oConnectAddr)))
+		if (bind(hSock, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
 		{
 			if (pOStream)
 			{
 				*pOStream << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
-					<< inet_ntoa(oConnectAddr.sin_addr) << ":" << (int)ntohs(oConnectAddr.sin_port)
+					<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			macro_closesocket(hSock);
@@ -311,6 +307,12 @@ namespace FXNET
 				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 		return 0;
+	}
+
+	CUdpListener::CUdpListener(SessionMaker* pMaker)
+		: m_pSessionMaker(pMaker)
+	{
+
 	}
 
 	int CUdpListener::Update(double dTimedouble, std::ostream* pOStream)
@@ -535,7 +537,7 @@ namespace FXNET
 
 	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
-		CUdpConnector* pUdpSock = new CUdpConnector;
+		CUdpConnector* pUdpSock = new CUdpConnector((*m_pSessionMaker)());
 		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
 		{
 			if (pOStream)
@@ -562,9 +564,6 @@ namespace FXNET
 
 		socklen_t dwAddrLen = sizeof(pUdpSock->GetLocalAddr());
 		getsockname(hSock, (sockaddr*)&pUdpSock->GetLocalAddr(), &dwAddrLen);
-
-		static BinaryMessageParse s_oBinaryMessageParse;
-		pUdpSock->m_pMessageParse = &s_oBinaryMessageParse;
 
 #ifdef _WIN32
 		for (int i = 0; i < 16; ++i)
