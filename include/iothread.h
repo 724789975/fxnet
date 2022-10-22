@@ -11,7 +11,6 @@
 #include <set>
 #include <map>
 #include <deque>
-#include <mutex>
 #ifdef _WIN32
 #else
 #include <sys/epoll.h>
@@ -86,8 +85,7 @@ namespace FXNET
 #ifndef _WIN32
 		std::vector<IOEventBase*> m_vecIOEvent;
 #endif // _WIN32
-		//CCasLock				m_lockEventLock;
-		std::mutex m_lockEventLock;
+		CCasLock				m_lockEventLock;
 	};
 
 };
