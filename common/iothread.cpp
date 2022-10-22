@@ -257,13 +257,15 @@ namespace FXNET
 
 	void FxIoModule::PushMessageEvent(MessageEventBase* pMessageEvent)
 	{
-		CLockImp oImp(m_lockEventLock);
+		//CLockImp oImp(m_lockEventLock);
+		std::lock_guard<std::mutex> _(m_lockEventLock);
 		m_dequeEvent.push_back(pMessageEvent);
 	}
 
 	void FxIoModule::SwapEvent(std::deque<MessageEventBase*>& refDeque)
 	{
-		CLockImp oImp(m_lockEventLock);
+		//CLockImp oImp(m_lockEventLock);
+		std::lock_guard<std::mutex> _(m_lockEventLock);
 		refDeque.swap(m_dequeEvent);
 	}
 
@@ -445,7 +447,8 @@ namespace FXNET
 		//std::cout << lPoint << "\n";
 		unsigned long long lPoint = 1LL;
 
-		CLockImp oImp(m_lockEventLock);
+		//CLockImp oImp(m_lockEventLock);
+		std::lock_guard<std::mutex> _(m_lockEventLock);
 		m_vecIOEvent.push_back(pEvent);
 		write(m_hEvent, &lPoint, sizeof(lPoint));
 #endif //_WIN32
@@ -602,7 +605,8 @@ namespace FXNET
 					int n = read(m_hEvent, &lPoint, sizeof(lPoint));
 					if (sizeof(lPoint) == n)
 					{
-						CLockImp oImp(m_lockEventLock);
+						//CLockImp oImp(m_lockEventLock);
+						std::lock_guard<std::mutex> _(m_lockEventLock);
 						vecTmp.swap(m_vecIOEvent);
 						//(*(IOEventBase*)((void*)lPoint))(pOStream);
 					}
