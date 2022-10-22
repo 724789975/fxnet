@@ -287,13 +287,13 @@ namespace FXNET
 
 	CUdpConnector::CUdpConnector(ISession* pSession)
 		: CConnectorSocket(pSession)
-		, m_stRemoteAddr({0})
 		, m_funOnRecvOperator(*this)
 		, m_funOnConnectedOperator(*this)
 		, m_funRecvOperator(*this)
 		, m_funSendOperator(*this)
 		, m_funReadStreamOperator(*this)
 	{
+		memset(&m_stRemoteAddr, 0, sizeof(m_stRemoteAddr));
 		m_oBuffContral.SetOnRecvOperator(&m_funOnRecvOperator)
 			.SetOnConnectedOperator(&m_funOnConnectedOperator)
 			.SetRecvOperator(&m_funRecvOperator)

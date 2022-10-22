@@ -105,7 +105,7 @@ namespace FXNET
 		std::string* pszData = new std::string;
 		pszData->resize(dwLen + GetHeaderLength());
 
-		CNetStream oNetStream(pszData->data(), pszData->size());
+		CNetStream oNetStream(pszData->data(), (unsigned int)pszData->size());
 		oNetStream.WriteShort((unsigned short)pszData->size());
 		oNetStream.WriteInt(s_dwMagic);
 		oNetStream.WriteData(szData, dwLen);

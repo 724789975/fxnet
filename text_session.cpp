@@ -23,7 +23,7 @@ void CTextSession::TestMessageEvent::operator()(std::ostream* pOStream)
 		*pOStream << m_pSession->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
 			<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
 	}
-	m_pSession->OnRecv(m_szData.c_str(), m_szData.size());
+	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size());
 }
 
 CTextSession::ConnectedEvent::ConnectedEvent(ISession* pSession)
@@ -55,7 +55,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen)
 			{
 				FXNET::CConnectorSocket* poConnector = dynamic_cast<FXNET::CConnectorSocket*>(poSock);
 				CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
-				poSession->GetSendBuff().WriteString(m_szData.c_str(), m_szData.size());
+				poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)m_szData.size());
 				poConnector->SendMessage(pOStream);
 			}
 			else
@@ -84,11 +84,11 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen)
 	std::string strData(szData, dwLen);
 	strData += ((szData[dwLen - 1] + 1 - '0') % 10 + '0');
 	//if (strData.size() > 16 * 512)
-	if (strData.size() > 16)
+	if (strData.size() > 2048)
 	{
 		strData = "0";
 	}
-	Send(strData.c_str(), strData.size());
+	Send(strData.c_str(), (unsigned int)strData.size());
 	return *this;
 }
 
@@ -99,7 +99,7 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 		*pOStream << NativeSocket() << ", connected!!!\n";
 	}
 	std::string sz("0");
-	this->Send(sz.c_str(), sz.size());
+	this->Send(sz.c_str(), (unsigned int)sz.size());
 }
 
 CTextSession::TestMessageEvent* CTextSession::NewRecvMessageEvent(std::string& refData)
