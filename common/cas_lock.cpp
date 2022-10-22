@@ -37,7 +37,7 @@ namespace FXNET
 			if (0 == InterlockedCompareExchange(&lLock, 1, 0)) break;
 #else // _WIN32
 			//if (atomic_cas_uint32(&m_lLock, 1, 0)) break;
-			if (__sync_bool_compare_and_swap(&m_lLock, 1, 0)) break;
+			if (__sync_bool_compare_and_swap(&m_lLock, 0, 1)) break;
 #endif // _WIN32
 		}
 		return *this;
@@ -51,7 +51,7 @@ namespace FXNET
 			if (1 == InterlockedCompareExchange(&lLock, 0, 1)) break;
 #else // _WIN32
 			//if (atomic_cas_uint32(&m_lLock, 0, 1)) break;
-			if (__sync_bool_compare_and_swap(&m_lLock, 0, 1)) break;
+			if (__sync_bool_compare_and_swap(&m_lLock, 1, 0)) break;
 #endif // _WIN32
 		}
 
