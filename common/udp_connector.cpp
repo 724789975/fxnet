@@ -344,6 +344,22 @@ namespace FXNET
 
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
+
+#ifdef _WIN32
+#else
+		if (int dwError = m_oBuffContral.ReceiveMessages(dTimedouble, m_bReadable,  pOStream))
+		{
+			//此处有报错
+			if (pOStream)
+			{
+				(*pOStream) << "SendMessages failed (" << dwError << "), " << NativeSocket()
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			}
+
+			return dwError;
+		}
+#endif // _WIN32
+
 		
 		if (int dwError = m_oBuffContral.SendMessages(dTimedouble, pOStream))
 		{
