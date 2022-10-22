@@ -1,6 +1,7 @@
 #include "udp_listener.h"
 #include "../include/iothread.h"
 #include "udp_connector.h"
+#include <cstdlib>
 
 #ifdef _WIN32
 #ifndef __FUNCTION_DETAIL__

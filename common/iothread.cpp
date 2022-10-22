@@ -245,7 +245,7 @@ namespace FXNET
 		std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = m_mapSockets.find(hSock);
 		if (m_mapSockets.end() == it)
 		{
-			return nullptr;
+			return NULL;
 		}
 		return it->second;
 	}

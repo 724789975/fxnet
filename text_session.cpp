@@ -7,65 +7,6 @@
 
 #include <string>
 
-int my_atoi(std::string s)
-{
-	bool b_readed = false;
-
-	int flag = 1;
-
-	long long num = 0;
-
-	for (auto p : s)
-	{
-		if ((p > '9' || p < '0') && (p != '-' && p != '+'))
-		{
-			if (' ' != p)
-			{
-				break;
-			}
-			if (b_readed)
-			{
-				break;
-			}
-			continue;
-		}
-		if (p == '-')
-		{
-			if (b_readed)
-			{
-				break;
-			}
-			else
-			{
-				flag = -1;
-				b_readed = true;
-				continue;
-			}
-		}
-		if ('+' == p)
-		{
-			b_readed = true;
-			continue;
-		}
-		if (0x80000000 <= 10 * num + (p - '0'))
-		{
-			if (1 == flag) return 0x7FFFFFFF;
-			else return 0x80000000;
-		}
-		num = 10 * num + (p - '0');
-
-		b_readed = true;
-	}
-
-	return flag * num;
-}
-
-void my_itoa(unsigned int dwData, std::string& szDest)
-{
-	char szBuff[128] = { 0 };
-
-}
-
 CTextSession::TestMessageEvent::TestMessageEvent(ISession* pSession, std::string& refData)
 	: m_pSession(pSession)
 {
@@ -141,7 +82,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen)
 CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen)
 {
 	std::string strData(szData, dwLen);
-	strData += ((strData.back() + 1 - '0') % 10 + '0');
+	strData += ((szData[dwLen - 1] + 1 - '0') % 10 + '0');
 	//if (strData.size() > 16 * 512)
 	if (strData.size() > 16)
 	{
