@@ -12,8 +12,8 @@
 #endif // _WIN32
 
 #include <ostream>
-
 #include <iostream>
+#include <string.h>
 
 #ifdef _WIN32
 #pragma comment(lib,"ws2_32.lib")

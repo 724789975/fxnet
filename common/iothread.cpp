@@ -396,7 +396,7 @@ namespace FXNET
 	int FxIoModule::DeregisterIO(ISocketBase::NativeSocketType hSock, std::ostream* pOStream)
 	{
 #ifdef _WIN32
-		CancelIo((ISocketBase::NativeHandleType)hSock);
+		CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
 #else
 		if (m_hEpoll < 0)
 		{
