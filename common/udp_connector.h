@@ -1,7 +1,6 @@
 #ifndef __UDP_CONNECTOR_H__
 #define __UDP_CONNECTOR_H__
 
-#include "udp_socket.h"
 #include "../include/connector_socket.h"
 #include "buff_contral.h"
 
@@ -128,6 +127,13 @@ namespace FXNET
 
 		virtual CUdpConnector& SendMessage(std::ostream* pOStream);
 #ifdef _WIN32
+		/**
+		 * @brief 提交一个recv的OVERLAPPED
+		 * 
+		 * note 只提交一个 防止中间有错误导致崩溃
+		 * @param pOStream 
+		 * @return CUdpConnector& 
+		 */
 		CUdpConnector& PostRecv(std::ostream* pOStream);
 		int PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
 #endif // _WIN32

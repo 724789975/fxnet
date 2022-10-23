@@ -1,6 +1,5 @@
 #include "udp_connector.h"
 #include "include/iothread.h"
-#include "include/message_header.h"
 #include "include/net_work_stream.h"
 
 #ifdef _WIN32
@@ -420,7 +419,7 @@ namespace FXNET
 		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
 
 #ifdef _WIN32
-		for (int i = 0; i < 16; ++i)
+		//for (int i = 0; i < 16; ++i)
 		{
 			PostRecv(pOStream);
 		}
@@ -499,7 +498,6 @@ namespace FXNET
 		DWORD dwWriteLen = 0;
 		DWORD dwFlags = 0;
 
-		auto a = sendto;
 		if (SOCKET_ERROR == WSASend(NativeSocket(), &refIOWriteOperation.m_stWsaBuff
 			, 1, &dwWriteLen, dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOWriteOperation, NULL))
 		{

@@ -1,8 +1,6 @@
 #ifndef __CONNECTOR_SOCKET_H__
 #define __CONNECTOR_SOCKET_H__
 
-#include "message_stream.h"
-#include "message_header.h"
 #include "socket_base.h"
 #include "i_session.h"
 
