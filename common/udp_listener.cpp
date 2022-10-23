@@ -536,9 +536,16 @@ namespace FXNET
 
 	}
 
+	void CUdpListener::OnClose(std::ostream* pOStream)
+	{
+
+	}
+
 	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
 		CUdpConnector* pUdpSock = new CUdpConnector((*m_pSessionMaker)());
+
+		pUdpSock->GetSession()->SetSock(pUdpSock);
 		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
 		{
 			if (pOStream)

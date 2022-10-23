@@ -106,15 +106,18 @@ namespace FXNET
 
 		if (pOStream)
 		{
-			(*pOStream) << "IOErrorOperation failed(" << m_dwError << ")"
+			(*pOStream) << refSocketBase.NativeHandle() << "(" << m_dwError << ")"
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
 		//´¦Àí´íÎó
-		refSocketBase.OnError(m_dwError, pOStream);
+		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).m_pSession->NewErrorEvent(m_dwError));
+		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).m_pSession->NewCloseEvent());
+
+		((CUdpConnector&)refSocketBase).m_pSession = NULL;
 
 		//TODO
-		delete& refSocketBase;
+		//delete& refSocketBase;
 		return 0;
 	}
 
@@ -455,6 +458,7 @@ namespace FXNET
 	{
 		CUdpConnector::IOErrorOperation* pOperation = new CUdpConnector::IOErrorOperation();
 		pOperation->m_dwError = dwError;
+		m_dwError = dwError;
 		return *pOperation;
 	}
 
@@ -530,6 +534,22 @@ namespace FXNET
 
 	void CUdpConnector::OnError(int dwError, std::ostream* pOStream)
 	{
+		//TODO
+		if (pOStream)
+		{
+			*pOStream << NativeSocket()
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+		}
+	}
+
+	void CUdpConnector::OnClose(std::ostream* pOStream)
+	{
+		if (pOStream)
+		{
+			*pOStream << NativeSocket()
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+		}
+		delete this;
 	}
 
 	void CUdpConnector::OnConnected(std::ostream* pOStream)
@@ -540,8 +560,6 @@ namespace FXNET
 				<< " remote_ip:" << GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << GetRemoteAddr().sin_port
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
-
-		GetSession()->SetSock(NativeSocket());
 
 		FxIoModule::Instance()->PushMessageEvent(GetSession()->NewConnectedEvent());
 	}

@@ -141,6 +141,7 @@ namespace FXNET
 		virtual void OnRead(std::ostream* refOStream);
 		virtual void OnWrite(std::ostream* pOStream);
 		virtual void OnError(int dwError, std::ostream* pOStream);
+		virtual void OnClose(std::ostream* pOStream);
 		void OnConnected(std::ostream* pOStream);
 	protected:
 	private:

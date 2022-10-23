@@ -7,20 +7,20 @@
 
 #include <string>
 
-CTextSession::TestMessageEvent::TestMessageEvent(ISession* pSession, std::string& refData)
+CTextSession::TextMessageEvent::TextMessageEvent(ISession* pSession, std::string& refData)
 	: m_pSession(pSession)
 {
 	assert(refData.size());
 	m_szData.swap(refData);
 }
 
-void CTextSession::TestMessageEvent::operator()(std::ostream* pOStream)
+void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
 {
-	DELETE_WHEN_DESTRUCT(TestMessageEvent, this);
+	DELETE_WHEN_DESTRUCT(TextMessageEvent, this);
 
 	if (pOStream)
 	{
-		*pOStream << m_pSession->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
+		*pOStream << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
 			<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
 	}
 	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size());
@@ -37,43 +37,54 @@ void CTextSession::ConnectedEvent::operator()(std::ostream* pOStream)
 	m_pSession->OnConnected(pOStream);
 }
 
+CTextSession::SessionErrorEvent::SessionErrorEvent(ISession* pSession, int dwError)
+	: m_dwError(dwError)
+	, m_pSession(pSession)
+{
+}
+
+void CTextSession::SessionErrorEvent::operator()(std::ostream* pOStream)
+{
+	DELETE_WHEN_DESTRUCT(SessionErrorEvent, this);
+	m_pSession->OnError(m_dwError, pOStream);
+}
+
+CTextSession::CloseSessionEvent::CloseSessionEvent(ISession* pSession)
+	: m_pSession(pSession)
+{
+}
+
+void CTextSession::CloseSessionEvent::operator()(std::ostream* pOStream)
+{
+	DELETE_WHEN_DESTRUCT(CloseSessionEvent, this);
+	m_pSession->OnClose(pOStream);
+}
+
 CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen)
 {
 	class SendOperator : public IOEventBase
 	{
 	public:
-		SendOperator(NativeSocketType hSock)
-			: m_hSock(hSock)
+		SendOperator(FXNET::ISocketBase* opSock)
+			: m_opSock(opSock)
 		{
 		}
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(SendOperator, this);
 
-			FXNET::ISocketBase* poSock = FXNET::FxIoModule::Instance()->GetSocket(m_hSock);
-			if (poSock)
-			{
-				FXNET::CConnectorSocket* poConnector = dynamic_cast<FXNET::CConnectorSocket*>(poSock);
-				CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
-				poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)m_szData.size());
-				poConnector->SendMessage(pOStream);
-			}
-			else
-			{
-				if (pOStream)
-				{
-					*pOStream << "find sock error " << m_hSock
-						<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
-				}
-			}
+			FXNET::CConnectorSocket* poConnector = dynamic_cast<FXNET::CConnectorSocket*>(m_opSock);
+			CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
+			poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)m_szData.size());
+			poConnector->SendMessage(pOStream);
 		}
-		NativeSocketType m_hSock;
+		FXNET::ISocketBase* m_opSock;
 		std::string m_szData;
 	protected:
 	private:
 	};
 
-	SendOperator* pOperator = new SendOperator(m_hSock);
+	SendOperator* pOperator = new SendOperator(m_opSock);
 	pOperator->m_szData.assign(szData, dwLen);
 	FXNET::PostEvent(pOperator);
 	return *this;
@@ -96,15 +107,89 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 {
 	if (pOStream)
 	{
-		*pOStream << NativeSocket() << ", connected!!!\n";
+		*pOStream << GetSocket()->NativeSocket() << ", connected!!!\n";
 	}
 	std::string sz("0");
 	this->Send(sz.c_str(), (unsigned int)sz.size());
 }
 
-CTextSession::TestMessageEvent* CTextSession::NewRecvMessageEvent(std::string& refData)
+void CTextSession::OnError(int dwError, std::ostream* pOStream)
 {
-	CTextSession::TestMessageEvent* pEvent = new CTextSession::TestMessageEvent(this, refData);
+	if (pOStream)
+	{
+		*pOStream << GetSocket()->NativeSocket()
+			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+	}
+
+	class ErrorOperator : public IOEventBase
+	{
+	public:
+		ErrorOperator(FXNET::ISocketBase* opSock, int dwError)
+			: m_opSock(opSock)
+			, m_dwError(dwError)
+		{
+		}
+		virtual void operator ()(std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(ErrorOperator, this);
+
+			m_opSock->OnError(m_dwError, pOStream);
+		}
+		FXNET::ISocketBase* m_opSock;
+		int m_dwError;
+	protected:
+	private:
+	};
+
+	ErrorOperator* pOperator = new ErrorOperator(m_opSock, dwError);
+	FXNET::PostEvent(pOperator);
+}
+
+void CTextSession::OnClose(std::ostream* pOStream)
+{
+	if (pOStream)
+	{
+		*pOStream << GetSocket()->NativeSocket()
+			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+	}
+
+	class CloseOperator : public IOEventBase
+	{
+	public:
+		CloseOperator(FXNET::ISocketBase* opSock)
+			: m_opSock(opSock)
+		{
+		}
+		virtual void operator ()(std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(CloseOperator, this);
+
+			m_opSock->OnClose(pOStream);
+		}
+		FXNET::ISocketBase* m_opSock;
+		std::string m_szData;
+	protected:
+	private:
+	};
+
+	CloseOperator* pOperator = new CloseOperator(m_opSock);
+	FXNET::PostEvent(pOperator);
+
+	if (pOStream)
+	{
+		(*pOStream) << "session close, " << GetSocket()->NativeSocket()
+			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+	}
+
+	SetSock(NULL);
+
+	//TODO 先在这里处理
+	delete this;
+}
+
+CTextSession::TextMessageEvent* CTextSession::NewRecvMessageEvent(std::string& refData)
+{
+	CTextSession::TextMessageEvent* pEvent = new CTextSession::TextMessageEvent(this, refData);
 	return pEvent;
 }
 
@@ -114,4 +199,15 @@ MessageEventBase* CTextSession::NewConnectedEvent()
 	return pEvent;
 }
 
+CTextSession::SessionErrorEvent* CTextSession::NewErrorEvent(int dwError)
+{
+	CTextSession::SessionErrorEvent* pEvent = new CTextSession::SessionErrorEvent(this, dwError);
+	return pEvent;
+}
+
+CTextSession::CloseSessionEvent* CTextSession::NewCloseEvent()
+{
+	CTextSession::CloseSessionEvent* pEvent = new CTextSession::CloseSessionEvent(this);
+	return pEvent;
+}
 

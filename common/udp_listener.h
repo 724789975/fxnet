@@ -60,7 +60,7 @@ namespace FXNET
 		virtual void OnRead(std::ostream* pOStream);
 		virtual void OnWrite(std::ostream* pOStream);
 		virtual void OnError(int dwError, std::ostream* pOStream);
-
+		virtual void OnClose(std::ostream* pOStream);
 	protected:
 	private:
 		static const unsigned int UDP_ACCEPT_HASH_SIZE = 64;

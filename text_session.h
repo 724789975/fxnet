@@ -6,10 +6,10 @@
 class CTextSession : public FXNET::ISession
 {
 public:
-	class TestMessageEvent : public MessageEventBase
+	class TextMessageEvent : public MessageEventBase
 	{
 	public:
-		TestMessageEvent(ISession* pSession, std::string& refData);
+		TextMessageEvent(ISession* pSession, std::string& refData);
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 		std::string m_szData;
@@ -21,16 +21,35 @@ public:
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
+	class SessionErrorEvent : public MessageEventBase
+	{
+	public:
+		SessionErrorEvent(ISession* pSession, int dwError);
+		virtual void operator ()(std::ostream* pOStream);
+		int m_dwError;
+		ISession* m_pSession;
+	};
+	class CloseSessionEvent : public MessageEventBase
+	{
+	public:
+		CloseSessionEvent(ISession* pSession);
+		virtual void operator ()(std::ostream* pOStream);
+		ISession* m_pSession;
+	};
 	virtual CTextSession& Send(const char* szData, unsigned int dwLen);
 	virtual CTextSession& OnRecv(const char* szData, unsigned int dwLen);
 
 	virtual void OnConnected(std::ostream* pOStream);
+	virtual void OnError(int dwError, std::ostream* pOStream);
+	virtual void OnClose(std::ostream* pOStream);
 
 	virtual TextWorkStream& GetSendBuff() { return m_oSendBuff; }
 	virtual TextWorkStream& GetRecvBuff() { return m_oRecvBuff; }
 
-	virtual TestMessageEvent* NewRecvMessageEvent(std::string& refData);
+	virtual TextMessageEvent* NewRecvMessageEvent(std::string& refData);
 	virtual MessageEventBase* NewConnectedEvent();
+	virtual SessionErrorEvent* NewErrorEvent(int dwError);
+	virtual CloseSessionEvent* NewCloseEvent();
 
 protected:
 	TextWorkStream m_oSendBuff;

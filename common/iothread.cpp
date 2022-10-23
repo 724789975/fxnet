@@ -87,12 +87,6 @@ namespace FXNET
 #endif
 
 			std::ostream& refOStream = std::cout;
-			if (!__DealData(&refOStream))
-			{
-				break;
-			}
-
-			__DealSock();
 
 			if (m_dCurrentTime - m_dLoatUpdateTime >= 0.05)
 			{
@@ -108,6 +102,10 @@ namespace FXNET
 						pISock->NewErrorOperation(dwError)(*pISock, 0, &refOStream);
 					}
 				}
+			}
+			if (!__DealData(&refOStream))
+			{
+				break;
 			}
 
 #ifdef _WIN32
@@ -510,7 +508,8 @@ namespace FXNET
 		{
 			if (poSock)
 			{
-				if (int dwError = (*(IOOperationBase*)(OVERLAPPED*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream))
+				IOOperationBase* pOp = (IOOperationBase*)(OVERLAPPED*)(pstPerIoData);
+				if (int dwError = (*pOp)(*poSock, dwByteTransferred, pOStream))
 				{
 					DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);

@@ -35,6 +35,7 @@ namespace FXNET
 		typedef int NativeSocketType;
 #endif //_WIN32
 
+		ISocketBase() : m_hNativeHandle((NativeHandleType)-1), m_dwError(0) { memset(&m_stLocalAddr, 0, sizeof(m_stLocalAddr)); }
 		virtual ~ISocketBase() {}
 		virtual const char* Name()const { return "CSocketBase"; }
 		virtual int Update(double dTime, std::ostream* POStream) = 0;
@@ -47,15 +48,16 @@ namespace FXNET
 
 		virtual IOOperationBase& NewReadOperation() = 0;
 		virtual IOOperationBase& NewWriteOperation() = 0;
-		//error operation调用之后 socket相关结构会被析构
 		virtual IOOperationBase& NewErrorOperation(int dwError) = 0;
 
 		virtual void OnRead(std::ostream* refOStream) = 0;
 		virtual void OnWrite(std::ostream* pOStream) = 0;
 		virtual void OnError(int dwError, std::ostream* pOStream) = 0;
+		virtual void OnClose(std::ostream* pOStream) = 0;
 	protected:
 		NativeHandleType m_hNativeHandle;
 		sockaddr_in m_stLocalAddr;
+		int m_dwError;
 
 #ifdef _WIN32
 #else

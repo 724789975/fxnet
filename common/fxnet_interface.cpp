@@ -34,6 +34,8 @@ namespace FXNET
 	{
 		CUdpConnector* pConnector = new CUdpConnector(pSession);
 
+		pSession->SetSock(pConnector);
+
 		sockaddr_in stRemoteAddr;
 		memset(&stRemoteAddr, 0, sizeof(stRemoteAddr));
 		stRemoteAddr.sin_family = AF_INET;
