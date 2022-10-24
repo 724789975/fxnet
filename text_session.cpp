@@ -177,7 +177,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 
 	if (pOStream)
 	{
-		(*pOStream) << "session close, " << GetSocket()->NativeSocket()
+		(*pOStream) << "session close, " << this
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 	}
 

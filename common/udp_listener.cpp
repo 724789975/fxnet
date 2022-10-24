@@ -574,7 +574,7 @@ namespace FXNET
 		getsockname(hSock, (sockaddr*)&pUdpSock->GetLocalAddr(), &dwAddrLen);
 
 #ifdef _WIN32
-		//for (int i = 0; i < 16; ++i)
+		for (int i = 0; i < 16; ++i)
 		{
 			pUdpSock->PostRecv(pOStream);
 		}

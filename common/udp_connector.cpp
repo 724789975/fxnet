@@ -106,9 +106,11 @@ namespace FXNET
 
 		if (pOStream)
 		{
-			(*pOStream) << refSocketBase.NativeHandle() << "(" << m_dwError << ")"
+			(*pOStream) << refSocketBase.NativeSocket() << "(" << m_dwError << ")"
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
+
+		macro_closesocket(refSocketBase.NativeSocket());
 
 		//´¦Àí´íÎó
 		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).m_pSession->NewErrorEvent(m_dwError));
@@ -422,7 +424,7 @@ namespace FXNET
 		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
 
 #ifdef _WIN32
-		//for (int i = 0; i < 16; ++i)
+		for (int i = 0; i < 16; ++i)
 		{
 			PostRecv(pOStream);
 		}
