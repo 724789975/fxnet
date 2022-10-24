@@ -45,6 +45,7 @@ namespace FXNET
 		NativeSocketType& NativeSocket() { return (NativeSocketType&)m_hNativeHandle; }
 
 		sockaddr_in& GetLocalAddr() { return m_stLocalAddr; }
+		int GetError() { return m_dwError; }
 
 		virtual IOOperationBase& NewReadOperation() = 0;
 		virtual IOOperationBase& NewWriteOperation() = 0;

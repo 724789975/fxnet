@@ -401,8 +401,8 @@ namespace FXNET
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 #ifdef _WIN32
-		//CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
-		CancelIo((ISocketBase::NativeHandleType)hSock);
+		CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
+		//CancelIo((ISocketBase::NativeHandleType)hSock);
 #else
 		if (m_hEpoll < 0)
 		{

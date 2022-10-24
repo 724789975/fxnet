@@ -74,6 +74,10 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen)
 			DELETE_WHEN_DESTRUCT(SendOperator, this);
 
 			FXNET::CConnectorSocket* poConnector = dynamic_cast<FXNET::CConnectorSocket*>(m_opSock);
+			if (poConnector->GetError())
+			{
+				return;
+			}
 			CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
 			poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)m_szData.size());
 			poConnector->SendMessage(pOStream);
