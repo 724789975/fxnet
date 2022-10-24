@@ -16,6 +16,7 @@ namespace FXNET
 
 		virtual CConnectorSocket& SendMessage(std::ostream* pOStream) = 0;
 		ISession* GetSession() { return m_pSession; }
+		CConnectorSocket& SetSession(ISession* poSession) { m_pSession = poSession; return *this; }
 	protected:
 
 		ISession* m_pSession;

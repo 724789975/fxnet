@@ -109,14 +109,22 @@ namespace FXNET
 			(*pOStream) << refSocketBase.NativeSocket() << "(" << m_dwError << ")"
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
+		if (NULL == ((CUdpConnector&)refSocketBase).GetSession())
+		{
+			if (pOStream)
+			{
+				(*pOStream) << refSocketBase.NativeSocket() << " already wait delete (" << m_dwError << ")"
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			}
+		}
 
 		macro_closesocket(refSocketBase.NativeSocket());
 
 		//´¦Àí´íÎó
-		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).m_pSession->NewErrorEvent(m_dwError));
-		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).m_pSession->NewCloseEvent());
+		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_dwError));
+		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewCloseEvent());
 
-		((CUdpConnector&)refSocketBase).m_pSession = NULL;
+		((CUdpConnector&)refSocketBase).SetSession(NULL);
 
 		return 0;
 	}
