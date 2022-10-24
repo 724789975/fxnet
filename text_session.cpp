@@ -157,16 +157,16 @@ void CTextSession::OnClose(std::ostream* pOStream)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 	}
 
-	class CloseOperator : public IOEventBase
+	class OnCloseOperator : public IOEventBase
 	{
 	public:
-		CloseOperator(FXNET::ISocketBase* opSock)
+		OnCloseOperator(FXNET::ISocketBase* opSock)
 			: m_opSock(opSock)
 		{
 		}
 		virtual void operator ()(std::ostream* pOStream)
 		{
-			DELETE_WHEN_DESTRUCT(CloseOperator, this);
+			DELETE_WHEN_DESTRUCT(OnCloseOperator, this);
 
 			m_opSock->OnClose(pOStream);
 		}
@@ -176,7 +176,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 	private:
 	};
 
-	CloseOperator* pOperator = new CloseOperator(m_opSock);
+	OnCloseOperator* pOperator = new OnCloseOperator(m_opSock);
 	FXNET::PostEvent(pOperator);
 
 	if (pOStream)
@@ -189,6 +189,31 @@ void CTextSession::OnClose(std::ostream* pOStream)
 
 	//TODO 先在这里处理
 	delete this;
+}
+
+void CTextSession::Close(std::ostream* pOStream)
+{
+	class CloseOperator : public IOEventBase
+	{
+	public:
+		CloseOperator(FXNET::ISocketBase* opSock)
+			: m_opSock(opSock)
+		{
+		}
+		virtual void operator ()(std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(CloseOperator, this);
+
+			m_opSock->Close(pOStream);
+		}
+		FXNET::ISocketBase* m_opSock;
+		std::string m_szData;
+	protected:
+	private:
+	};
+
+	CloseOperator* pOperator = new CloseOperator(m_opSock);
+	FXNET::PostEvent(pOperator);
 }
 
 CTextSession::TextMessageEvent* CTextSession::NewRecvMessageEvent(std::string& refData)

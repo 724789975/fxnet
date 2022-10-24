@@ -118,8 +118,6 @@ namespace FXNET
 
 		((CUdpConnector&)refSocketBase).m_pSession = NULL;
 
-		//TODO
-		//delete& refSocketBase;
 		return 0;
 	}
 
@@ -431,6 +429,11 @@ namespace FXNET
 #endif // _WIN32
 
 		return 0;
+	}
+
+	void CUdpConnector::Close(std::ostream* pOStream)
+	{
+		NewErrorOperation(UserError::CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
 	}
 
 	CUdpConnector::IOReadOperation& CUdpConnector::NewReadOperation()

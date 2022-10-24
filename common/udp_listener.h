@@ -53,6 +53,8 @@ namespace FXNET
 
 		int Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream);
 
+		virtual void Close(std::ostream* pOStream);
+
 		virtual IOReadOperation& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
 		virtual IOErrorOperation& NewErrorOperation(int dwError);

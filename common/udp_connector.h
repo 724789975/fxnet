@@ -121,6 +121,8 @@ namespace FXNET
 
 		int Connect(sockaddr_in address, std::ostream* pOStream);
 
+		void Close(std::ostream* pOStream);
+
 		virtual IOReadOperation& NewReadOperation();
 		virtual IOWriteOperation& NewWriteOperation();
 		virtual IOErrorOperation& NewErrorOperation(int dwError);

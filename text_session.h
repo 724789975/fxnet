@@ -43,6 +43,8 @@ public:
 	virtual void OnError(int dwError, std::ostream* pOStream);
 	virtual void OnClose(std::ostream* pOStream);
 
+	virtual void Close(std::ostream* pOStream);
+
 	virtual TextWorkStream& GetSendBuff() { return m_oSendBuff; }
 	virtual TextWorkStream& GetRecvBuff() { return m_oRecvBuff; }
 

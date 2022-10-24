@@ -498,6 +498,11 @@ namespace FXNET
 		return dwError;
 	}
 
+	void CUdpListener::Close(std::ostream* pOStream)
+	{
+		//TODO
+	}
+
 	CUdpListener::IOReadOperation& CUdpListener::NewReadOperation()
 	{
 		IOReadOperation& refPeration = *(new IOReadOperation());
@@ -661,5 +666,4 @@ namespace FXNET
 #endif // _WIN32
 
 };
-
 

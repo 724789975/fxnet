@@ -47,11 +47,13 @@ namespace FXNET
 		sockaddr_in& GetLocalAddr() { return m_stLocalAddr; }
 		int GetError() { return m_dwError; }
 
+		virtual void Close(std::ostream* pOStream) = 0;
+
 		virtual IOOperationBase& NewReadOperation() = 0;
 		virtual IOOperationBase& NewWriteOperation() = 0;
 		virtual IOOperationBase& NewErrorOperation(int dwError) = 0;
 
-		virtual void OnRead(std::ostream* refOStream) = 0;
+		virtual void OnRead(std::ostream* pOStream) = 0;
 		virtual void OnWrite(std::ostream* pOStream) = 0;
 		virtual void OnError(int dwError, std::ostream* pOStream) = 0;
 		virtual void OnClose(std::ostream* pOStream) = 0;
