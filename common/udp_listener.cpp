@@ -228,13 +228,14 @@ namespace FXNET
 
 			if (pOStream)
 			{
-				*pOStream << refSock.NativeSocket() << " ip:" << addr.sin_addr.s_addr << ", port:" << addr.sin_port
+				*pOStream << refSock.NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr) << ", port:" << (int)ntohs(addr.sin_port)
 					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
 			if (pOStream)
 			{
-				*pOStream << refSock.NativeSocket() << " ip:" << refSock.GetLocalAddr().sin_addr.s_addr << ", port:" << refSock.GetLocalAddr().sin_port
+				*pOStream << refSock.NativeSocket() << " ip:" << inet_ntoa(refSock.GetLocalAddr().sin_addr)
+					<< ", port:" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
