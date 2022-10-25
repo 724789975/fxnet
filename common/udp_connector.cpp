@@ -429,6 +429,13 @@ namespace FXNET
 		socklen_t dwAddrLen = sizeof(GetLocalAddr());
 		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
 
+		if (pOStream)
+		{
+			*pOStream << NativeSocket() << " ip:" << inet_ntoa(GetLocalAddr().sin_addr) << ", port:" << (int)ntohs(GetLocalAddr().sin_port)
+				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr) << ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
+
 #ifdef _WIN32
 		for (int i = 0; i < 16; ++i)
 		{
