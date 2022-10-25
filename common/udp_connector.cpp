@@ -426,9 +426,6 @@ namespace FXNET
 			}
 		}
 
-		socklen_t dwAddrLen = sizeof(GetLocalAddr());
-		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
-
 		if (pOStream)
 		{
 			*pOStream << NativeSocket() << " ip:" << inet_ntoa(GetLocalAddr().sin_addr) << ", port:" << (int)ntohs(GetLocalAddr().sin_port)
@@ -576,8 +573,10 @@ namespace FXNET
 	{
 		if (pOStream)
 		{
-			*pOStream << NativeSocket() << " ip:" << GetLocalAddr().sin_addr.s_addr << ", port:" << GetLocalAddr().sin_port
-				<< " remote_ip:" << GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << GetRemoteAddr().sin_port
+			*pOStream << NativeSocket() << " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
+				<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
+				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
+				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
@@ -587,6 +586,9 @@ namespace FXNET
 	int CUdpConnector::Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
 		NativeSocket() = hSock;
+
+		socklen_t dwAddrLen = sizeof(GetLocalAddr());
+		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
 
 #ifdef _WIN32
 		unsigned long ul = 1;
@@ -640,8 +642,12 @@ namespace FXNET
 
 			if (pOStream)
 			{
-				(*pOStream) << "setsockopt failed(" << dwError << ") ["
-					<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				(*pOStream) << "setsockopt failed(" << dwError << ")"
+					<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
+					<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
+					<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
+					<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return dwError;
 		}
@@ -664,8 +670,12 @@ namespace FXNET
 
 			if (pOStream)
 			{
-				(*pOStream) << "connect failed(" << dwError << ") ["
-					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				(*pOStream) << "connect failed(" << dwError << ")"
+					<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
+					<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
+					<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
+					<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;
 		}
@@ -683,8 +693,12 @@ namespace FXNET
 
 			if (pOStream)
 			{
-				(*pOStream) << "register io failed" << " ["
-					<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				(*pOStream) << "register io failed"
+					<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
+					<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
+					<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
+					<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 
 			return dwError;

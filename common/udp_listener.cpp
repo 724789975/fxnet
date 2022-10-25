@@ -598,9 +598,6 @@ namespace FXNET
 			return *this;
 		}
 
-		socklen_t dwAddrLen = sizeof(pUdpSock->GetLocalAddr());
-		getsockname(hSock, (sockaddr*)&pUdpSock->GetLocalAddr(), &dwAddrLen);
-
 #ifdef _WIN32
 		for (int i = 0; i < 16; ++i)
 		{

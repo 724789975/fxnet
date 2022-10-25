@@ -21,22 +21,26 @@ int main()
 #endif // _WIN32
 	}
 
-	std::vector<CTextSession> vecSession;
-	FXNET::PostEvent(new FXNET::UDPListen("192.168.10.104", 10085, new TextSessionMaker));
-	//vecSession.push_back(CTextSession());
-	CTextSession t1;
-	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &t1));
+	std::vector<CTextSession*> vecSession;
+	//FXNET::PostEvent(new FXNET::UDPListen("192.168.10.104", 10085, new TextSessionMaker));
+	vecSession.push_back(new CTextSession);
+	//CTextSession t1;
+	FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
+	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
-	CTextSession t2;
-	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &t2));
+	//CTextSession t2;
+	vecSession.push_back(new CTextSession);
+	FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
+	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 
 	for (int i = 0; ; ++i)
 	{
-		//if (i >= 10 && i < 30)
-		//{
-		//	vecSession.push_back(CTextSession());
-		//	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
-		//}
+		if (i >= 10 && i < 100)
+		{
+			//vecSession.push_back(new CTextSession);
+			//FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
+			//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
+		}
 		std::deque<MessageEventBase*> dequeMessage;
 		FXNET::SwapEvent(dequeMessage);
 
