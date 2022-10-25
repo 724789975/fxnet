@@ -619,7 +619,7 @@ namespace FXNET
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			if (pOStream)
 			{
-				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
+				(*pOStream) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
 					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return dwError;
@@ -640,7 +640,7 @@ namespace FXNET
 
 			if (pOStream)
 			{
-				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
+				(*pOStream) << "setsockopt failed(" << dwError << ") ["
 					<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
 			return dwError;
@@ -664,7 +664,7 @@ namespace FXNET
 
 			if (pOStream)
 			{
-				(*pOStream) << "socket set nonblock failed(" << dwError << ") ["
+				(*pOStream) << "connect failed(" << dwError << ") ["
 					<< __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			}
 			return dwError;

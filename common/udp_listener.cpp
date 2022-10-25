@@ -382,7 +382,8 @@ namespace FXNET
 
 		if (pOStream)
 		{
-			*pOStream << NativeSocket() << " ip:" << oLocalAddr.sin_addr.s_addr << ", port:" << oLocalAddr.sin_port
+			*pOStream << NativeSocket() << " ip:" << inet_ntoa(oLocalAddr.sin_addr)
+				<< ", port:" << (int)ntohs(oLocalAddr.sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
@@ -466,7 +467,8 @@ namespace FXNET
 
 		if (pOStream)
 		{
-			*pOStream << NativeSocket() << " ip:" << oLocalAddr.sin_addr.s_addr << ", port:" << oLocalAddr.sin_port
+			*pOStream << NativeSocket() << " ip:" << inet_ntoa(oLocalAddr.sin_addr)
+				<< ", port:" << (int)ntohs(oLocalAddr.sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
@@ -476,7 +478,8 @@ namespace FXNET
 
 		if (pOStream)
 		{
-			*pOStream << NativeSocket() << " ip:" << addr.sin_addr.s_addr << ", port:" << addr.sin_port
+			*pOStream << NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
+				<< ", port:" << (int)ntohs(addr.sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
