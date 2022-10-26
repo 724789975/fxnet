@@ -347,12 +347,17 @@ namespace FXNET
 	{
 		if (pOStream)
 		{
-			(*pOStream) << NativeSocket()
+			(*pOStream) << NativeSocket() << ", error: " << m_dwError
 #ifndef _WIN32
 				<< ", " << m_bReadable << ", " << m_bWritable
 #endif // !_WIN32
 
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		}
+
+		if (GetError())
+		{
+			return 0;
 		}
 
 #ifdef _WIN32
