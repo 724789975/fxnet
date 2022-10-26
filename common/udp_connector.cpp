@@ -117,6 +117,7 @@ namespace FXNET
 				(*pOStream) << refSocketBase.NativeSocket() << " already wait delete (" << m_dwError << ")"
 					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
+			return 0;
 		}
 
 		macro_closesocket(refSocketBase.NativeSocket());

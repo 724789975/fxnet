@@ -114,7 +114,7 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 		*pOStream << GetSocket()->NativeSocket() << ", connected!!!\n";
 	}
 	std::string sz("0");
-	this->Send(sz.c_str(), (unsigned int)sz.size());
+	Send(sz.c_str(), (unsigned int)sz.size());
 }
 
 void CTextSession::OnError(int dwError, std::ostream* pOStream)
