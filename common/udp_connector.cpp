@@ -1,6 +1,7 @@
 #include "udp_connector.h"
 #include "include/iothread.h"
 #include "include/net_work_stream.h"
+#include "include/error_code.h"
 
 #ifdef _WIN32
 #ifndef __FUNCTION_DETAIL__
@@ -450,7 +451,7 @@ namespace FXNET
 
 	void CUdpConnector::Close(std::ostream* pOStream)
 	{
-		NewErrorOperation(UserError::CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
+		NewErrorOperation(CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
 	}
 
 	CUdpConnector::IOReadOperation& CUdpConnector::NewReadOperation()

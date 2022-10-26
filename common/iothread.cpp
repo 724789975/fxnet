@@ -627,7 +627,7 @@ namespace FXNET
 						*pOStream << pEvent->events << ", " << m_hEvent << ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 					}
 				}
-				return true;
+				continue;
 			}
 
 			if (pOStream)
@@ -635,15 +635,15 @@ namespace FXNET
 				*pOStream << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name()
 					<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			}
-			if (pEvent->events & (EPOLLERR | EPOLLHUP))
+			//if (pEvent->events & (EPOLLERR | EPOLLHUP))
+			//{
+			//	int dwError = errno;
+			//	DeregisterIO(poSock->NativeSocket(), pOStream);
+			//	poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
+			//}
+			//else
 			{
-				int dwError = errno;
-				DeregisterIO(poSock->NativeSocket(), pOStream);
-				poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
-			}
-			else
-			{
-				if (pEvent->events & EPOLLOUT)
+				if (pEvent->events & EPOLLOUT | EPOLLERR | EPOLLHUP))
 				{
 					if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
 					{
@@ -651,7 +651,7 @@ namespace FXNET
 						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					}
 				}
-				if (pEvent->events & EPOLLIN)
+				if (pEvent->events & EPOLLIN | EPOLLERR | EPOLLHUP))
 				{
 					if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
 					{
