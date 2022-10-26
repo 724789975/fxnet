@@ -643,7 +643,7 @@ namespace FXNET
 			//}
 			//else
 			{
-				if (pEvent->events & EPOLLOUT | EPOLLERR | EPOLLHUP))
+				if (pEvent->events & (EPOLLOUT | EPOLLERR | EPOLLHUP))
 				{
 					if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
 					{
@@ -651,7 +651,7 @@ namespace FXNET
 						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					}
 				}
-				if (pEvent->events & EPOLLIN | EPOLLERR | EPOLLHUP))
+				if (pEvent->events & (EPOLLIN | EPOLLERR | EPOLLHUP))
 				{
 					if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
 					{
