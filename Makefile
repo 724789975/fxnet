@@ -12,12 +12,17 @@ RANLIB	= ranlib
 #  Flags
 ifeq ($(BUILD),DEBUG)
 D = d
-C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX
-CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX
+C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -fpic -ldl
+CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -fpic -ldl
 else
 D = 
-C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX
-CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX
+C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX -fpic -ldl
+CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX -fpic -ldl
+endif
+
+ifeq ($(ASAN),1)
+C_FLAGS		+= -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold
+CXX_FLAGS	+= -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold
 endif
 
 ARFLAGS			= -rc
@@ -28,6 +33,9 @@ ARFLAGS			= -rc
 CODE_DIR = ./ 
 INCLUDE_DIR =./ 
 LIB_FILE = -L./Debug -Lcrypto -lpthread
+ifeq ($(ASAN),1)
+LIB_FILE	+= -lasan
+endif
 OUTPUT_DIR =./Debug
 OUTPUT = Test
 #==========================================================
@@ -40,15 +48,15 @@ all:$(OUTPUT)
 
 $(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o)
 	@echo Build...$@
-	$(CPP) $(CXX_FLAGS) -fpic -ldl -o $(OUTPUT_DIR)/$(OUTPUT) $(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(LIB_FILE)
+	$(CPP) $(CXX_FLAGS) -o $(OUTPUT_DIR)/$(OUTPUT) $(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(LIB_FILE)
 
 %.o: %.cpp
 	@echo Compile...$@
-	$(CPP) $(CXX_FLAGS) -fpic -ldl $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d) 
+	$(CPP) $(CXX_FLAGS) $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d) 
 
 %.o: %.cc
 	@echo Compile...$@
-	$(CC) $(C_FLAGS) -fpic -ldl $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d)
+	$(CC) $(C_FLAGS) $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d)
 	
 -include $(OBJS:.cpp=.d)
 -include $(COBJS:.cc=.d)
