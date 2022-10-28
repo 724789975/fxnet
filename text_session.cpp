@@ -4,6 +4,7 @@
 #include "include/iothread.h"
 #include "include/connector_socket.h"
 #include "include/fxnet_interface.h"
+#include "include/log_utility.h"
 
 #include <string>
 
@@ -20,7 +21,7 @@ void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
 
 	if (pOStream)
 	{
-		*pOStream << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
 			<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
 	}
 	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size());
@@ -111,7 +112,7 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 {
 	if (pOStream)
 	{
-		*pOStream << GetSocket()->NativeSocket() << ", connected!!!\n";
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket() << ", connected!!!\n";
 	}
 	std::string sz("0");
 	Send(sz.c_str(), (unsigned int)sz.size());
@@ -121,7 +122,7 @@ void CTextSession::OnError(int dwError, std::ostream* pOStream)
 {
 	if (pOStream)
 	{
-		*pOStream << GetSocket()->NativeSocket()
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket()
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 	}
 
@@ -153,7 +154,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 {
 	if (pOStream)
 	{
-		*pOStream << GetSocket()->NativeSocket()
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket()
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 	}
 
@@ -181,7 +182,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 
 	if (pOStream)
 	{
-		(*pOStream) << "session close, " << this
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << "session close, " << this
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 	}
 
