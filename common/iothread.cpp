@@ -4,15 +4,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#ifdef _WIN32
-#ifndef __FUNCTION_DETAIL__
-#define __FUNCTION_DETAIL__ __FUNCSIG__
-#endif
-#else
-#ifndef __FUNCTION_DETAIL__
-#define __FUNCTION_DETAIL__ __PRETTY_FUNCTION__
-#endif
-#endif //!_WIN32
 
 #ifdef _WIN32
 #include <process.h>

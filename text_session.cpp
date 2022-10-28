@@ -19,11 +19,8 @@ void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(TextMessageEvent, this);
 
-	if (pOStream)
-	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
-			<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
-	}
+	LOG(pOStream, ELOG_LEVEL_DEBUG2) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
+		<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
 	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size());
 }
 
@@ -110,21 +107,16 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen)
 
 void CTextSession::OnConnected(std::ostream* pOStream)
 {
-	if (pOStream)
-	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket() << ", connected!!!\n";
-	}
+	LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket() << ", connected!!!"
+		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 	std::string sz("0");
 	Send(sz.c_str(), (unsigned int)sz.size());
 }
 
 void CTextSession::OnError(int dwError, std::ostream* pOStream)
 {
-	if (pOStream)
-	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket()
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
-	}
+	LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket()
+		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
 	class ErrorOperator : public IOEventBase
 	{
@@ -152,11 +144,8 @@ void CTextSession::OnError(int dwError, std::ostream* pOStream)
 
 void CTextSession::OnClose(std::ostream* pOStream)
 {
-	if (pOStream)
-	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket()
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
-	}
+	LOG(pOStream, ELOG_LEVEL_DEBUG2) << GetSocket()->NativeSocket()
+		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
 	class OnCloseOperator : public IOEventBase
 	{
@@ -180,11 +169,8 @@ void CTextSession::OnClose(std::ostream* pOStream)
 	OnCloseOperator* pOperator = new OnCloseOperator(m_opSock);
 	FXNET::PostEvent(pOperator);
 
-	if (pOStream)
-	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << "session close, " << this
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
-	}
+	LOG(pOStream, ELOG_LEVEL_DEBUG2) << "session close, " << this
+		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
 	SetSock(NULL);
 

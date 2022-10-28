@@ -1,6 +1,16 @@
 #ifndef __LOG_UTILITY_H__
 #define __LOG_UTILITY_H__
 
+#ifdef _WIN32
+#ifndef __FUNCTION_DETAIL__
+#define __FUNCTION_DETAIL__ __FUNCSIG__
+#endif
+#else
+#ifndef __FUNCTION_DETAIL__
+#define __FUNCTION_DETAIL__ __PRETTY_FUNCTION__
+#endif
+#endif //!_WIN32
+
 enum ELogLevel
 {
 	ELOG_LEVEL_ERROR,
