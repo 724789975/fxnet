@@ -13,21 +13,20 @@
 
 enum ELogLevel
 {
-	ELOG_LEVEL_ERROR,
-	ELOG_LEVEL_WARN,
-	ELOG_LEVEL_INFO,
-	ELOG_LEVEL_DEBUG,
-	ELOG_LEVEL_DEBUG1,
-	ELOG_LEVEL_DEBUG2,
-	ELOG_LEVEL_DEBUG3,
+	ELOG_LEVEL_ERROR = 1,
+	ELOG_LEVEL_WARN = 1 << 1,
+	ELOG_LEVEL_INFO = 1 << 2,
+	ELOG_LEVEL_DEBUG = 1 << 3,
+	ELOG_LEVEL_DEBUG1 = 1 << 4,
+	ELOG_LEVEL_DEBUG2 = 1 << 5,
+	ELOG_LEVEL_DEBUG3 = 1 << 6,
 
-	ELOG_LEVEL_ALL,
 };
 
-ELogLevel GetLogLevel();
+int GetLogLevel();
 
 #define LOG(STREAM, LOG_LEVEL)\
-	if (STREAM && (GetLogLevel() > LOG_LEVEL))\
+	if (STREAM && (GetLogLevel() & LOG_LEVEL))\
 		*STREAM
 
 #endif // !__LOG_UTILITY_H__

@@ -1,8 +1,9 @@
 #include "include/log_utility.h"
 
-ELogLevel g_sLogLevel = ELOG_LEVEL_ALL;
+int g_sLogLevel = ELOG_LEVEL_ERROR | ELOG_LEVEL_WARN | ELOG_LEVEL_INFO
+	| ELOG_LEVEL_DEBUG | ELOG_LEVEL_DEBUG1 | ELOG_LEVEL_DEBUG2 | ELOG_LEVEL_DEBUG3;
 
-ELogLevel GetLogLevel()
+int GetLogLevel()
 {
 	return g_sLogLevel;
 }

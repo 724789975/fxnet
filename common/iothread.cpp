@@ -149,7 +149,7 @@ namespace FXNET
 
 		if (m_hCompletionPort == NULL)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "CreateIoCompletionPort error " << WSAGetLastError()
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "CreateIoCompletionPort error " << WSAGetLastError()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
@@ -157,7 +157,7 @@ namespace FXNET
 		m_pEvents = new epoll_event[MAX_EVENT_NUM];
 		if (NULL == m_pEvents)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "start error "
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
@@ -165,7 +165,7 @@ namespace FXNET
 		m_hEpoll = epoll_create(MAX_EVENT_NUM);
 		if (m_hEpoll < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "start error "
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
@@ -175,7 +175,7 @@ namespace FXNET
 		m_hEvent = eventfd(0, EFD_CLOEXEC);
 		if (m_hEvent < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "start error "
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
@@ -186,7 +186,7 @@ namespace FXNET
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, m_hEvent, &e) < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "epoll_ctl errno " << errno
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
@@ -194,7 +194,7 @@ namespace FXNET
 #endif // _WIN32
 		if (!Start())
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "start error "
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
@@ -262,14 +262,14 @@ namespace FXNET
 	{
 		if (hSock < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "hSock : " << hSock
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "hSock : " << hSock
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_SOCKET;
 		}
 
 		if (NULL == GetHandle())
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "get handle error"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "get handle error"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_COMPLETION_PORT;
 		}
@@ -277,7 +277,7 @@ namespace FXNET
 		if (NULL == CreateIoCompletionPort((HANDLE)hSock, GetHandle(), (ULONG_PTR)poSock, 0))
 		{
 			int dwErr = WSAGetLastError();
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "CreateIoCompletionPort errno " << dwErr
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "CreateIoCompletionPort errno " << dwErr
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwErr;
 		}
@@ -290,14 +290,14 @@ namespace FXNET
 	{
 		if (hSock < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "hSock : " << hSock
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "hSock : " << hSock
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_SOCKET;
 		}
 
 		if (m_hEpoll < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "m_hEpoll < 0"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "m_hEpoll < 0"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_EPOLL_HANDLE;
 		}
@@ -307,12 +307,12 @@ namespace FXNET
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, hSock, &e) < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "epoll_ctl errno " << errno
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return errno;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << "hSock : " << hSock << ", event: " << dwEvents
+		LOG(pOStream, ELOG_LEVEL_DEBUG) << "hSock : " << hSock << ", event: " << dwEvents
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		m_mapSockets[hSock] = poSock;
 		return 0;
@@ -322,14 +322,14 @@ namespace FXNET
 	{
 		if (m_hEpoll < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << hSock << " m_hEpoll < 0"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " m_hEpoll < 0"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_EPOLL_HANDLE;
 		}
 
 		if (hSock < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << hSock
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_SOCKET;
 		}
@@ -340,7 +340,7 @@ namespace FXNET
 
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_MOD, hSock, &e) < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "epoll_ctl errno : " << errno
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno : " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return errno;
 		}
@@ -359,14 +359,14 @@ namespace FXNET
 #else
 		if (m_hEpoll < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "m_hEpoll < 0"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "m_hEpoll < 0"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_EPOLL_HANDLE;
 		}
 
 		if (hSock < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << hSock
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return CODE_ERROR_NET_ERROR_SOCKET;
 		}
@@ -374,7 +374,7 @@ namespace FXNET
 		epoll_event e;
 		if (epoll_ctl(m_hEpoll, EPOLL_CTL_DEL, hSock, &e) < 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "epoll_ctl errno : " << errno
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno : " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return errno;
 		}
@@ -488,14 +488,14 @@ namespace FXNET
 			}
 			if (NULL == pstPerIoData)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "GetQueuedCompletionStatus FALSE " << dwError
+				LOG(pOStream, ELOG_LEVEL_INFO) << "GetQueuedCompletionStatus FALSE " << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				return true;
 			}
 
 			if (!poSock)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "GetQueuedCompletionStatus FALSE " << dwError
+				LOG(pOStream, ELOG_LEVEL_INFO) << "GetQueuedCompletionStatus FALSE " << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				return true;
 			}
@@ -520,7 +520,7 @@ namespace FXNET
 			epoll_event* pEvent = GetEvent(i);
 			if (NULL == pEvent)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "get event error "
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "get event error "
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				return false;
 			}
@@ -551,7 +551,7 @@ namespace FXNET
 				}
 				else
 				{
-					LOG(pOStream, ELOG_LEVEL_DEBUG2) << pEvent->events << ", " << m_hEvent
+					LOG(pOStream, ELOG_LEVEL_ERROR) << pEvent->events << ", " << m_hEvent
 						<<"[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 				}
 				continue;
@@ -559,29 +559,20 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_DEBUG2) << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name()
 				<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			//if (pEvent->events & (EPOLLERR | EPOLLHUP))
-			//{
-			//	int dwError = errno;
-			//	DeregisterIO(poSock->NativeSocket(), pOStream);
-			//	poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
-			//}
-			//else
+			if (pEvent->events & (EPOLLOUT | EPOLLERR | EPOLLHUP))
 			{
-				if (pEvent->events & (EPOLLOUT | EPOLLERR | EPOLLHUP))
+				if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
 				{
-					if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
-					{
-						DeregisterIO(poSock->NativeSocket(), pOStream);
-						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
-					}
+					DeregisterIO(poSock->NativeSocket(), pOStream);
+					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 				}
-				if (pEvent->events & (EPOLLIN | EPOLLERR | EPOLLHUP))
+			}
+			if (pEvent->events & (EPOLLIN | EPOLLERR | EPOLLHUP))
+			{
+				if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
 				{
-					if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
-					{
-						DeregisterIO(poSock->NativeSocket(), pOStream);
-						poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
-					}
+					DeregisterIO(poSock->NativeSocket(), pOStream);
+					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 				}
 			}
 		}

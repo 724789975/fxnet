@@ -36,32 +36,32 @@ namespace FXNET
 
 		if (dwLen != sizeof(oUDPPacketHeader))
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSocketBase.NativeSocket()
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return 0;
 		}
 
 		if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSocketBase.NativeSocket()
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return 0;
 		}
 
 		if (oUDPPacketHeader.m_btAck != 0)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return 0;
 		}
 		if (oUDPPacketHeader.m_btSyn != 1)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return 0;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " recvfrom "
+		LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " recvfrom "
 			<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
@@ -69,7 +69,7 @@ namespace FXNET
 			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (hSock == -1)
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " create socket failed."
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 			return 0;
 		}
@@ -78,7 +78,7 @@ namespace FXNET
 		int yes = 1;
 		if (setsockopt(hSock, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes)))
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 			macro_closesocket(hSock);
 			return 0;
@@ -87,7 +87,7 @@ namespace FXNET
 		// bind
 		if (bind(hSock, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
 				<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			macro_closesocket(hSock);
@@ -114,7 +114,7 @@ namespace FXNET
 
 				if (errno != EAGAIN && errno != EWOULDBLOCK)
 				{
-					LOG(pOStream, ELOG_LEVEL_DEBUG2) << "error accept : " << refSocketBase.NativeSocket() << ", " << errno
+					LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " error accept : " << errno
 						<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				}
 
@@ -123,27 +123,27 @@ namespace FXNET
 
 			if (dwLen != sizeof(oUDPPacketHeader))
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSocketBase.NativeSocket()
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				continue;
 			}
 
 			if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSocketBase.NativeSocket()
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				continue;
 			}
 
 			if (oUDPPacketHeader.m_btAck != 0)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck <<  ", " << refSocketBase.NativeSocket()
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck <<  ", " << refSocketBase.NativeSocket()
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				continue;
 			}
 			if (oUDPPacketHeader.m_btSyn != 1)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn <<  ", " << refSocketBase.NativeSocket()
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn <<  ", " << refSocketBase.NativeSocket()
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				continue;
 			}
@@ -152,7 +152,7 @@ namespace FXNET
 
 			if (req != NULL)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) <<  refSocketBase.NativeSocket() << ", req not null"
+				LOG(pOStream, ELOG_LEVEL_ERROR) <<  refSocketBase.NativeSocket() << ", req not null"
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				continue;
 			}
@@ -161,7 +161,7 @@ namespace FXNET
 
 			if (req == NULL)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " can't allocate more udp accept request.\n";
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " can't allocate more udp accept request.\n";
 				break;
 			}
 
@@ -187,7 +187,7 @@ namespace FXNET
 			//req->m_oAcceptSocket = refSock.NativeSocket();
 			if (req->m_oAcceptSocket == -1)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " create socket failed."
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 				refSock.m_oAcceptPool.Free(req);
 				continue;
@@ -200,7 +200,7 @@ namespace FXNET
 			int yes = 1;
 			if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)& yes, sizeof(yes)))
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << req->m_oAcceptSocket << ", errno(" << errno << ")"
+				LOG(pOStream, ELOG_LEVEL_ERROR) << req->m_oAcceptSocket << ", errno(" << errno << ")"
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 				macro_closesocket(req->m_oAcceptSocket);
 				refSock.m_oAcceptPool.Free(req);
@@ -210,7 +210,7 @@ namespace FXNET
 			// bind
 			if (bind(req->m_oAcceptSocket, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << req->m_oAcceptSocket << ", errno(" << errno << ") " << "bind failed on "
+				LOG(pOStream, ELOG_LEVEL_ERROR) << req->m_oAcceptSocket << ", errno(" << errno << ") " << "bind failed on "
 					<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				macro_closesocket(req->m_oAcceptSocket);
@@ -250,8 +250,8 @@ namespace FXNET
 	int CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpListener::IOErrorOperation, this);
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << "IOErrorOperation failed(" << m_dwError << ")"
-			<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_dwError << ")"
+			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 		return 0;
 	}
 
@@ -297,7 +297,7 @@ namespace FXNET
 			dwError = errno;
 #endif // _WIN32
 
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "socket create failed(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket create failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
@@ -321,7 +321,7 @@ namespace FXNET
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "socket set nonblock failed(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set nonblock failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
@@ -333,11 +333,8 @@ namespace FXNET
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
-			if LOG(pOStream, ELOG_LEVEL_DEBUG2)
-			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
-					<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			}
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
+				<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 #endif // _WIN32
@@ -354,7 +351,7 @@ namespace FXNET
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "socket set SO_REUSEADDR failed(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
@@ -369,7 +366,7 @@ namespace FXNET
 #endif // _WIN32
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
+				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 					<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
@@ -392,7 +389,7 @@ namespace FXNET
 		{
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
+			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
@@ -405,7 +402,7 @@ namespace FXNET
 		{
 			macro_closesocket(NativeSocket());
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
@@ -474,7 +471,7 @@ namespace FXNET
 		pUdpSock->GetSession()->SetSock(pUdpSock);
 		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "client connect failed(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
 			//post 到iomodule 移除
@@ -483,7 +480,7 @@ namespace FXNET
 
 		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_RECV))
 		{
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "client connect failed(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 
 			//post 到iomodule 移除
@@ -516,7 +513,7 @@ namespace FXNET
 			int dwError = WSAGetLastError();
 			if (dwError != WSA_IO_PENDING)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "WSARecvFrom errno : " << dwError << ", handle : " << NativeSocket()
+				LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " WSARecvFrom errno : " << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				return dwError;
 			}
