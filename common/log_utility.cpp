@@ -7,3 +7,4 @@ int GetLogLevel()
 {
 	return g_sLogLevel;
 }
+

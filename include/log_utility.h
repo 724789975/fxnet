@@ -27,6 +27,6 @@ int GetLogLevel();
 
 #define LOG(STREAM, LOG_LEVEL)\
 	if (STREAM && (GetLogLevel() & LOG_LEVEL))\
-		*STREAM
+		*STREAM << "[" << #LOG_LEVEL << "]\t"
 
 #endif // !__LOG_UTILITY_H__
