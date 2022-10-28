@@ -390,7 +390,7 @@ namespace FXNET
 		pOperation->m_stWsaBuff.buf = pOperation->m_szRecvBuff;
 		pOperation->m_stWsaBuff.len = sizeof(pOperation->m_szRecvBuff);
 		memset(pOperation->m_stWsaBuff.buf, 0, pOperation->m_stWsaBuff.len);
-		m_setIOOperations.insert(pOperation);
+		//m_setIOOperations.insert(pOperation);
 #endif // _WIN32
 
 		return *pOperation;
@@ -400,7 +400,7 @@ namespace FXNET
 	{
 		CUdpConnector::IOWriteOperation* pOperation = new CUdpConnector::IOWriteOperation();
 #ifdef _WIN32
-		m_setIOOperations.insert(pOperation);
+		//m_setIOOperations.insert(pOperation);
 #endif // _WIN32
 
 		return *pOperation;
