@@ -302,10 +302,6 @@ namespace FXNET
 			return dwError;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(oLocalAddr.sin_addr)
-			<< ", port:" << (int)ntohs(oLocalAddr.sin_port)
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-
 #ifdef _WIN32
 		unsigned long ul = 1;
 		if (SOCKET_ERROR == ioctlsocket(NativeSocket(), FIONBIO, (unsigned long*)&ul))
@@ -513,7 +509,7 @@ namespace FXNET
 			int dwError = WSAGetLastError();
 			if (dwError != WSA_IO_PENDING)
 			{
-				LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " WSARecvFrom errno : " << dwError
+				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " WSARecvFrom errno : " << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				return dwError;
 			}
