@@ -61,7 +61,7 @@ namespace FXNET
 			return 0;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " recvfrom "
+		LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
 			<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
@@ -179,7 +179,7 @@ namespace FXNET
 				<< ", port:" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " recvfrom "
+			LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
 				<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 

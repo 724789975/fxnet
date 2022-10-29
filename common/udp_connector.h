@@ -116,7 +116,7 @@ namespace FXNET
 
 		virtual int Update(double dTimedouble, std::ostream* pOStream);
 
-		sockaddr_in& GetRemoteAddr() { return m_stRemoteAddr; }
+		const sockaddr_in& GetRemoteAddr()const { return m_stRemoteAddr; }
 		CUdpConnector& SetRemoteAddr(const sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
 
 		int Connect(sockaddr_in address, std::ostream* pOStream);
@@ -156,13 +156,6 @@ namespace FXNET
 		UDPSendOperator m_funSendOperator;
 		UDPReadStreamOperator m_funReadStreamOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
-
-#ifdef _WIN32
-		//windows下 如果删除了事件 会有内存泄露
-		//因此需要将产生的事件记录记录下来 用于删除
-		//error不需要 error为手动产生
-		std::set<IOOperationBase*> m_setIOOperations;
-#endif // _WIN32
 	};
 };
 

@@ -31,7 +31,6 @@ namespace FXNET
 #ifdef _WIN32
 		refConnector.PostRecv(pOStream);
 
-		refConnector.m_setIOOperations.erase(this);
 		m_dwLen = dwLen;
 		refConnector.m_funRecvOperator.SetIOReadOperation(this);
 		bool bReadable = true;
@@ -65,7 +64,6 @@ namespace FXNET
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 #ifdef _WIN32
-		refConnector.m_setIOOperations.erase(this);
 #else
 		refConnector.m_bWritable = true;
 #endif // _WIN32
@@ -269,14 +267,6 @@ namespace FXNET
 
 	CUdpConnector::~CUdpConnector()
 	{
-#ifdef _WIN32
-		for (std::set<IOOperationBase*>::iterator it = m_setIOOperations.begin();
-			it != m_setIOOperations.end(); ++it)
-		{
-			delete* it;
-		}
-		m_setIOOperations.clear();
-#endif // _WIN32
 	}
 
 	int CUdpConnector::Init(std::ostream* pOStream, int dwState)
@@ -505,6 +495,11 @@ namespace FXNET
 	int CUdpConnector::Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
 		NativeSocket() = hSock;
+
+		LOG(pOStream, ELOG_LEVEL_INFO)
+			<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
+			<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
+			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 #ifdef _WIN32
 		unsigned long ul = 1;
