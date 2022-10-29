@@ -49,8 +49,10 @@ namespace FXNET
 		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket() << ", " << bReadable
-			<< " ip:" << refConnector.GetLocalAddr().sin_addr.s_addr << ", port:" << refConnector.GetLocalAddr().sin_port
-			<< " remote_ip:" << refConnector.GetRemoteAddr().sin_addr.s_addr << ", remote_port:" << refConnector.GetRemoteAddr().sin_port
+			<< " ip:" << inet_ntoa(refConnector.GetLocalAddr().sin_addr)
+			<< ", port:" << (int)ntohs(refConnector.GetLocalAddr().sin_port)
+			<< " remote_ip:" << inet_ntoa(refConnector.GetRemoteAddr().sin_addr)
+			<< ", remote_port:" << (int)ntohs(refConnector.GetRemoteAddr().sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 		return 0;

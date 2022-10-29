@@ -79,9 +79,9 @@ namespace FXNET
 #endif
 
 			std::ostream& refOStream = std::cout;
+			refOStream.flags(std::cout.fixed);
 
-			LOG(&refOStream, ELOG_LEVEL_INFO) << refOStream.precision(m_dCurrentTime) << "\n";
-
+			LOG(&refOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
 			if (m_dCurrentTime - m_dLoatUpdateTime >= 0.05)
 			{
