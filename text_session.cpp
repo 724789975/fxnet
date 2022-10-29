@@ -19,7 +19,7 @@ void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(TextMessageEvent, this);
 
-	LOG(pOStream, ELOG_LEVEL_DEBUG2) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
+	LOG(pOStream, ELOG_LEVEL_INFO) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
 		<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
 	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size());
 }
@@ -97,7 +97,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen)
 	std::string strData(szData, dwLen);
 	strData += ((szData[dwLen - 1] + 1 - '0') % 10 + '0');
 	//if (strData.size() > 16 * 512)
-	if (strData.size() > 2048)
+	if (strData.size() > 1024 * 32)
 	{
 		strData = "0";
 	}

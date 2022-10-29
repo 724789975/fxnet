@@ -495,7 +495,7 @@ namespace FXNET
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				return true;
 			}
-
+			
 			if (!poSock)
 			{
 				LOG(pOStream, ELOG_LEVEL_INFO) << "GetQueuedCompletionStatus FALSE " << dwError
@@ -503,10 +503,9 @@ namespace FXNET
 				return true;
 			}
 
-			//TODO 删除这个op 还是执行？ 先删除好了
-			//(*(IOOperationBase*)(pstPerIoData))(*poSock, dwByteTransferred, pOStream);
-			//TODO 会在socketbase销毁的时候 删除 所以下面不用执行
-			//delete (IOOperationBase*)(OVERLAPPED*)(pstPerIoData);
+			LOG(pOStream, ELOG_LEVEL_INFO) << poSock->NativeSocket() << " GetQueuedCompletionStatus FALSE " << dwError
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+
 			DeregisterIO(poSock->NativeSocket(), pOStream);
 			poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
 		}

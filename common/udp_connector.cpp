@@ -506,9 +506,6 @@ namespace FXNET
 	{
 		NativeSocket() = hSock;
 
-		socklen_t dwAddrLen = sizeof(GetLocalAddr());
-		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
-
 #ifdef _WIN32
 		unsigned long ul = 1;
 		if (SOCKET_ERROR == ioctlsocket(NativeSocket(), FIONBIO, (unsigned long*)&ul))
@@ -554,8 +551,6 @@ namespace FXNET
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "setsockopt failed(" << dwError << ")"
-				<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
-				<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
 				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
 				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -579,13 +574,14 @@ namespace FXNET
 			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "connect failed(" << dwError << ")"
-				<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
-				<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
 				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
 				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 			return dwError;
 		}
+
+		socklen_t dwAddrLen = sizeof(GetLocalAddr());
+		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
 
 		if (int dwError =
 #ifdef _WIN32
