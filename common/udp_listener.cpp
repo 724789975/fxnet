@@ -228,6 +228,7 @@ namespace FXNET
 			refSock.OnClientConnected(req->m_oAcceptSocket, req->addr, pOStream);
 
 			//refSock.Listen(pOStream);
+			//TODO 是否需要break
 			break;
 		}
 
