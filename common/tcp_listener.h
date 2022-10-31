@@ -27,15 +27,14 @@ namespace FXNET
 	class CTcpListener : public CListenSocket
 	{
 	public:
-		class IOReadOperation : public IOOperationBase
+		class IOAcceptOperation : public IOOperationBase
 		{
 		public:
 			friend class CTcpListener;
 			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
-		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
-			sockaddr_in m_stRemoteAddr;
+			NativeSocketType m_hSocket;
 #endif // _WIN32
 			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
 		};
@@ -55,7 +54,7 @@ namespace FXNET
 
 		virtual void Close(std::ostream* pOStream);
 
-		virtual IOReadOperation& NewReadOperation();
+		virtual IOAcceptOperation& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
 		virtual IOErrorOperation& NewErrorOperation(int dwError);
 
@@ -71,9 +70,17 @@ namespace FXNET
 		CTcpListener& OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 
 #ifdef _WIN32
-		int PostAccept(std::ostream* pOStream);
-	#endif // _WIN32
+		int									PostAccept(std::ostream* pOStream);
+		int								InitAcceptEx(std::ostream* pOStream);
 
+#else
+#endif // _WIN32
+		int						OnAccept(std::ostream* pOStream);
+
+#ifdef _WIN32
+		LPFN_ACCEPTEX						m_lpfnAcceptEx;
+		LPFN_GETACCEPTEXSOCKADDRS			m_lpfnGetAcceptExSockaddrs;
+#endif // _WIN32
 		SessionMaker* m_pSessionMaker;
 
 	};

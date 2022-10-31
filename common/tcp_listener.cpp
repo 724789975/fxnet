@@ -18,11 +18,21 @@
 #endif //macro_closesocket
 #endif // _WIN32
 
+#ifdef _WIN32
+struct tcp_keepalive
+{
+	u_long  onoff;
+	u_long  keepalivetime;
+	u_long  keepaliveinterval;
+};
+#define SIO_KEEPALIVE_VALS _WSAIOW(IOC_VENDOR,4)
+#endif
+
 namespace FXNET
 {
-	int CTcpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	int CTcpListener::IOAcceptOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
-		DELETE_WHEN_DESTRUCT(CTcpListener::IOReadOperation, this);
+		DELETE_WHEN_DESTRUCT(CTcpListener::IOAcceptOperation, this);
 
 		CTcpListener& refSock = (CTcpListener&) refSocketBase;
 
@@ -30,72 +40,57 @@ namespace FXNET
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 #ifdef _WIN32
-		UDPPacketHeader& oUDPPacketHeader = *(UDPPacketHeader*)m_stWsaBuff.buf;
+		//SOCKET hSock = m_hSocket;
+		::setsockopt(m_hSocket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT
+			, (char*)&(refSock.NativeSocket()), sizeof(refSock.NativeSocket()));
 
-		sockaddr_in& stRemoteAddr = m_stRemoteAddr;
+		sockaddr_in* pstRemoteAddr = NULL;
+		sockaddr_in* pstLocalAddr = NULL;
+		int nRemoteAddrLen = sizeof(sockaddr_in);
+		int nLocalAddrLen = sizeof(sockaddr_in);
+		int nAddrLen = sizeof(sockaddr_in) + 16;
 
-		if (dwLen != sizeof(oUDPPacketHeader))
+		refSock.m_lpfnGetAcceptExSockaddrs(
+			this->m_stWsaBuff.buf,
+			0,
+			nAddrLen,
+			nAddrLen,
+			(SOCKADDR**)&pstLocalAddr,
+			&nLocalAddrLen,
+			(SOCKADDR**)&pstRemoteAddr,
+			&nRemoteAddrLen);
+
+		// keep alive
+		struct tcp_keepalive keepAliveIn;
+		struct tcp_keepalive keepAliveOut;
+
+		unsigned long ulBytesReturn = 0;
+
+		keepAliveIn.keepaliveinterval = 10000;//
+		keepAliveIn.keepalivetime = 1000 * 30;//
+		keepAliveIn.onoff = 1;
+
+		if(SOCKET_ERROR == WSAIoctl(m_hSocket
+			, SIO_KEEPALIVE_VALS
+			, &keepAliveIn
+			, sizeof(keepAliveIn)
+			, &keepAliveOut
+			, sizeof(keepAliveOut)
+			, &ulBytesReturn
+			, NULL
+			, NULL ))
 		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
-		}
+			int dwError = WSAGetLastError();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSocket << ", Set keep alive error" 
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-		if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
-		}
-
-		if (oUDPPacketHeader.m_btAck != 0)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
-		}
-		if (oUDPPacketHeader.m_btSyn != 1)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
-		}
-
-		LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
-			<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
-			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-
-		NativeSocketType hSock = WSASocket(AF_INET
-			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
-		if (hSock == -1)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
-			return 0;
-		}
-
-		// set reuseaddr
-		int yes = 1;
-		if (setsockopt(hSock, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes)))
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
-			macro_closesocket(hSock);
-			return 0;
-		}
-
-		// bind
-		if (bind(hSock, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
-				<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			macro_closesocket(hSock);
-			return 0;
+			macro_closesocket(m_hSocket);
+			refSock.PostAccept(pOStream);
+			return dwError;
 		}
 
 		// send back
-		refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
+		refSock.OnClientConnected(m_hSocket, *pstRemoteAddr, pOStream);
 
 		refSock.PostAccept(pOStream);
 #else
@@ -143,7 +138,7 @@ namespace FXNET
 		// 创建socket
 #ifdef _WIN32
 		NativeSocket() = WSASocket(AF_INET
-			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
+			, SOCK_DGRAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
 		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
 #endif // _WIN32
@@ -227,6 +222,21 @@ namespace FXNET
 			return dwError;
 		}
 
+		if (listen(NativeSocket(), 128) < 0)
+		{
+#ifdef _WIN32
+			dwError = WSAGetLastError();
+#else
+			dwError = errno;
+#endif // _WIN32
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " listen failed on (" << inet_ntoa(refLocalAddr.sin_addr)
+				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			return dwError;
+		}
+
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(refLocalAddr.sin_addr)
 			<< ", port:" << (int)ntohs(refLocalAddr.sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -274,9 +284,9 @@ namespace FXNET
 		//TODO
 	}
 
-	CTcpListener::IOReadOperation& CTcpListener::NewReadOperation()
+	CTcpListener::IOAcceptOperation& CTcpListener::NewReadOperation()
 	{
-		IOReadOperation& refPeration = *(new IOReadOperation());
+		IOAcceptOperation& refPeration = *(new IOAcceptOperation());
 #ifdef _WIN32
 
 		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
@@ -288,7 +298,7 @@ namespace FXNET
 
 	IOOperationBase& CTcpListener::NewWriteOperation()
 	{
-		static IOReadOperation oPeration;
+		static IOAcceptOperation oPeration;
 		abort();
 		return oPeration;
 	}
@@ -353,28 +363,128 @@ namespace FXNET
 #ifdef _WIN32
 	int CTcpListener::PostAccept(std::ostream* pOStream)
 	{
-		IOReadOperation& refOperation = NewReadOperation();
+		SOCKET hNewSock = WSASocket(
+			AF_INET,
+			SOCK_STREAM,
+			0,
+			NULL,
+			0,
+			WSA_FLAG_OVERLAPPED);
 
-		DWORD dwReadLen = 0;
-		DWORD dwFlags = 0;
-
-		int dwSockAddr = sizeof(refOperation.m_stRemoteAddr);
-
-		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refOperation.m_stWsaBuff, 1, &dwReadLen
-			, &dwFlags, (sockaddr*)(&refOperation.m_stRemoteAddr), &dwSockAddr, (OVERLAPPED*)(IOOperationBase*)(&refOperation), NULL))
+		if (INVALID_SOCKET == hNewSock)
 		{
 			int dwError = WSAGetLastError();
-			if (dwError != WSA_IO_PENDING)
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " WSASocket failed, errno(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+
+			return dwError;
+		}
+
+		unsigned long ul = 1;
+		if (SOCKET_ERROR == ioctlsocket(hNewSock, FIONBIO, (unsigned long*)&ul))
+		{
+			int dwError = WSAGetLastError();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " ioctlsocket, errno(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+
+			macro_closesocket(hNewSock);
+			return dwError;
+		}
+
+		int nSendBuffSize = 256 * 1024;
+		int nRecvBuffSize = 8 * nSendBuffSize;
+		if ((0 != setsockopt(hNewSock, SOL_SOCKET, SO_RCVBUF, (char*)&nRecvBuffSize, sizeof(int))) ||
+			(0 != setsockopt(hNewSock, SOL_SOCKET, SO_SNDBUF, (char*)&nSendBuffSize, sizeof(int))))
+		{
+			int dwError = WSAGetLastError();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " setsockopt, errno(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+
+			macro_closesocket(hNewSock);
+			return dwError;
+		}
+
+
+		IOAcceptOperation& refOperation = NewReadOperation();
+		refOperation.m_hSocket = hNewSock;
+
+		DWORD wLength = 0;
+		if (!m_lpfnAcceptEx( NativeSocket()
+			, hNewSock
+			, refOperation.m_stWsaBuff.buf
+			, 0
+			, sizeof(SOCKADDR_IN) + 16
+			, sizeof(SOCKADDR_IN) + 16
+			, &wLength
+			, (OVERLAPPED*)(IOOperationBase*)(&refOperation)))
+		{
+			int dwError = WSAGetLastError();
+			if (WSA_IO_PENDING != dwError)
 			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " WSARecvFrom errno : " << dwError
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+				LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " setsockopt, errno(" << dwError << ")"
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				macro_closesocket(hNewSock);
 				return dwError;
 			}
 		}
 		return 0;
 	}
+
+	int CTcpListener::InitAcceptEx(std::ostream* pOStream)
+	{
+		DWORD dwbytes = 0;
+
+		GUID m_GuidAcceptEx = WSAID_ACCEPTEX;
+
+		if (SOCKET_ERROR == ::WSAIoctl(NativeSocket()
+			, SIO_GET_EXTENSION_FUNCTION_POINTER
+			, &m_GuidAcceptEx
+			, sizeof(m_GuidAcceptEx)
+			, &m_lpfnAcceptEx
+			, sizeof(LPFN_ACCEPTEX)
+			, &dwbytes
+			, NULL
+			, NULL))
+		{
+			int dwError = WSAGetLastError();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			macro_closesocket(NativeSocket());
+			return dwError;
+		}
+
+		GUID m_GuidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
+
+		dwbytes = 0;
+
+		if (SOCKET_ERROR == ::WSAIoctl(NativeSocket()
+			, SIO_GET_EXTENSION_FUNCTION_POINTER
+			, &m_GuidGetAcceptExSockaddrs
+			, sizeof(m_GuidGetAcceptExSockaddrs)
+			, &m_lpfnGetAcceptExSockaddrs
+			, sizeof(LPFN_GETACCEPTEXSOCKADDRS)
+			, &dwbytes
+			, NULL
+			, NULL))
+		{
+			int dwError = WSAGetLastError();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			macro_closesocket(NativeSocket());
+			return dwError;
+		}
+
+		return 0;
+	}
+
 #else
 #endif // _WIN32
+
+	int CTcpListener::OnAccept(std::ostream* pOStream)
+	{
+		return 0;
+	}
+
 
 };
 
