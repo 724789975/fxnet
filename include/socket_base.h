@@ -35,7 +35,16 @@ namespace FXNET
 		typedef int NativeSocketType;
 #endif //_WIN32
 
-		ISocketBase() : m_hNativeHandle((NativeHandleType)-1), m_dwError(0) { memset(&m_stLocalAddr, 0, sizeof(m_stLocalAddr)); }
+		ISocketBase()
+			: m_hNativeHandle((NativeHandleType)-1)
+			, m_dwError(0)
+#ifndef _WIN32
+			, m_bReadable(false)
+			, m_bWritable(false)
+#endif
+		{
+			memset(&m_stLocalAddr, 0, sizeof(m_stLocalAddr));
+		}
 		virtual ~ISocketBase() {}
 		virtual const char* Name()const { return "CSocketBase"; }
 		virtual int Update(double dTime, std::ostream* POStream) = 0;

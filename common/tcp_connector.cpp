@@ -29,26 +29,73 @@ namespace FXNET
 
 		CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
 #ifdef _WIN32
-		refConnector.PostRecv(pOStream);
-
-		m_dwLen = dwLen;
-		refConnector.m_funRecvOperator.SetIOReadOperation(this);
-		bool bReadable = true;
-#else
-		refConnector.m_bReadable = true;
-		bool& bReadable = refConnector.m_bReadable;
-#endif // _WIN32
-
-		if (int dwError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
+		refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
+		if (!refConnector.GetSession()->GetRecvBuff().CheckPackage())
 		{
-			//此处有报错
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOReadOperation failed " << dwError
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-
-			return dwError;
+			refConnector.PostRecv(pOStream);
+			return 0;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket() << ", " << bReadable
+		std::string szData;
+		refConnector.GetSession()->GetRecvBuff().PopData(szData);
+
+		MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
+
+		if (NULL == pOperator)
+		{
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " failed " << CODE_ERROR_NET_PARSE_MESSAGE
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			return CODE_ERROR_NET_PARSE_MESSAGE;
+		}
+
+		FxIoModule::Instance()->PushMessageEvent(pOperator);
+		refConnector.PostRecv(pOStream);
+#else
+		refConnector.m_bReadable = true;
+		while (refConnector.m_bReadable)
+		{
+			int dwLen = recv(refConnector.NativeSocket()
+				, refConnector.GetSession()->GetRecvBuff().GetData() + refConnector.GetSession()->GetRecvBuff().GetSize()
+				, refConnector.GetSession()->GetRecvBuff().GetFreeSize(), 0);
+
+			if (0 > dwLen)
+			{
+				refConnector.m_bReadable = false;
+				int dwError = errno;
+
+				if (dwError != EAGAIN && dwError != EINTR) { return dwError; }
+			}
+			else if (0 == dwLen)
+			{
+				return CODE_SUCCESS_NET_EOF;
+			}
+			else
+			{
+				refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
+				if (!refConnector.GetSession()->GetRecvBuff().CheckPackage())
+				{
+					continue;
+				}
+
+				std::string szData;
+				refConnector.GetSession()->GetRecvBuff().PopData(szData);
+
+				MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
+
+				if (NULL == pOperator)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " failed " << CODE_ERROR_NET_PARSE_MESSAGE
+						<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					return CODE_ERROR_NET_PARSE_MESSAGE;
+				}
+
+				FxIoModule::Instance()->PushMessageEvent(pOperator);
+				continue;
+			}
+		}
+#endif // _WIN32
+
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
 			<< " ip:" << inet_ntoa(refConnector.GetLocalAddr().sin_addr)
 			<< ", port:" << (int)ntohs(refConnector.GetLocalAddr().sin_port)
 			<< " remote_ip:" << inet_ntoa(refConnector.GetRemoteAddr().sin_addr)
@@ -66,18 +113,39 @@ namespace FXNET
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 #ifdef _WIN32
+		refConnector.PostSend(pOStream);
 #else
 		refConnector.m_bWritable = true;
+
+		// send as much data as we can.
+		while (refConnector.writable)
+		{
+			int dwLen = send(refConnector.NativeSocket()
+				, refConnector.GetSession()->GetSendBuff().GetData()
+				, refConnector.GetSession()->GetSendBuff.GetSize(), 0);
+
+			if (0 > dwLen)
+			{
+				int dwError = errno;
+				refConnector.writable = false;
+
+				if (dwError == EAGAIN)
+					break;
+				else
+				{
+					LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket() << "(" << dwError << ")"
+						<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					return dwError;
+				}
+			}
+
+			if (0 == dwLen) break;
+			refConnector.GetSession()->GetSendBuff().PopData(dwLen);
+			if (0 == refConnector.GetSession()->GetSendBuff().GetSize()) break;
+		}
+
 #endif // _WIN32
 
-		if (int dwError = refConnector.m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream))
-		{
-			//此处有报错
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " IOWriteOperation failed " << dwError
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-
-			return dwError;
-		}
 		return 0;
 	}
 
@@ -105,166 +173,10 @@ namespace FXNET
 		return 0;
 	}
 
-	CTcpConnector::UDPOnRecvOperator::UDPOnRecvOperator(CTcpConnector& refTcpConnector)
-		: m_refTcpConnector(refTcpConnector)
-	{
-	}
-
-	int CTcpConnector::UDPOnRecvOperator::operator()(char* szBuff, unsigned short wSize, std::ostream* pOStream)
-	{
-		//收到的内容
-		if (0 == wSize)
-		{
-			return 0;
-		}
-
-		m_refTcpConnector.GetSession()->GetRecvBuff().PushData(szBuff, wSize);
-		if (!m_refTcpConnector.GetSession()->GetRecvBuff().CheckPackage())
-		{
-			return 0;
-		}
-
-		std::string szData;
-		m_refTcpConnector.GetSession()->GetRecvBuff().PopData(szData);
-
-		MessageEventBase* pOperator = m_refTcpConnector.GetSession()->NewRecvMessageEvent(szData);
-
-		if (NULL == pOperator)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << m_refTcpConnector.NativeSocket() << " UDPOnRecvOperator failed " << CODE_ERROR_NET_PARSE_MESSAGE
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return CODE_ERROR_NET_PARSE_MESSAGE;
-		}
-
-		FxIoModule::Instance()->PushMessageEvent(pOperator);
-		return 0;
-	}
-
-	CTcpConnector::UDPOnConnectedOperator::UDPOnConnectedOperator(CTcpConnector& refTcpConnector)
-		: m_refTcpConnector(refTcpConnector)
-	{
-	}
-
-	int CTcpConnector::UDPOnConnectedOperator::operator()(std::ostream* pOStream)
-	{
-		m_refTcpConnector.OnConnected(pOStream);
-		return 0;
-	}
-
-	CTcpConnector::UDPRecvOperator::UDPRecvOperator(CTcpConnector& refTcpConnector)
-		: m_refTcpConnector(refTcpConnector)
-#ifdef _WIN32
-		, m_pReadOperation(NULL)
-#endif // _WIN32
-	{
-	}
-
-	int CTcpConnector::UDPRecvOperator::operator()(char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream)
-	{
-#ifdef _WIN32
-		//没有可读事件
-		if (!m_pReadOperation)
-		{
-			return CODE_SUCCESS_NO_BUFF_READ;
-		}
-
-		wRecvSize = (unsigned short)m_pReadOperation->m_dwLen;
-		if (0 == m_pReadOperation)
-		{
-			return CODE_SUCCESS_NET_EOF;
-		}
-
-		assert(wRecvSize <= UDP_WINDOW_BUFF_SIZE);
-		assert(m_pReadOperation->m_dwLen <= UDP_WINDOW_BUFF_SIZE);
-		memcpy(pBuff, m_pReadOperation->m_stWsaBuff.buf, wRecvSize);
-		SetIOReadOperation(NULL);
-#else
-		wRecvSize = recv(m_refTcpConnector.NativeSocket(), pBuff, wBuffSize, 0);
-		if (0 == wRecvSize)
-		{
-			return CODE_SUCCESS_NET_EOF;
-		}
-
-		if (0 > wRecvSize)
-		{
-			m_refTcpConnector.m_bReadable = false;
-			return errno;
-		}
-#endif // _WIN32
-
-		return 0;
-	}
-
-#ifdef _WIN32
-	CTcpConnector::UDPRecvOperator& CTcpConnector::UDPRecvOperator::SetIOReadOperation(IOReadOperation* pReadOperation)
-	{
-		m_pReadOperation = pReadOperation;
-		return *this;
-	}
-#endif // _WIN32
-
-	CTcpConnector::UDPSendOperator::UDPSendOperator(CTcpConnector& refTcpConnector)
-		: m_refTcpConnector(refTcpConnector)
-	{
-	}
-
-	int CTcpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
-	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << m_refTcpConnector.NativeSocket()
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-#ifdef _WIN32
-		dwSendLen = wBufferSize;
-		return m_refTcpConnector.PostSend(szBuff, wBufferSize, pOStream);
-#else
-		dwSendLen = send(m_refTcpConnector.NativeSocket(), szBuff, wBufferSize, 0);
-		if (0 > dwSendLen)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "UDPSendOperator failed " << errno
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return errno;
-		}
-#endif // _WIN32
-		return 0;
-	}
-
-	CTcpConnector::UDPReadStreamOperator::UDPReadStreamOperator(CTcpConnector& refTcpConnector)
-		: m_refTcpConnector(refTcpConnector)
-	{
-	}
-
-	int CTcpConnector::UDPReadStreamOperator::operator()(std::ostream* pOStream)
-	{
-		if (0 == m_refTcpConnector.GetSession()->GetSendBuff().GetSize())
-		{
-			return 0;
-		}
-
-		unsigned short wLen = m_refTcpConnector.m_oBuffContral.Send(
-			(char*)m_refTcpConnector.GetSession()->GetSendBuff().GetData()
-			, m_refTcpConnector.GetSession()->GetSendBuff().GetSize());
-
-		//unsigned short wLen = m_refTcpConnector.m_oBuffContral.Send(sz.c_str(), sz.size());
-
-		m_refTcpConnector.GetSession()->GetSendBuff().PopData(wLen);
-		return wLen;
-
-	}
-
 	CTcpConnector::CTcpConnector(ISession* pSession)
 		: CConnectorSocket(pSession)
-		, m_funOnRecvOperator(*this)
-		, m_funOnConnectedOperator(*this)
-		, m_funRecvOperator(*this)
-		, m_funSendOperator(*this)
-		, m_funReadStreamOperator(*this)
 	{
 		memset(&m_stRemoteAddr, 0, sizeof(m_stRemoteAddr));
-		m_oBuffContral.SetOnRecvOperator(&m_funOnRecvOperator)
-			.SetOnConnectedOperator(&m_funOnConnectedOperator)
-			.SetRecvOperator(&m_funRecvOperator)
-			.SetSendOperator(&m_funSendOperator)
-			.SetReadStreamOperator(&m_funReadStreamOperator)
-			;
 	}
 
 	CTcpConnector::~CTcpConnector()
@@ -273,54 +185,14 @@ namespace FXNET
 
 	int CTcpConnector::Init(std::ostream* pOStream, int dwState)
 	{
-		m_oBuffContral.SetAckOutTime(5.);
-		if (int dwError = m_oBuffContral.Init(dwState))
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "init failed:" << dwError
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return dwError;
-		}
-
+	
 		return 0;
 	}
 
 	int CTcpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << ", error: " << m_dwError
-#ifndef _WIN32
-			<< ", " << m_bReadable << ", " << m_bWritable
-#endif // !_WIN32
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-
-		if (GetError())
-		{
-			return 0;
-		}
-
-#ifdef _WIN32
-#else
-		if (int dwError = m_oBuffContral.ReceiveMessages(dTimedouble, m_bReadable,  pOStream))
-		{
-			//此处有报错
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " SendMessages failed (" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-
-			return dwError;
-		}
-#endif // _WIN32
-
-		
-		if (int dwError = m_oBuffContral.SendMessages(dTimedouble, pOStream))
-		{
-			//此处有报错
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << "SendMessages failed ("<< dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-
-			return dwError;
-		}
 
 		return 0;
 	}
@@ -379,10 +251,8 @@ namespace FXNET
 	{
 		CTcpConnector::IOReadOperation* pOperation = new CTcpConnector::IOReadOperation();
 #ifdef _WIN32
-		pOperation->m_stWsaBuff.buf = pOperation->m_szRecvBuff;
-		pOperation->m_stWsaBuff.len = sizeof(pOperation->m_szRecvBuff);
-		memset(pOperation->m_stWsaBuff.buf, 0, pOperation->m_stWsaBuff.len);
-		//m_setIOOperations.insert(pOperation);
+		pOperation->m_stWsaBuff.buf = (char*)GetSession()->GetRecvBuff().GetData();
+		pOperation->m_stWsaBuff.len = GetSession()->GetRecvBuff().GetFreeSize();
 #endif // _WIN32
 
 		return *pOperation;
@@ -408,7 +278,7 @@ namespace FXNET
 
 	CTcpConnector& CTcpConnector::SendMessage(std::ostream* pOStream)
 	{
-		m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream);
+		PostSend(pOStream);
 		return *this;
 	}
 
@@ -452,6 +322,37 @@ namespace FXNET
 				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << ", " << "PostSend failed." << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 				delete &refIOWriteOperation;
+			}
+
+			return dwError;
+		}
+
+		return 0;
+	}
+
+	int CTcpConnector::PostSend(std::ostream* pOStream)
+	{
+		if (0 == GetSession()->GetSendBuff().GetSize())
+		{
+			return 0;
+		}
+		IOWriteOperation& refIOWriteOperation = NewWriteOperation();
+		GetSession()->GetSendBuff().PopData(refIOWriteOperation.m_strData);
+		refIOWriteOperation.m_stWsaBuff.buf = &(*refIOWriteOperation.m_strData.begin());
+		refIOWriteOperation.m_stWsaBuff.len = refIOWriteOperation.m_strData.size();
+
+		DWORD dwWriteLen = 0;
+		DWORD dwFlags = 0;
+
+		if (SOCKET_ERROR == WSASend(NativeSocket(), &refIOWriteOperation.m_stWsaBuff
+			, 1, &dwWriteLen, dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOWriteOperation, NULL))
+		{
+			int dwError = WSAGetLastError();
+			if (WSA_IO_PENDING != dwError)
+			{
+				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << ", " << "PostSend failed." << dwError
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";;
+				delete& refIOWriteOperation;
 			}
 
 			return dwError;
@@ -555,27 +456,9 @@ namespace FXNET
 		}
 
 		// set recv buffer size and send buffer size
-		int buf_size = 256 * 1024;
+		int buf_size = 64 * 1024;
 		setsockopt(NativeSocket(), SOL_SOCKET, SO_RCVBUF, (char*)&buf_size, sizeof(buf_size));
 		setsockopt(NativeSocket(), SOL_SOCKET, SO_SNDBUF, (char*)&buf_size, sizeof(buf_size));
-
-		// connect
-		if (connect(NativeSocket(), (sockaddr*)&address, sizeof(address)))
-		{
-#ifdef _WIN32
-			int dwError = WSAGetLastError();
-#else // _WIN32
-			int dwError = errno;
-#endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "connect failed(" << dwError << ")"
-				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
-				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
-			return dwError;
-		}
 
 		socklen_t dwAddrLen = sizeof(GetLocalAddr());
 		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
@@ -601,7 +484,7 @@ namespace FXNET
 			return dwError;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << ", " << m_oBuffContral.GetState()
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket()
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		return 0;
 	}

@@ -28,7 +28,6 @@ namespace FXNET
 			sockaddr_in m_stRemoteAddr;
 			unsigned int m_dwLen;
 #endif // _WIN32
-			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
 		};
 
 		class IOWriteOperation : public IOOperationBase
@@ -36,10 +35,9 @@ namespace FXNET
 		public:
 			friend class CTcpConnector;
 			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
-			sockaddr_in m_stRemoteAddr;
+			std::string m_strData;
 #endif // _WIN32
 		};
 
@@ -48,59 +46,6 @@ namespace FXNET
 		public:
 			friend class CTcpConnector;
 			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		};
-
-		class UDPOnRecvOperator : public OnRecvOperator
-		{
-		public:
-			UDPOnRecvOperator(CTcpConnector& refTcpConnector);
-			virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* pOStream);
-		private:
-			CTcpConnector& m_refTcpConnector;
-		};
-
-		class UDPOnConnectedOperator : public OnConnectedOperator
-		{
-		public:
-			UDPOnConnectedOperator(CTcpConnector& refTcpConnector);
-			virtual int operator() (std::ostream* pOStream);
-		private:
-			CTcpConnector& m_refTcpConnector;
-		};
-
-		class UDPRecvOperator : public RecvOperator
-		{
-		public:
-			UDPRecvOperator(CTcpConnector& refTcpConnector);
-			virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream);
-
-#ifdef _WIN32
-			UDPRecvOperator& SetIOReadOperation(IOReadOperation* pReadOperation);
-#endif // _WIN32
-
-		private:
-			CTcpConnector& m_refTcpConnector;
-#ifdef _WIN32
-			IOReadOperation* m_pReadOperation;
-#endif // _WIN32
-		};
-
-		class UDPSendOperator : public SendOperator
-		{
-		public:
-			UDPSendOperator(CTcpConnector& refTcpConnector);
-			virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream);
-		private:
-			CTcpConnector& m_refTcpConnector;
-		};
-
-		class UDPReadStreamOperator : public ReadStreamOperator
-		{
-		public:
-			UDPReadStreamOperator(CTcpConnector& refTcpConnector);
-			virtual int operator() (std::ostream* pOStream);
-		private:
-			CTcpConnector& m_refTcpConnector;
 		};
 
 		friend class IOReadOperation;
@@ -138,6 +83,7 @@ namespace FXNET
 		 */
 		CTcpConnector& PostRecv(std::ostream* pOStream);
 		int PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
+		int PostSend(std::ostream* pOStream);
 #endif // _WIN32
 
 		virtual void OnRead(std::ostream* refOStream);
@@ -149,13 +95,6 @@ namespace FXNET
 	private:
 		int Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 		sockaddr_in m_stRemoteAddr;
-
-		UDPOnRecvOperator m_funOnRecvOperator;
-		UDPOnConnectedOperator m_funOnConnectedOperator;
-		UDPRecvOperator m_funRecvOperator;
-		UDPSendOperator m_funSendOperator;
-		UDPReadStreamOperator m_funReadStreamOperator;
-		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
 	};
 };
 

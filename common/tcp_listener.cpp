@@ -94,11 +94,29 @@ namespace FXNET
 
 		refSock.PostAccept(pOStream);
 #else
-		for (;;)
+		sockaddr_in stRemoteAddr;
+		unsigned int dwAddrLen = sizeof(stRemoteAddr);
+		unsigned int hAcceptSock = accept(NativeSocket(), (sockaddr*)&stRemoteAddr, &dwAddrLen);
+		if (INVALID_SOCKET == hAcceptSock)
 		{
-	
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "accept error(" << errno << ")"
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			return errno;
 		}
-		
+
+		// keep alive
+		int keepAlive = 1;
+		setsockopt(hAcceptSock, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));
+
+		int keepIdle = 30;
+		int keepInterval = 5;
+		int keepCount = 6;
+		setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));
+		setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));
+		setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));
+
+		// send back
+		refSock.OnClientConnected(hAcceptSock, stRemoteAddr, pOStream);
 #endif
 		return 0;
 	}
