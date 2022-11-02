@@ -1,5 +1,5 @@
-#ifndef __UDP_CONNECTOR_H__
-#define __UDP_CONNECTOR_H__
+#ifndef __TCP_CONNECTOR_H__
+#define __TCP_CONNECTOR_H__
 
 #include "include/connector_socket.h"
 #include "buff_contral.h"
@@ -82,11 +82,10 @@ namespace FXNET
 		 * @return CTcpConnector& 
 		 */
 		CTcpConnector& PostRecv(std::ostream* pOStream);
-		int PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
 		int PostSend(std::ostream* pOStream);
 #endif // _WIN32
 
-		virtual void OnRead(std::ostream* refOStream);
+		virtual void OnRead(std::ostream* pOStream);
 		virtual void OnWrite(std::ostream* pOStream);
 		virtual void OnError(int dwError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);
@@ -95,7 +94,12 @@ namespace FXNET
 	private:
 		int Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 		sockaddr_in m_stRemoteAddr;
+
+#ifndef _WIN32
+		bool m_bConnecting;
+#endif // _WIN32
+
 	};
 };
 
-#endif // !__UDP_CONNECTOR_H__
+#endif // !__TCP_CONNECTOR_H__

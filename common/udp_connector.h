@@ -140,7 +140,7 @@ namespace FXNET
 		int PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
 #endif // _WIN32
 
-		virtual void OnRead(std::ostream* refOStream);
+		virtual void OnRead(std::ostream* pOStream);
 		virtual void OnWrite(std::ostream* pOStream);
 		virtual void OnError(int dwError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);

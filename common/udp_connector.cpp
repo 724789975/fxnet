@@ -462,7 +462,7 @@ namespace FXNET
 
 #endif // _WIN32
 
-	void CUdpConnector::OnRead(std::ostream* refOStream)
+	void CUdpConnector::OnRead(std::ostream* pOStream)
 	{
 	}
 

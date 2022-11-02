@@ -51,6 +51,11 @@ namespace FXNET
 		FxIoModule::Instance()->PushMessageEvent(pOperator);
 		refConnector.PostRecv(pOStream);
 #else
+		if (!m_bConnecting)
+		{
+			m_bConnecting = true;
+			refConnector.OnConnected(pOStream);
+		}
 		refConnector.m_bReadable = true;
 		while (refConnector.m_bReadable)
 		{
@@ -175,6 +180,9 @@ namespace FXNET
 
 	CTcpConnector::CTcpConnector(ISession* pSession)
 		: CConnectorSocket(pSession)
+#ifndef _WIN32
+		, m_bConnecting(false)
+#endif // _WIN32
 	{
 		memset(&m_stRemoteAddr, 0, sizeof(m_stRemoteAddr));
 	}
@@ -201,16 +209,16 @@ namespace FXNET
 	{
 #ifdef _WIN32
 		NativeSocketType hSock = WSASocket(AF_INET
-			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
+			, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
-		NativeSocketType hSock = socket(AF_INET, SOCK_DGRAM, 0);
+		NativeSocketType hSock = socket(AF_INET, SOCK_STREAM, 0);
 #endif // _WIN32
 
 		if (hSock == -1)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "create socket failed."
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
-			return -1;
+			return CODE_ERROR_NET_ERROR_SOCKET;
 		}
 
 		if (int dwError = Init(pOStream, ST_SYN_SEND))
@@ -226,18 +234,114 @@ namespace FXNET
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "client connect failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+			return dwError;
+		}
+
+		//请求连接时 Windows跟linux是有区别的//
+#ifdef _WIN32
+		sockaddr_in stLocalAddr;
+		ZeroMemory(&stLocalAddr, sizeof(sockaddr_in));
+		stLocalAddr.sin_family = AF_INET;
+
+		if (int dwError = ::bind(NativeSocket(), (sockaddr*)(&stLocalAddr), sizeof(sockaddr_in)))
+		{
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			return dwError;
+		}
+
+		LPFN_CONNECTEX lpfnConnectEx = NULL;
+		DWORD dwBytes = 0;
+		GUID GuidConnectEx = WSAID_CONNECTEX;
+
+		if (SOCKET_ERROR == WSAIoctl(NativeSocket(), SIO_GET_EXTENSION_FUNCTION_POINTER,
+			&GuidConnectEx, sizeof(GuidConnectEx),
+			&lpfnConnectEx, sizeof(lpfnConnectEx), &dwBytes, 0, 0))
+		{
+			int dwError = WSAGetLastError();
+			macro_closesocket(NativeSocket());
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			return dwError;
+		}
+
+		class IOConnectOperation : public IOOperationBase
+		{
+		public:
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+			{
+				DELETE_WHEN_DESTRUCT(IOConnectOperation, this);
+
+				CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
+				refConnector.OnConnected(pOStream);
+
+				return 0;
+			}
+		};
+
+		IOConnectOperation* pOperation = new IOConnectOperation;
+
+		memset((OVERLAPPED*)pOperation, 0, sizeof(OVERLAPPED));
+		// 这个时候 还没有连上
+
+		if (0 == lpfnConnectEx(NativeSocket()
+			, (sockaddr*)&address			// [in] 对方地址
+			, sizeof(address)				// [in] 对方地址长度
+			, NULL									// [in] 连接后要发送的内容，这里不用
+			, 0										// [in] 发送内容的字节数 ，这里不用
+			, NULL									// [out] 发送了多少个字节，这里不用
+			, (OVERLAPPED*)pOperation))							// [in]
+		{
+			int dwError = (unsigned int)WSAGetLastError();
+			if (dwError != ERROR_IO_PENDING && dwError != ERROR_IO_INCOMPLETE)
+			{
+				macro_closesocket(NativeSocket());
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				return dwError;
+			}
+		}
+
+		PostRecv(pOStream);
+#else
+		if (-1 == connect(NativeSocket(), (sockaddr*)&GetRemoteAddr(), sizeof(GetRemoteAddr())))
+		{
+			if (errno != EINPROGRESS && errno != EINTR && errno != EAGAIN)
+				t
+			{ 
+				int dwError = errno;
+				macro_closesocket(NativeSocket());
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				return dwError;
+			}
+		}
+#endif // _WIN32
+
+		if (int dwError =
+#ifdef _WIN32
+			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
+#else
+			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
+#endif // _WIN32
+			)
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed"
+				<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
+				<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
+				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
+				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+
+			return dwError;
 		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(GetLocalAddr().sin_addr) << ", port:" << (int)ntohs(GetLocalAddr().sin_port)
 			<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr) << ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-
-#ifdef _WIN32
-		for (int i = 0; i < 16; ++i)
-		{
-			PostRecv(pOStream);
-		}
-#endif // _WIN32
 
 		return 0;
 	}
@@ -304,32 +408,6 @@ namespace FXNET
 		return *this;
 	}
 
-	int CTcpConnector::PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream)
-	{
-		IOWriteOperation& refIOWriteOperation = NewWriteOperation();
-		refIOWriteOperation.m_stWsaBuff.buf = pBuff;
-		refIOWriteOperation.m_stWsaBuff.len = wLen;
-
-		DWORD dwWriteLen = 0;
-		DWORD dwFlags = 0;
-
-		if (SOCKET_ERROR == WSASend(NativeSocket(), &refIOWriteOperation.m_stWsaBuff
-			, 1, &dwWriteLen, dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOWriteOperation, NULL))
-		{
-			int dwError = WSAGetLastError();
-			if (WSA_IO_PENDING != dwError)
-			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << ", " << "PostSend failed." << dwError
-					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
-				delete &refIOWriteOperation;
-			}
-
-			return dwError;
-		}
-
-		return 0;
-	}
-
 	int CTcpConnector::PostSend(std::ostream* pOStream)
 	{
 		if (0 == GetSession()->GetSendBuff().GetSize())
@@ -363,7 +441,7 @@ namespace FXNET
 
 #endif // _WIN32
 
-	void CTcpConnector::OnRead(std::ostream* refOStream)
+	void CTcpConnector::OnRead(std::ostream* pOStream)
 	{
 	}
 
@@ -436,53 +514,18 @@ namespace FXNET
 		}
 #endif
 
-		// set ttl
-		int ttl = 128;
-		if (setsockopt(NativeSocket(), IPPROTO_IP, IP_TTL, (char*)&ttl, sizeof(ttl)))
-		{
-#ifdef _WIN32
-			int dwError = WSAGetLastError();
-#else // _WIN32
-			int dwError = errno;
-#endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+		// tcp nodelay
+		int nodelay = 1;
+		setsockopt(NativeSocket(), IPPROTO_TCP, TCP_NODELAY, (char*)&nodelay, sizeof(nodelay));
 
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "setsockopt failed(" << dwError << ")"
-				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
-				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return dwError;
-		}
-
-		// set recv buffer size and send buffer size
-		int buf_size = 64 * 1024;
-		setsockopt(NativeSocket(), SOL_SOCKET, SO_RCVBUF, (char*)&buf_size, sizeof(buf_size));
-		setsockopt(NativeSocket(), SOL_SOCKET, SO_SNDBUF, (char*)&buf_size, sizeof(buf_size));
+		// linger
+		linger l;
+		l.l_onoff = 0;
+		l.l_linger = 0;
+		setsockopt(NativeSocket(), SOL_SOCKET, SO_LINGER, (const char*)&l, sizeof(l));
 
 		socklen_t dwAddrLen = sizeof(GetLocalAddr());
 		getsockname(hSock, (sockaddr*)&GetLocalAddr(), &dwAddrLen);
-
-		if (int dwError =
-#ifdef _WIN32
-			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
-#else
-			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
-#endif // _WIN32
-			)
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed"
-				<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
-				<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
-				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
-				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-
-			return dwError;
-		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket()
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";

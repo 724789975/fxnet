@@ -34,7 +34,7 @@ namespace FXNET
 		 * @param dwSize 接收的长度
 		 * @return int 错误码
 		 */
-		virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* refOStream) = 0;
+		virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* pOStream) = 0;
 	};
 
 	class OnConnectedOperator
@@ -45,7 +45,7 @@ namespace FXNET
 		 * @brief 连接处理
 		 *
 		 */
-		virtual int operator() (std::ostream* refOStream) = 0;
+		virtual int operator() (std::ostream* pOStream) = 0;
 	};
 
 	class RecvOperator
@@ -60,7 +60,7 @@ namespace FXNET
 		 * @param wRecvSize 接收的长度
 		 * @return int 错误码
 		 */
-		virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* refOStream) = 0;
+		virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream) = 0;
 	};
 
 	class SendOperator
@@ -75,7 +75,7 @@ namespace FXNET
 		 * @param wSendLen 发送长度
 		 * @return int 错误码
 		 */
-		virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* refOStream) = 0;
+		virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream) = 0;
 	};
 
 	class ReadStreamOperator
@@ -136,7 +136,7 @@ namespace FXNET
 
 		int SendMessages(double dTime, std::ostream* pOStream);
 
-		int ReceiveMessages(double dTime, bool& refbReadable, std::ostream* refOStream);
+		int ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream);
 		
 	private:
 		_SendWindow m_oSendWindow;

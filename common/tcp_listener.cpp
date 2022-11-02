@@ -156,9 +156,9 @@ namespace FXNET
 		// 创建socket
 #ifdef _WIN32
 		NativeSocket() = WSASocket(AF_INET
-			, SOCK_DGRAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+			, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
-		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
+		NativeSocket() = socket(AF_INET, SOCK_STREAM, 0);
 #endif // _WIN32
 
 		if (NativeSocket() == -1)
@@ -291,6 +291,8 @@ namespace FXNET
 #endif // _WIN32
 
 #ifdef _WIN32
+		InitAcceptEx(pOStream);
+
 		dwError = PostAccept(pOStream);
 #endif // _WIN32
 
@@ -368,12 +370,34 @@ namespace FXNET
 			return *this;
 		}
 
+		if (int dwError =
 #ifdef _WIN32
-		for (int i = 0; i < 16; ++i)
-		{
-			pTcpSock->PostRecv(pOStream);
-		}
+			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
+#else
+			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
 #endif // _WIN32
+			)
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed"
+				<< " ip:" << inet_ntoa(pTcpSock->GetLocalAddr().sin_addr)
+				<< ", port:" << (int)ntohs(pTcpSock->GetLocalAddr().sin_port)
+				<< " remote_ip:" << inet_ntoa(pTcpSock->GetRemoteAddr().sin_addr)
+				<< ", remote_port:" << (int)ntohs(pTcpSock->GetRemoteAddr().sin_port)
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+
+			return *this;
+		} 
+
+#ifdef _WIN32
+		pTcpSock->PostRecv(pOStream);
+#else
+		pTcpSock->m_bConnecting = true;
+#endif // _WIN32
+
+		pTcpSock->OnConnected(pOStream);
 
 		return *this;
 	}

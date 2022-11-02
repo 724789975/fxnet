@@ -1,5 +1,5 @@
-#ifndef __UDP_LISTENER_H__
-#define __UDP_LISTENER_H__
+#ifndef __TCP_LISTENER_H__
+#define __TCP_LISTENER_H__
 
 #include "include/sliding_window_def.h"
 #include "listen_socket.h"
@@ -31,7 +31,7 @@ namespace FXNET
 		{
 		public:
 			friend class CTcpListener;
-			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
 			NativeSocketType m_hSocket;
@@ -88,5 +88,5 @@ namespace FXNET
 
 };
 
-#endif // !__UDP_LISTENER_H__
+#endif // !__TCP_LISTENER_H__
 

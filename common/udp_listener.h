@@ -31,7 +31,7 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpListener;
-			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* refOStream);
+			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
