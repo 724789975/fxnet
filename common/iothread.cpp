@@ -104,9 +104,9 @@ namespace FXNET
 			}
 
 #ifdef _WIN32
-			Sleep(1);
+			//Sleep(1);
 #else
-			usleep(1000);
+			//usleep(1000);
 #endif // _WIN32
 		}
 		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " end\n";

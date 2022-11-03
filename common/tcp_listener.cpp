@@ -372,14 +372,14 @@ namespace FXNET
 
 		if (int dwError =
 #ifdef _WIN32
-			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
+			FxIoModule::Instance()->RegisterIO(hSock, pTcpSock, pOStream)
 #else
-			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
+			FxIoModule::Instance()->RegisterIO(hSock, EPOLLET | EPOLLIN | EPOLLOUT, pTcpSock, pOStream)
 #endif // _WIN32
 			)
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(hSock);
+			pTcpSock->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed"
 				<< " ip:" << inet_ntoa(pTcpSock->GetLocalAddr().sin_addr)

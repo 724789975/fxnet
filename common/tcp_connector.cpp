@@ -249,7 +249,43 @@ namespace FXNET
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 			return dwError;
 		}
+#else
+		if (-1 == connect(NativeSocket(), (sockaddr*)&GetRemoteAddr(), sizeof(GetRemoteAddr())))
+		{
+			if (errno != EINPROGRESS && errno != EINTR && errno != EAGAIN)
+				t
+			{ 
+				int dwError = errno;
+				macro_closesocket(NativeSocket());
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				return dwError;
+			}
+		}
+#endif
 
+		if (int dwError =
+#ifdef _WIN32
+			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
+#else
+			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
+#endif // _WIN32
+			)
+		{
+			macro_closesocket(NativeSocket());
+			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed"
+				<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
+				<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
+				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
+				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+
+			return dwError;
+		}
+
+#ifdef _WIN32
 		LPFN_CONNECTEX lpfnConnectEx = NULL;
 		DWORD dwBytes = 0;
 		GUID GuidConnectEx = WSAID_CONNECTEX;
@@ -303,41 +339,7 @@ namespace FXNET
 		}
 
 		PostRecv(pOStream);
-#else
-		if (-1 == connect(NativeSocket(), (sockaddr*)&GetRemoteAddr(), sizeof(GetRemoteAddr())))
-		{
-			if (errno != EINPROGRESS && errno != EINTR && errno != EAGAIN)
-				t
-			{ 
-				int dwError = errno;
-				macro_closesocket(NativeSocket());
-				LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
-					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
-				return dwError;
-			}
-		}
 #endif // _WIN32
-
-		if (int dwError =
-#ifdef _WIN32
-			FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream)
-#else
-			FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
-#endif // _WIN32
-			)
-		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed"
-				<< " ip:" << inet_ntoa(GetLocalAddr().sin_addr)
-				<< ", port:" << (int)ntohs(GetLocalAddr().sin_port)
-				<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr)
-				<< ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-
-			return dwError;
-		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(GetLocalAddr().sin_addr) << ", port:" << (int)ntohs(GetLocalAddr().sin_port)
 			<< " remote_ip:" << inet_ntoa(GetRemoteAddr().sin_addr) << ", remote_port:" << (int)ntohs(GetRemoteAddr().sin_port)
@@ -415,7 +417,12 @@ namespace FXNET
 			return 0;
 		}
 		IOWriteOperation& refIOWriteOperation = NewWriteOperation();
-		GetSession()->GetSendBuff().PopData(refIOWriteOperation.m_strData);
+		refIOWriteOperation.m_strData.resize(GetSession()->GetSendBuff().GetSize());
+		memcpy(&( * refIOWriteOperation.m_strData.begin())
+			, GetSession()->GetSendBuff().GetData()
+			, GetSession()->GetSendBuff().GetSize());
+		GetSession()->GetSendBuff().PopData(GetSession()->GetSendBuff().GetSize());
+		//GetSession()->GetSendBuff().PopData(refIOWriteOperation.m_strData);
 		refIOWriteOperation.m_stWsaBuff.buf = &(*refIOWriteOperation.m_strData.begin());
 		refIOWriteOperation.m_stWsaBuff.len = refIOWriteOperation.m_strData.size();
 

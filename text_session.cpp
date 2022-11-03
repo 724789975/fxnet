@@ -19,7 +19,7 @@ void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(TextMessageEvent, this);
 
-	LOG(pOStream, ELOG_LEVEL_INFO) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() << ", " << m_szData
+	LOG(pOStream, ELOG_LEVEL_INFO) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() //<< ", " << m_szData
 		<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
 	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size());
 }
