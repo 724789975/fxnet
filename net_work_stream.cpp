@@ -17,7 +17,7 @@ void INetWorkStream::PushData(const char* szData, unsigned short wLen)
 
 void INetWorkStream::PushData(unsigned short wLen)
 {
-	assert((int)m_wUseLen + wLen < BUFF_SIZE);
+	assert((int)m_wUseLen + wLen <= BUFF_SIZE);
 	m_wUseLen += wLen;
 }
 
