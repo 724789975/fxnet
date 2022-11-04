@@ -406,10 +406,9 @@ namespace FXNET
 		return *pOperation;
 	}
 
-	CUdpConnector& CUdpConnector::SendMessage(std::ostream* pOStream)
+	int CUdpConnector::SendMessage(std::ostream* pOStream)
 	{
-		m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream);
-		return *this;
+		return m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream);
 	}
 
 #ifdef _WIN32

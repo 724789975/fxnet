@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 #ifndef macro_closesocket
 #define macro_closesocket close
 #endif //macro_closesocket
@@ -51,9 +52,9 @@ namespace FXNET
 		FxIoModule::Instance()->PushMessageEvent(pOperator);
 		refConnector.PostRecv(pOStream);
 #else
-		if (!m_bConnecting)
+		if (!refConnector.m_bConnecting)
 		{
-			m_bConnecting = true;
+			refConnector.m_bConnecting = true;
 			refConnector.OnConnected(pOStream);
 		}
 		refConnector.m_bReadable = true;
@@ -117,41 +118,12 @@ namespace FXNET
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-#ifdef _WIN32
-		refConnector.PostSend(pOStream);
-#else
+
+#ifndef _WIN32
 		refConnector.m_bWritable = true;
-
-		// send as much data as we can.
-		while (refConnector.writable)
-		{
-			int dwLen = send(refConnector.NativeSocket()
-				, refConnector.GetSession()->GetSendBuff().GetData()
-				, refConnector.GetSession()->GetSendBuff.GetSize(), 0);
-
-			if (0 > dwLen)
-			{
-				int dwError = errno;
-				refConnector.writable = false;
-
-				if (dwError == EAGAIN)
-					break;
-				else
-				{
-					LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket() << "(" << dwError << ")"
-						<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-					return dwError;
-				}
-			}
-
-			if (0 == dwLen) break;
-			refConnector.GetSession()->GetSendBuff().PopData(dwLen);
-			if (0 == refConnector.GetSession()->GetSendBuff().GetSize()) break;
-		}
-
 #endif // _WIN32
 
-		return 0;
+		return refConnector.SendMessage(pOStream);
 	}
 
 	int CTcpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
@@ -253,7 +225,6 @@ namespace FXNET
 		if (-1 == connect(NativeSocket(), (sockaddr*)&GetRemoteAddr(), sizeof(GetRemoteAddr())))
 		{
 			if (errno != EINPROGRESS && errno != EINTR && errno != EAGAIN)
-				t
 			{ 
 				int dwError = errno;
 				macro_closesocket(NativeSocket());
@@ -382,10 +353,40 @@ namespace FXNET
 		return *pOperation;
 	}
 
-	CTcpConnector& CTcpConnector::SendMessage(std::ostream* pOStream)
+	int CTcpConnector::SendMessage(std::ostream* pOStream)
 	{
-		PostSend(pOStream);
-		return *this;
+#ifdef _WIN32
+		return PostSend(pOStream);
+#else
+		// send as much data as we can.
+		while (m_bWritable)
+		{
+			int dwLen = send(NativeSocket()
+				, GetSession()->GetSendBuff().GetData()
+				, GetSession()->GetSendBuff().GetSize(), 0);
+
+			if (0 > dwLen)
+			{
+				int dwError = errno;
+				m_bWritable = false;
+
+				if (dwError == EAGAIN)
+					break;
+				else
+				{
+					LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << "(" << dwError << ")"
+						<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					return dwError;
+				}
+			}
+
+			if (0 == dwLen) break;
+			GetSession()->GetSendBuff().PopData(dwLen);
+			if (0 == GetSession()->GetSendBuff().GetSize()) break;
+		}
+#endif // _WIN32
+
+		return 0;
 	}
 
 #ifdef _WIN32

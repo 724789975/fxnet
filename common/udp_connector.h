@@ -127,7 +127,7 @@ namespace FXNET
 		virtual IOWriteOperation& NewWriteOperation();
 		virtual IOErrorOperation& NewErrorOperation(int dwError);
 
-		virtual CUdpConnector& SendMessage(std::ostream* pOStream);
+		virtual int SendMessage(std::ostream* pOStream);
 #ifdef _WIN32
 		/**
 		 * @brief 提交一个recv的OVERLAPPED

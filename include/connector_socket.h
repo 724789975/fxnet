@@ -14,7 +14,7 @@ namespace FXNET
 		{}
 		virtual const char* Name()const { return "CConnectorSocket"; }
 
-		virtual CConnectorSocket& SendMessage(std::ostream* pOStream) = 0;
+		virtual int SendMessage(std::ostream* pOStream) = 0;
 		ISession* GetSession() { return m_pSession; }
 		CConnectorSocket& SetSession(ISession* poSession) { m_pSession = poSession; return *this; }
 	protected:

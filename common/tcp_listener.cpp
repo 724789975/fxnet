@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 #ifndef macro_closesocket
 #define macro_closesocket close
 #endif //macro_closesocket
@@ -34,15 +35,15 @@ namespace FXNET
 	{
 		DELETE_WHEN_DESTRUCT(CTcpListener::IOAcceptOperation, this);
 
-		CTcpListener& refSock = (CTcpListener&) refSocketBase;
+		CTcpListener& refListenerSocket = (CTcpListener&) refSocketBase;
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << ", " << refSock.Name()
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refListenerSocket.NativeSocket() << ", " << refListenerSocket.Name()
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 #ifdef _WIN32
 		//SOCKET hSock = m_hSocket;
 		::setsockopt(m_hSocket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT
-			, (char*)&(refSock.NativeSocket()), sizeof(refSock.NativeSocket()));
+			, (char*)&(refListenerSocket.NativeSocket()), sizeof(refListenerSocket.NativeSocket()));
 
 		sockaddr_in* pstRemoteAddr = NULL;
 		sockaddr_in* pstLocalAddr = NULL;
@@ -50,7 +51,7 @@ namespace FXNET
 		int nLocalAddrLen = sizeof(sockaddr_in);
 		int nAddrLen = sizeof(sockaddr_in) + 16;
 
-		refSock.m_lpfnGetAcceptExSockaddrs(
+		refListenerSocket.m_lpfnGetAcceptExSockaddrs(
 			this->m_stWsaBuff.buf,
 			0,
 			nAddrLen,
@@ -85,19 +86,19 @@ namespace FXNET
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 			macro_closesocket(m_hSocket);
-			refSock.PostAccept(pOStream);
+			refListenerSocket.PostAccept(pOStream);
 			return dwError;
 		}
 
 		// send back
-		refSock.OnClientConnected(m_hSocket, *pstRemoteAddr, pOStream);
+		refListenerSocket.OnClientConnected(m_hSocket, *pstRemoteAddr, pOStream);
 
-		refSock.PostAccept(pOStream);
+		refListenerSocket.PostAccept(pOStream);
 #else
 		sockaddr_in stRemoteAddr;
 		unsigned int dwAddrLen = sizeof(stRemoteAddr);
-		unsigned int hAcceptSock = accept(NativeSocket(), (sockaddr*)&stRemoteAddr, &dwAddrLen);
-		if (INVALID_SOCKET == hAcceptSock)
+		NativeSocketType hAcceptSock = accept(refListenerSocket.NativeSocket(), (sockaddr*)&stRemoteAddr, &dwAddrLen);
+		if (InvalidNativeHandle() == hAcceptSock)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "accept error(" << errno << ")"
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -116,7 +117,7 @@ namespace FXNET
 		setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));
 
 		// send back
-		refSock.OnClientConnected(hAcceptSock, stRemoteAddr, pOStream);
+		refListenerSocket.OnClientConnected(hAcceptSock, stRemoteAddr, pOStream);
 #endif
 		return 0;
 	}
@@ -381,7 +382,7 @@ namespace FXNET
 			macro_closesocket(hSock);
 			pTcpSock->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed(" << dwError << ")"
 				<< " ip:" << inet_ntoa(pTcpSock->GetLocalAddr().sin_addr)
 				<< ", port:" << (int)ntohs(pTcpSock->GetLocalAddr().sin_port)
 				<< " remote_ip:" << inet_ntoa(pTcpSock->GetRemoteAddr().sin_addr)
@@ -389,7 +390,7 @@ namespace FXNET
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 			return *this;
-		} 
+		}
 
 #ifdef _WIN32
 		pTcpSock->PostRecv(pOStream);
