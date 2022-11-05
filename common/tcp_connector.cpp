@@ -449,14 +449,6 @@ namespace FXNET
 
 #endif // _WIN32
 
-	void CTcpConnector::OnRead(std::ostream* pOStream)
-	{
-	}
-
-	void CTcpConnector::OnWrite(std::ostream* pOStream)
-	{
-	}
-
 	void CTcpConnector::OnError(int dwError, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << ", " << dwError

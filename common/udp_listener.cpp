@@ -443,14 +443,6 @@ namespace FXNET
 		return refPeration;
 	}
 
-	void CUdpListener::OnRead(std::ostream* pOStream)
-	{
-	}
-
-	void CUdpListener::OnWrite(std::ostream* pOStream)
-	{
-	}
-
 	void CUdpListener::OnError(int dwError, std::ostream* pOStream)
 	{
 

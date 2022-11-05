@@ -330,14 +330,6 @@ namespace FXNET
 		return refPeration;
 	}
 
-	void CTcpListener::OnRead(std::ostream* pOStream)
-	{
-	}
-
-	void CTcpListener::OnWrite(std::ostream* pOStream)
-	{
-	}
-
 	void CTcpListener::OnError(int dwError, std::ostream* pOStream)
 	{
 

@@ -461,14 +461,6 @@ namespace FXNET
 
 #endif // _WIN32
 
-	void CUdpConnector::OnRead(std::ostream* pOStream)
-	{
-	}
-
-	void CUdpConnector::OnWrite(std::ostream* pOStream)
-	{
-	}
-
 	void CUdpConnector::OnError(int dwError, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << ", " << dwError

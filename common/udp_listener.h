@@ -59,8 +59,6 @@ namespace FXNET
 		virtual IOOperationBase& NewWriteOperation();
 		virtual IOErrorOperation& NewErrorOperation(int dwError);
 
-		virtual void OnRead(std::ostream* pOStream);
-		virtual void OnWrite(std::ostream* pOStream);
 		virtual void OnError(int dwError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);
 	protected:
