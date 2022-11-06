@@ -119,7 +119,7 @@ namespace FXNET
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(UDPConnect, this);
-			TcpConnect(m_szIp.c_str(), m_wPort, m_pSession, pOStream);
+			UdpConnect(m_szIp.c_str(), m_wPort, m_pSession, pOStream);
 		}
 	protected:
 	private:
