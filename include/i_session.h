@@ -14,8 +14,13 @@ class MessageEventBase;
 
 namespace FXNET
 {
-	//session创建早于套接字
-	//销毁晚于套接字
+	/**
+	 * @brief 
+	 * 
+	 * session
+	 * 创建早于关联套接字
+	 * 销毁时与套接字解除绑定 并把socket销毁事件投递到io执行
+	 */
 	class ISession
 	{
 	public:
@@ -28,19 +33,93 @@ namespace FXNET
 		virtual ~ISession() {}
 		void SetSock(ISocketBase* opSock) { m_opSock = opSock; }
 		ISocketBase* GetSocket() { return m_opSock; }
+
+		/**
+		 * @brief 
+		 * 
+		 * 将要发送的数据投递到io线程 然后放入缓存中
+		 * @param szData 
+		 * @param dwLen 
+		 * @return ISession& 返回自身
+		 */
 		virtual ISession& Send(const char* szData, unsigned int dwLen) = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 当接收到数据时的处理
+		 * @param szData 
+		 * @param dwLen 
+		 * @return ISession& 
+		 */
 		virtual ISession& OnRecv(const char* szData, unsigned int dwLen) = 0;
 
+		/**
+		 * @brief 
+		 * 
+		 * 当连接建立时
+		 * @param pOStream 
+		 */
 		virtual void OnConnected(std::ostream* pOStream) = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 当错误发生时
+		 * @param dwError 错误码
+		 * @param pOStream 
+		 */
 		virtual void OnError(int dwError, std::ostream* pOStream) = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 当连接关闭时
+		 * @param pOStream 
+		 */
 		virtual void OnClose(std::ostream* pOStream) = 0;
 
+		/**
+		 * @brief Get the Send Buff object
+		 * 
+		 * 获取发送缓冲
+		 * @return INetWorkStream& 
+		 */
 		virtual INetWorkStream& GetSendBuff() = 0;
+		/**
+		 * @brief Get the Recv Buff object
+		 * 
+		 * 获取接收缓冲
+		 * @return INetWorkStream& 
+		 */
 		virtual INetWorkStream& GetRecvBuff() = 0;
 
+		/**
+		 * @brief 
+		 * 
+		 * 创建接收事件 在io线程创建 在主线程执行
+		 * @param refData 
+		 * @return MessageEventBase* 
+		 */
 		virtual MessageEventBase* NewRecvMessageEvent(std::string& refData) = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 创建连接完成事件 在io线程创建 在主线程执行
+		 * @return MessageEventBase* 
+		 */
 		virtual MessageEventBase* NewConnectedEvent() = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 创建错误事件 在io线程创建 在主线程执行
+		 * @param dwError 错误码
+		 * @return MessageEventBase* 
+		 */
 		virtual MessageEventBase* NewErrorEvent(int dwError) = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 创建连接关闭事件 在io线程创建 在主线程执行
+		 * @return MessageEventBase* 
+		 */
 		virtual MessageEventBase* NewCloseEvent() = 0;
 	protected:
 		ISocketBase* m_opSock;

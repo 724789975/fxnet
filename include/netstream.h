@@ -1,4 +1,4 @@
-ï»¿#ifndef __NetStream_H__
+#ifndef __NetStream_H__
 #define __NetStream_H__
 
 #ifdef _WIN32
@@ -13,7 +13,7 @@
 
 namespace FXNET
 {
-	//read write ä¸èƒ½åŒæ—¶ä½¿ç”¨
+	//read write ²»ÄÜÍ¬Ê±Ê¹ÓÃ
 	class CNetStream
 	{
 	public:
@@ -131,7 +131,7 @@ namespace FXNET
 			static const ByteOrder& oByteOrder = (ByteOrder&)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
-				// å°ç«¯
+				// Ð¡¶Ë
 				llData = (long long)htonl((int)(llData >> 32)) | ((long long)htonl((int)llData) << 32);
 			}
 			return true;
@@ -154,7 +154,7 @@ namespace FXNET
 			static const ByteOrder& oByteOrder = (ByteOrder&)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
-				// å°ç«¯
+				// Ð¡¶Ë
 				ullData = (unsigned long long)htonl((int)(ullData >> 32)) | ((unsigned long long)htonl((int)ullData) << 32);
 			}
 			return true;
@@ -309,7 +309,7 @@ namespace FXNET
 			static const ByteOrder& oByteOrder = (ByteOrder&)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
-				// å°ç«¯
+				// Ð¡¶Ë
 				llData = (long long)htonl((int)(llData >> 32)) | ((long long)htonl((int)llData) << 32);
 			}
 			return WriteData((char*)(&llData), sizeof(llData));
@@ -326,7 +326,7 @@ namespace FXNET
 			static const ByteOrder& oByteOrder = (ByteOrder&)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
-				// å°ç«¯
+				// Ð¡¶Ë
 				ullData = (unsigned long long)htonl((int)(ullData >> 32)) | ((unsigned long long)htonl((int)ullData) << 32);
 			}
 			return WriteData((char*)(&ullData), sizeof(ullData));

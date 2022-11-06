@@ -228,7 +228,7 @@ namespace FXNET
 			refSock.OnClientConnected(req->m_oAcceptSocket, req->addr, pOStream);
 
 			//refSock.Listen(pOStream);
-			//TODO 鏄惁闇�瑕乥reak
+			//TODO 是否需要break
 			break;
 		}
 
@@ -282,7 +282,7 @@ namespace FXNET
 		sockaddr_in oLocalAddr = GetLocalAddr();
 		oLocalAddr.sin_addr.s_addr = 0;
 
-		// 鍒涘缓socket
+		// 创建socket
 #ifdef _WIN32
 		NativeSocket() = WSASocket(AF_INET
 			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
@@ -336,7 +336,7 @@ namespace FXNET
 		}
 #endif // _WIN32
 
-		// 鍦板潃閲嶇敤
+		// 地址重用
 		int nReuse = 1;
 		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&nReuse, sizeof(nReuse)))
 		{
@@ -407,7 +407,10 @@ namespace FXNET
 #endif // _WIN32
 
 #ifdef _WIN32
-		dwError = PostAccept(pOStream);
+		for (int i = 0; i < 16; i++)
+		{
+			dwError = PostAccept(pOStream);
+		}
 #endif // _WIN32
 
 		return dwError;
@@ -463,7 +466,7 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
-			//post 鍒癷omodule 绉婚櫎
+			//post 到iomodule 移除
 			return *this;
 		}
 
@@ -472,7 +475,7 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
 
-			//post 鍒癷omodule 绉婚櫎
+			//post 到iomodule 移除
 			return *this;
 		}
 

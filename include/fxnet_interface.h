@@ -9,18 +9,80 @@
 
 namespace FXNET
 {
-
+	/**
+	 * @brief 
+	 * 
+	 * 启动io线程
+	 */
 	void StartIOModule();
 
+	/**
+	 * @brief 
+	 * 
+	 * 向io线程投递事件
+	 * @param pEvent 
+	 */
 	void PostEvent(IOEventBase* pEvent);
+	/**
+	 * @brief 
+	 * 
+	 * swap io 线程产生的事件
+	 * @param refDeque 
+	 */
 	void SwapEvent(std::deque<MessageEventBase*>& refDeque);
 
-	//在io线程执行 不要直接调用
+	/**
+	 * @brief 
+	 * 
+	 * 在io线程执行 不要直接调用
+	 * udp listen
+	 * udp会监听 0.0.0.0 wPort 所以不支持多网卡 不同ip 相同port的监听
+	 * @param szIp 监听的ip
+	 * @param wPort 监听的端口
+	 * @param pSessionMaker session的maker
+	 * @param pOStream 
+	 */
 	void UdpListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream);
+	/**
+	 * @brief 
+	 * 
+	 * 在io线程执行 不要直接调用
+	 * udp连接到目的ip port
+	 * @param szIp 
+	 * @param wPort 
+	 * @param pSession 绑定的session
+	 * @param pOStream 
+	 */
 	void UdpConnect(const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
+
+	/**
+	 * @brief 
+	 * 
+	 * 在io线程执行 不要直接调用
+	 * tcp listen
+	 * @param szIp 监听的ip
+	 * @param wPort 监听的端口
+	 * @param pSessionMaker session的maker
+	 * @param pOStream 
+	 */
 	void TcpListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream);
+	/**
+	 * @brief 
+	 * 
+	 * 在io线程执行 不要直接调用
+	 * udp 连接到目的ip port
+	 * @param szIp 
+	 * @param wPort 
+	 * @param pSession 绑定的session
+	 * @param pOStream 
+	 */
 	void TcpConnect(const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
 
+	/**
+	 * @brief 
+	 * 
+	 * udp listen 事件 投递到io线程执行
+	 */
 	class UDPListen : public IOEventBase
 	{
 	public:
@@ -41,6 +103,11 @@ namespace FXNET
 		SessionMaker* m_pSessionMaker;
 	};
 
+	/**
+	 * @brief 
+	 * 
+	 * udp connect事件 投递到io线程执行
+	 */
 	class UDPConnect : public IOEventBase
 	{
 	public:
@@ -61,6 +128,11 @@ namespace FXNET
 		ISession* m_pSession;
 	};
 
+	/**
+	 * @brief 
+	 * 
+	 * tcp listen事件 投递到io线程执行
+	 */
 	class TCPListen : public IOEventBase
 	{
 	public:
@@ -81,6 +153,11 @@ namespace FXNET
 		SessionMaker* m_pSessionMaker;
 	};
 
+	/**
+	 * @brief 
+	 * 
+	 * tcp connect 事件 投递到io线程执行
+	 */
 	class TCPConnect : public IOEventBase
 	{
 	public:

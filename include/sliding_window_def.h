@@ -4,23 +4,6 @@
 /**
  * @brief 发送缓存帧数量
  */
-#define TCP_SEND_WINDOW_SIZE 32
-/**
- * @brief 发送缓存帧长度
- */
-#define TCP_SEND_WINDOW_BUFF_SIZE 512
-/**
- * @brief 接收缓存帧数量
- */
-#define TCP_RECV_WINDOW_SIZE 32
-/**
- * @brief 接收缓存帧长度
- */
-#define TCP_RECV_WINDOW_BUFF_SIZE 512
-
-/**
- * @brief 发送缓存帧数量
- */
 #define UDP_WINDOW_SIZE 32
 /**
  * @brief 发送缓存帧长度

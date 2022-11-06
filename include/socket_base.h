@@ -53,16 +53,62 @@ namespace FXNET
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
 		NativeSocketType& NativeSocket() { return (NativeSocketType&)m_hNativeHandle; }
 
+		/**
+		 * @brief Get the Local Addr object
+		 * 
+		 * @return sockaddr_in& 
+		 */
 		sockaddr_in& GetLocalAddr() { return m_stLocalAddr; }
+		/**
+		 * @brief Get the Error object
+		 * 
+		 * @return int 
+		 */
 		int GetError() { return m_dwError; }
 
+		/**
+		 * @brief 
+		 * 
+		 * 关闭连接
+		 * @param pOStream 
+		 */
 		virtual void Close(std::ostream* pOStream) = 0;
 
+		/**
+		 * @brief 
+		 * 
+		 * 创建读操作
+		 * @return IOOperationBase& 
+		 */
 		virtual IOOperationBase& NewReadOperation() = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 创建写操作
+		 * @return IOOperationBase& 
+		 */
 		virtual IOOperationBase& NewWriteOperation() = 0;
+		/**
+		 * @brief 
+		 * 
+		 * 创建错误时操作
+		 * @param dwError error code
+		 * @return IOOperationBase& 
+		 */
 		virtual IOOperationBase& NewErrorOperation(int dwError) = 0;
 
+		/**
+		 * @brief 
+		 * 
+		 * @param dwError 
+		 * @param pOStream 
+		 */
 		virtual void OnError(int dwError, std::ostream* pOStream) = 0;
+		/**
+		 * @brief 
+		 * 
+		 * @param pOStream 
+		 */
 		virtual void OnClose(std::ostream* pOStream) = 0;
 	protected:
 		NativeHandleType m_hNativeHandle;

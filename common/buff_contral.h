@@ -116,11 +116,40 @@ namespace FXNET
 
 		int GetState()const;
 
+		/**
+		 * @brief Set the On Recv Operator object
+		 * 
+		 * @param p 
+		 * @return BufferContral& 
+		 */
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
+		/**
+		 * @brief Set the On Connected Operator object
+		 * 
+		 * @param p 
+		 * @return BufferContral& 
+		 */
 		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
+		/**
+		 * @brief Set the Recv Operator object
+		 * 
+		 * @param p 
+		 * @return BufferContral& 
+		 */
 		BufferContral& SetRecvOperator(RecvOperator* p);
-		// TODO是否需要 不需要后面删掉
+		/**
+		 * @brief Set the Send Operator object
+		 * 
+		 * @param p 
+		 * @return BufferContral& 
+		 */
 		BufferContral& SetSendOperator(SendOperator* p);
+		/**
+		 * @brief Set the Read Stream Operator object
+		 * 
+		 * @param p 
+		 * @return BufferContral& 
+		 */
 		BufferContral& SetReadStreamOperator(ReadStreamOperator* p);
 
 		BufferContral& SetAckOutTime(double dOutTime);
@@ -134,8 +163,24 @@ namespace FXNET
 		 */
 		unsigned short Send(const char* pSendBuffer, unsigned short wSize);
 
+		/**
+		 * @brief 
+		 * 
+		 * 发送消息 将缓存中数据发送出去
+		 * @param dTime 
+		 * @param pOStream 
+		 * @return int 
+		 */
 		int SendMessages(double dTime, std::ostream* pOStream);
-
+		/**
+		 * @brief 
+		 * 
+		 * 接收数据
+		 * @param dTime 
+		 * @param refbReadable 
+		 * @param pOStream 
+		 * @return int 
+		 */
 		int ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream);
 		
 	private:
@@ -148,37 +193,144 @@ namespace FXNET
 		SendOperator* m_pSendOperator;
 		ReadStreamOperator* m_pReadStreamOperator;
 
-		// bytes send and recieved
+		/**
+		 * @brief 
+		 * 
+		 * 已发送字节数
+		 */
 		unsigned int m_dwNumBytesSend;
+		/**
+		 * @brief 
+		 * 
+		 * 已接收字节数
+		 */
 		unsigned int m_dwNumBytesReceived;
 
-		// network delay time.
+		/**
+		 * @brief 
+		 * 
+		 * rtt(收包延迟时间)
+		 */
 		double m_dDelayTime;
+		/**
+		 * @brief 
+		 * 
+		 * 平均rtt
+		 */
 		double m_dDelayAverage;
+		/**
+		 * @brief 
+		 * 
+		 * 重传时间
+		 * 一定时间后没有发送出去 那么就开始重传
+		 */
 		double m_dRetryTime;
+		/**
+		 * @brief 
+		 * 
+		 * 下一次发包的时间
+		 */
 		double m_dSendTime;
+		/**
+		 * @brief 
+		 * 
+		 * 发送频率
+		 */
 		double m_dSendFrequency;
+		/**
+		 * @brief 
+		 * 
+		 * 拥塞控制
+		 */
 		double m_dSendWindowControl;
+		/**
+		 * @brief 
+		 * 
+		 * 发送窗口阈值
+		 */
 		double m_dSendWindowThreshhold;
+		/**
+		 * @brief 
+		 * 
+		 * 下次发送同步包时间
+		 */
 		double m_dSendDataTime;
+		/**
+		 * @brief 
+		 * 
+		 * 发送同步包频率
+		 */
 		double m_dSendDataFrequency;
 
-		// packets count send and retry
+		/**
+		 * @brief 
+		 * 
+		 * 发包数量(每512字节或少于512 算一个包)
+		 */
 		unsigned int m_dwNumPacketsSend;
+		/**
+		 * @brief 
+		 * 
+		 * 收包数量
+		 */
 		unsigned int m_dwNumPacketsRetry;
 
 		bool m_bConnected;
 
+		/**
+		 * @brief 
+		 * 
+		 * 最后一个有效包时间
+		 */
 		double m_dAckRecvTime;
+		/**
+		 * @brief 
+		 * 
+		 * 超时重试次数
+		 */
 		int m_dwAckTimeoutRetry;
+		/**
+		 * @brief 
+		 * 
+		 * 连接状态
+		 */
 		unsigned int m_dwStatus;
 
+		/**
+		 * @brief 
+		 * 
+		 * 相同ack次数
+		 */
 		int m_dwAckSameCount;
+		/**
+		 * @brief 
+		 * 
+		 * 是否正在快速重传
+		 */
 		bool m_bQuickRetry;
+		/**
+		 * @brief 
+		 * 
+		 * 是否需要发送ack
+		 */
 		bool m_bSendAck;
+		/**
+		 * @brief 
+		 * 
+		 * 最后一个ack
+		 */
 		unsigned char m_btAckLast;
+		/**
+		 * @brief 
+		 * 
+		 * 最后一个syn
+		 */
 		unsigned char m_btSynLast;
-
+		/**
+		 * @brief 
+		 * 
+		 * 超时时间
+		 */
 		double m_dAckOutTime; //默认是5
 	};
 
@@ -188,6 +340,7 @@ namespace FXNET
 		, m_dwNumBytesReceived(0)
 		, m_dSendTime(0.)
 		, m_dSendFrequency(0.02)
+		, m_dSendDataFrequency(1.)
 		, m_dwNumPacketsSend(0)
 		, m_dwNumPacketsRetry(0)
 		, m_bConnected(false)
@@ -343,7 +496,7 @@ namespace FXNET
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages(double dTime, std::ostream* pOStream)
 	{
-		// check ack received time
+		// 检查是否超时
 		if (dTime - m_dAckRecvTime > m_dAckOutTime)
 		{
 			m_dAckRecvTime = dTime;
@@ -546,7 +699,7 @@ namespace FXNET
 			unsigned char* pBuffer = m_oRecvWindow.m_btarrBuffer[btBufferId];
 			m_oRecvWindow.m_btFreeBufferId = pBuffer[0];
 
-			// can't allocate buffer, disconnect.
+			// 没有buffer了 断开连接
 			if (btBufferId >= m_oRecvWindow.window_size)
 			{
 				return CODE_ERROR_NET_UDP_ALLOC_BUFF;
@@ -595,12 +748,6 @@ namespace FXNET
 			}
 			if (!m_bConnected)
 			{
-				//if (dwLen > (unsigned short)sizeof(UDPPacketHeader))
-				//{
-				//	pBuffer[0] = m_oRecvWindow.m_btFreeBufferId;
-				//	m_oRecvWindow.m_btFreeBufferId = btBufferId;
-				//	break;
-				//}
 				UDPPacketHeader& packet = *(UDPPacketHeader*)pBuffer;
 				m_dwStatus = ST_ESTABLISHED;
 				if (ST_ESTABLISHED == packet.m_btStatus)
@@ -620,7 +767,7 @@ namespace FXNET
 				}
 			}
 
-			// num unsigned chars received
+			//接收字节数
 			m_dwNumBytesReceived += dwLen + 28;
 
 			// packet header
@@ -643,7 +790,7 @@ namespace FXNET
 				double rtt = m_dDelayTime;
 				double dErrTime = 0;
 
-				// m_SendWindowControl not more than double m_SendWindowControl 
+				// m_SendWindowControl 不会比m_SendWindowControl 更大
 				double send_window_control_max = m_dSendWindowControl * 2;
 				if (send_window_control_max > _SendWindow::window_size)
 				{

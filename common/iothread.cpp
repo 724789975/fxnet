@@ -98,7 +98,7 @@ namespace FXNET
 					}
 				}
 			}
-			if (!__DealData(&refOStream))
+			if (!DealData(&refOStream))
 			{
 				break;
 			}
@@ -225,16 +225,6 @@ namespace FXNET
 			m_pEvents = NULL;
 		}
 #endif // _WIN32
-	}
-
-	ISocketBase* FxIoModule::GetSocket(ISocketBase::NativeSocketType hSock)
-	{
-		std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = m_mapSockets.find(hSock);
-		if (m_mapSockets.end() == it)
-		{
-			return NULL;
-		}
-		return it->second;
 	}
 
 	double FxIoModule::FxGetCurrentTime()
@@ -442,12 +432,7 @@ namespace FXNET
 	}
 #endif // _WIN32
 
-
-	void FxIoModule::__DealSock()
-	{
-	}
-
-	bool FxIoModule::__DealData(std::ostream* pOStream)
+	bool FxIoModule::DealData(std::ostream* pOStream)
 	{
 		const int dwTimeOut = 1;
 #ifdef _WIN32

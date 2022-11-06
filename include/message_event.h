@@ -16,7 +16,11 @@ public:\
 	CLASS_NAME* p;\
 }____(__point);\
 
-
+/**
+ * @brief 
+ * 
+ * 消息事件
+ */
 class MessageEventBase
 {
 public:
@@ -26,6 +30,11 @@ protected:
 private:
 };
 
+/**
+ * @brief 
+ * 
+ * io事件
+ */
 class IOEventBase
 #ifdef _WIN32
 	: public OVERLAPPED
