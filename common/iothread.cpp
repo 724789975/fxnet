@@ -81,9 +81,8 @@ namespace FXNET
 			std::cout.flags(std::cout.fixed);
 			std::ostream* pOStream = &std::cout;
 			//pOStream = NULL;
-			//pOStream.flags(std::cout.fixed);
 
-			LOG(&refOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
+			LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
 			if (m_dCurrentTime - m_dLoatUpdateTime >= 0.05)
 			{
@@ -93,14 +92,14 @@ namespace FXNET
 				{
 					std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
 					ISocketBase* pISock = it_tmp->second;
-					if (int dwError = pISock->Update(m_dCurrentTime, &refOStream))
+					if (int dwError = pISock->Update(m_dCurrentTime, pOStream))
 					{
-						DeregisterIO(pISock->NativeSocket(), &refOStream);
-						pISock->NewErrorOperation(dwError)(*pISock, 0, &refOStream);
+						DeregisterIO(pISock->NativeSocket(), pOStream);
+						pISock->NewErrorOperation(dwError)(*pISock, 0, pOStream);
 					}
 				}
 			}
-			if (!DealData(&refOStream))
+			if (!DealData(pOStream))
 			{
 				break;
 			}
