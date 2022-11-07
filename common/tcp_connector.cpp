@@ -309,7 +309,6 @@ namespace FXNET
 			}
 		}
 
-		PostRecv(pOStream);
 #endif // _WIN32
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(GetLocalAddr().sin_addr) << ", port:" << (int)ntohs(GetLocalAddr().sin_port)
@@ -471,6 +470,8 @@ namespace FXNET
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 		FxIoModule::Instance()->PushMessageEvent(GetSession()->NewConnectedEvent());
+
+		PostRecv(pOStream);
 	}
 
 	int CTcpConnector::Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)

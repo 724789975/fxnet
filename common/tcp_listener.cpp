@@ -385,7 +385,6 @@ namespace FXNET
 		}
 
 #ifdef _WIN32
-		pTcpSock->PostRecv(pOStream);
 #else
 		pTcpSock->m_bConnecting = true;
 #endif // _WIN32
