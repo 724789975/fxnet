@@ -42,7 +42,7 @@ namespace FXNET
 		 * @param dwLen 
 		 * @return ISession& ·µ»Ø×ÔÉí
 		 */
-		virtual ISession& Send(const char* szData, unsigned int dwLen) = 0;
+		virtual ISession& Send(const char* szData, unsigned int dwLen, std::ostream* pOStream) = 0;
 		/**
 		 * @brief 
 		 * 
@@ -51,7 +51,7 @@ namespace FXNET
 		 * @param dwLen 
 		 * @return ISession& 
 		 */
-		virtual ISession& OnRecv(const char* szData, unsigned int dwLen) = 0;
+		virtual ISession& OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream) = 0;
 
 		/**
 		 * @brief 

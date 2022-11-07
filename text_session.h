@@ -36,8 +36,8 @@ public:
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
-	virtual CTextSession& Send(const char* szData, unsigned int dwLen);
-	virtual CTextSession& OnRecv(const char* szData, unsigned int dwLen);
+	virtual CTextSession& Send(const char* szData, unsigned int dwLen, std::ostream* pOStream);
+	virtual CTextSession& OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream);
 
 	virtual void OnConnected(std::ostream* pOStream);
 	virtual void OnError(int dwError, std::ostream* pOStream);
@@ -56,6 +56,9 @@ public:
 protected:
 	TextWorkStream m_oSendBuff;
 	TextWorkStream m_oRecvBuff;
+
+	double m_dConnectedTime;
+	int m_dwPacketLength;
 };
 
 class TextSessionMaker : public FXNET::SessionMaker

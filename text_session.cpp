@@ -5,6 +5,7 @@
 #include "include/connector_socket.h"
 #include "include/fxnet_interface.h"
 #include "include/log_utility.h"
+#include "include/iothread.h"
 
 #include <string>
 
@@ -19,9 +20,9 @@ void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(TextMessageEvent, this);
 
-	LOG(pOStream, ELOG_LEVEL_INFO) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() //<< ", " << m_szData
-		<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
-	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size());
+	//LOG(pOStream, ELOG_LEVEL_INFO) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() //<< ", " << m_szData
+	//	<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
+	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size(), pOStream);
 }
 
 CTextSession::ConnectedEvent::ConnectedEvent(ISession* pSession)
@@ -58,7 +59,7 @@ void CTextSession::CloseSessionEvent::operator()(std::ostream* pOStream)
 	m_pSession->OnClose(pOStream);
 }
 
-CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen)
+CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::ostream* pOStream)
 {
 	class SendOperator : public IOEventBase
 	{
@@ -92,7 +93,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen)
 	return *this;
 }
 
-CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen)
+CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream)
 {
 	std::string strData(szData, dwLen);
 	strData += ((szData[dwLen - 1] + 1 - '0') % 10 + '0');
@@ -101,7 +102,13 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen)
 	{
 		strData = "0";
 	}
-	Send(strData.c_str(), (unsigned int)strData.size());
+	Send(strData.c_str(), (unsigned int)strData.size(), pOStream);
+
+	m_dwPacketLength += dwLen;
+	LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
+		<< ", total: " << m_dwPacketLength << ", average: "
+		<< m_dwPacketLength / (FXNET::FxIoModule::Instance()->FxGetCurrentTime() - m_dConnectedTime)
+		<< "\n";
 	return *this;
 }
 
@@ -110,7 +117,10 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 	LOG(pOStream, ELOG_LEVEL_INFO) << GetSocket()->NativeSocket() << ", connected!!!"
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 	std::string sz("0");
-	Send(sz.c_str(), (unsigned int)sz.size());
+	Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
+
+	m_dConnectedTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+	m_dwPacketLength = 0;
 }
 
 void CTextSession::OnError(int dwError, std::ostream* pOStream)
