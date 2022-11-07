@@ -471,7 +471,10 @@ namespace FXNET
 
 		FxIoModule::Instance()->PushMessageEvent(GetSession()->NewConnectedEvent());
 
+#ifdef _WIN32
 		PostRecv(pOStream);
+#endif // _WIN32
+
 	}
 
 	int CTcpConnector::Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
