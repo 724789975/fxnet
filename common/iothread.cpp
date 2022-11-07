@@ -20,6 +20,11 @@ namespace FXNET
 {
 #define MAX_EVENT_NUM 256
 
+	double _FxGetCurrentTime()
+	{
+		return FxIoModule::Instance()->FxGetCurrentTime();
+	}
+
 	FxIoModule::FxIoModule()
 		: m_poThrdHandler(NULL)
 		, m_bStop(false)
@@ -62,6 +67,8 @@ namespace FXNET
 
 	void FxIoModule::ThrdFunc()
 	{
+		SetTimeFunc(_FxGetCurrentTime);
+
 		std::ostream& refOStream = std::cout;
 		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " start, "
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -82,7 +89,7 @@ namespace FXNET
 			std::ostream* pOStream = &std::cout;
 			//pOStream = NULL;
 
-			LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
+			//LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
 			if (m_dCurrentTime - m_dLoatUpdateTime >= 0.05)
 			{

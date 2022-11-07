@@ -25,8 +25,15 @@ enum ELogLevel
 
 int GetLogLevel();
 
+typedef double (*TimeFunc)();
+
+void SetTimeFunc(TimeFunc f);
+TimeFunc GetTimeFunc();
+
+double GetNow();
+
 #define LOG(STREAM, LOG_LEVEL)\
 	if (STREAM && (GetLogLevel() & LOG_LEVEL))\
-		*STREAM << "[" << #LOG_LEVEL << "]\t"
+		*STREAM << "[" << #LOG_LEVEL << "]\t[" << GetNow() << "]\t"
 
 #endif // !__LOG_UTILITY_H__
