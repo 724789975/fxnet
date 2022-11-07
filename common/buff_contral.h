@@ -358,7 +358,7 @@ namespace FXNET
 	{
 		m_dwStatus = dwState;
 		m_dDelayTime = 0;
-		m_dSendFrequency = 0.05;
+		m_dSendFrequency = 0.02;
 		m_dDelayAverage = 3 * m_dSendFrequency;
 		m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
 		m_dSendTime = 0;
