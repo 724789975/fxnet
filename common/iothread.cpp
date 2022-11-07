@@ -78,8 +78,10 @@ namespace FXNET
 			m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
 #endif
 
-			std::ostream& refOStream = std::cout;
-			refOStream.flags(std::cout.fixed);
+			std::cout.flags(std::cout.fixed);
+			std::ostream* pOStream = &std::cout;
+			//pOStream = NULL;
+			//pOStream.flags(std::cout.fixed);
 
 			LOG(&refOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
@@ -552,6 +554,7 @@ namespace FXNET
 				{
 					DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
+					continue;
 				}
 			}
 			if (pEvent->events & (EPOLLIN | EPOLLERR | EPOLLHUP))
@@ -560,6 +563,7 @@ namespace FXNET
 				{
 					DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
+					continue;
 				}
 			}
 		}
