@@ -7,6 +7,7 @@
 
 #ifdef _WIN32
 #include <process.h>
+#include <time.h>
 //#include <ntifs.h>
 #else
 #include <unistd.h>
