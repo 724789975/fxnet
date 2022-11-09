@@ -36,6 +36,14 @@ public:
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
+	class SessionOnSendEvent : public MessageEventBase
+	{
+	public:
+		SessionOnSendEvent(ISession* pSession);
+		virtual void operator ()(std::ostream* pOStream);
+		ISession* m_pSession;
+		int m_dwLen;
+	};
 	virtual CTextSession& Send(const char* szData, unsigned int dwLen, std::ostream* pOStream);
 	virtual CTextSession& OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream);
 
@@ -52,6 +60,7 @@ public:
 	virtual MessageEventBase* NewConnectedEvent();
 	virtual SessionErrorEvent* NewErrorEvent(int dwError);
 	virtual CloseSessionEvent* NewCloseEvent();
+	virtual SessionOnSendEvent* NewOnSendEvent(int dwLen);
 
 protected:
 	TextWorkStream m_oSendBuff;

@@ -59,6 +59,22 @@ void CTextSession::CloseSessionEvent::operator()(std::ostream* pOStream)
 	m_pSession->OnClose(pOStream);
 }
 
+CTextSession::SessionOnSendEvent::SessionOnSendEvent(ISession* pSession)
+	: m_pSession(pSession)
+	, m_dwLen(0)
+{
+}
+
+void CTextSession::SessionOnSendEvent::operator()(std::ostream* pOStream)
+{
+	DELETE_WHEN_DESTRUCT(SessionOnSendEvent, this);
+
+	std::string sz;
+	sz.resize(m_dwLen);
+
+	m_pSession->Send(sz.data(), sz.size(), pOStream);
+}
+
 CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::ostream* pOStream)
 {
 	class SendOperator : public IOEventBase
@@ -95,14 +111,14 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 
 CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream)
 {
-	std::string strData(szData, dwLen);
-	strData += ((szData[dwLen - 1] + 1 - '0') % 10 + '0');
-	//if (strData.size() > 16 * 512)
-	if (strData.size() > 1024 * 32)
-	{
-		strData = "0";
-	}
-	Send(strData.c_str(), (unsigned int)strData.size(), pOStream);
+	//std::string strData(szData, dwLen);
+	//strData += ((szData[dwLen - 1] + 1 - '0') % 10 + '0');
+	////if (strData.size() > 16 * 512)
+	//if (strData.size() > 1024 * 32)
+	//{
+	//	strData = "0";
+	//}
+	//Send(strData.c_str(), (unsigned int)strData.size(), pOStream);
 
 	m_dwPacketLength += dwLen;
 	LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
@@ -116,7 +132,10 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 {
 	LOG(pOStream, ELOG_LEVEL_INFO) << GetSocket()->NativeSocket() << ", connected!!!"
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-	std::string sz("0");
+	//std::string sz("0");
+	std::string sz;
+	sz.resize(1024 * 8);
+
 	Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
 
 	m_dConnectedTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
@@ -234,6 +253,13 @@ CTextSession::SessionErrorEvent* CTextSession::NewErrorEvent(int dwError)
 CTextSession::CloseSessionEvent* CTextSession::NewCloseEvent()
 {
 	CTextSession::CloseSessionEvent* pEvent = new CTextSession::CloseSessionEvent(this);
+	return pEvent;
+}
+
+CTextSession::SessionOnSendEvent* CTextSession::NewOnSendEvent(int dwLen)
+{
+	CTextSession::SessionOnSendEvent* pEvent = new CTextSession::SessionOnSendEvent(this);
+	pEvent->m_dwLen = dwLen;
 	return pEvent;
 }
 

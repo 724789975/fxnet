@@ -119,7 +119,9 @@ namespace FXNET
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-#ifndef _WIN32
+#ifdef _WIN32
+		FxIoModule::Instance()->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
+#else
 		refConnector.m_bWritable = true;
 #endif // _WIN32
 
@@ -381,6 +383,8 @@ namespace FXNET
 
 			if (0 == dwLen) break;
 			GetSession()->GetSendBuff().PopData(dwLen);
+
+			FxIoModule::Instance()->PushMessageEvent(GetSession()->NewOnSendEvent(dwLen));
 			if (0 == GetSession()->GetSendBuff().GetSize()) break;
 		}
 #endif // _WIN32

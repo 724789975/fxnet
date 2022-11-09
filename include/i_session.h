@@ -121,6 +121,8 @@ namespace FXNET
 		 * @return MessageEventBase* 
 		 */
 		virtual MessageEventBase* NewCloseEvent() = 0;
+
+		virtual MessageEventBase* NewOnSendEvent(int dwLen) = 0;
 	protected:
 		ISocketBase* m_opSock;
 	private:
