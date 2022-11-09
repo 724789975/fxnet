@@ -67,7 +67,7 @@ bool TextWorkStream::CheckPackage()
 		return false;
 	}
 
-	if (wReadLen + sizeof(short) > GetSize())
+	if (wReadLen > GetSize())
 	{
 		return false;
 	}
