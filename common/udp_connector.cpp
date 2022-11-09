@@ -243,11 +243,12 @@ namespace FXNET
 			(char*)m_refUdpConnector.GetSession()->GetSendBuff().GetData()
 			, m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
 
-		//unsigned short wLen = m_refUdpConnector.m_oBuffContral.Send(sz.c_str(), sz.size());
+		if (wLen)
+		{
+			m_refUdpConnector.GetSession()->GetSendBuff().PopData(wLen);
 
-		m_refUdpConnector.GetSession()->GetSendBuff().PopData(wLen);
-
-		FxIoModule::Instance()->PushMessageEvent(m_refUdpConnector.GetSession()->NewOnSendEvent(wLen));
+			FxIoModule::Instance()->PushMessageEvent(m_refUdpConnector.GetSession()->NewOnSendEvent(wLen));
+		}
 
 		return wLen;
 
