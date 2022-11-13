@@ -25,12 +25,12 @@ int main()
 	//FXNET::PostEvent(new FXNET::UDPListen("192.168.10.104", 10085, new TextSessionMaker));
 	vecSession.push_back(new CTextSession);
 	//CTextSession t1;
-	FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
+	FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10086, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
 	//CTextSession t2;
-	vecSession.push_back(new CTextSession);
-	FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
+	// vecSession.push_back(new CTextSession);
+	// FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 
 	for (int i = 0; ; ++i)
@@ -47,7 +47,10 @@ int main()
 		for (auto& p : dequeMessage)
 		{
 			(*p)(&std::cout);
+			// (*p)(NULL);
 		}
+
+		std::cout << std::flush;
 
 #ifdef _WIN32
 		Sleep(1);
