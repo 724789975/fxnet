@@ -141,11 +141,13 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 		<< "\n";
 
 	char szBuff[256] = {0};
-	sprintf(szBuff, "%d", dwLen + 1);
+	sprintf(szBuff, "%d", dwRecv + 1);
 	std::string szSend(szBuff);
 
-	m_mapSendTimes[dwLen + 1] = dCurrentTime;
+	m_mapSendTimes[dwRecv + 1] = dCurrentTime;
 	Send(szSend.c_str(), szSend.size(), pOStream);
+
+	m_mapSendTimes.erase(dwRecv);
 	return *this;
 }
 
