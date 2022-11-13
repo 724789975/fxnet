@@ -3,6 +3,8 @@
 #include "include/net_work_stream.h"
 #include "include/message_event.h"
 
+#include <map>
+
 class CTextSession : public FXNET::ISession
 {
 public:
@@ -68,6 +70,13 @@ protected:
 
 	double m_dConnectedTime;
 	int m_dwPacketLength;
+
+	std::map<int, double> m_mapSendTimes;
+	int m_dwRecvPackagetNum;
+	double m_dAllDelayTime;
+	double m_dCurrentDelay;
+	double m_dAverageDelay;
+
 };
 
 class TextSessionMaker : public FXNET::SessionMaker

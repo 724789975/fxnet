@@ -69,10 +69,10 @@ void CTextSession::SessionOnSendEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(SessionOnSendEvent, this);
 
-	std::string sz;
-	sz.resize(m_dwLen);
+	// std::string sz;
+	// sz.resize(m_dwLen);
 
-	m_pSession->Send(sz.data(), sz.size(), pOStream);
+	// m_pSession->Send(sz.data(), sz.size(), pOStream);
 }
 
 CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::ostream* pOStream)
@@ -121,10 +121,29 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	//Send(strData.c_str(), (unsigned int)strData.size(), pOStream);
 
 	m_dwPacketLength += dwLen;
+	// LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
+	// 	<< ", total: " << m_dwPacketLength << ", average: "
+	// 	<< m_dwPacketLength / (FXNET::FxIoModule::Instance()->FxGetCurrentTime() - m_dConnectedTime)
+	// 	<< "\n";
+	
+	int dwRecv = atoi(szData);
+	double dCurrentTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+	m_dCurrentDelay += dCurrentTime - m_mapSendTimes[dwRecv];
+	++m_dwRecvPackagetNum;
+	m_dAllDelayTime += m_dCurrentDelay;
+	m_dAverageDelay = m_dAllDelayTime / m_dwRecvPackagetNum;
+
 	LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
-		<< ", total: " << m_dwPacketLength << ", average: "
-		<< m_dwPacketLength / (FXNET::FxIoModule::Instance()->FxGetCurrentTime() - m_dConnectedTime)
+	 	<< ", " << m_opSock->NativeSocket()
+		<< ", current delay: " << m_dCurrentDelay << ", average: "
+		<< m_dAverageDelay
+		<< ", package num: " << m_dwRecvPackagetNum
 		<< "\n";
+
+	char szBuff[256] = {0};
+	sprintf(szBuff, "%d", dwLen + 1);
+	std::string szSend(szBuff);
+	Send(szSend.c_str(), szSend.size(), pOStream);
 	return *this;
 }
 
@@ -132,11 +151,12 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 {
 	LOG(pOStream, ELOG_LEVEL_INFO) << GetSocket()->NativeSocket() << ", connected!!!"
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-	//std::string sz("0");
-	std::string sz;
-	sz.resize(1024 * 8);
+	std::string sz("0");
+	// std::string sz;
+	// sz.resize(1024 * 8);
 
 	Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
+	m_mapSendTimes[0] = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
 
 	m_dConnectedTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
 	m_dwPacketLength = 0;
