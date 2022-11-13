@@ -128,7 +128,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	
 	int dwRecv = atoi(szData);
 	double dCurrentTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
-	m_dCurrentDelay += dCurrentTime - m_mapSendTimes[dwRecv];
+	m_dCurrentDelay = dCurrentTime - m_mapSendTimes[dwRecv];
 	++m_dwRecvPackagetNum;
 	m_dAllDelayTime += m_dCurrentDelay;
 	m_dAverageDelay = m_dAllDelayTime / m_dwRecvPackagetNum;
