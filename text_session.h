@@ -46,6 +46,17 @@ public:
 		ISession* m_pSession;
 		int m_dwLen;
 	};
+
+	CTextSession()
+		: m_dConnectedTime(0.)
+		, m_dwPacketLength(0)
+		, m_dwRecvPackagetNum(0)
+		, m_dAllDelayTime(0.)
+		, m_dCurrentDelay(0.)
+		, m_dAverageDelay(0.)
+		{}
+	~CTextSession(){}
+
 	virtual CTextSession& Send(const char* szData, unsigned int dwLen, std::ostream* pOStream);
 	virtual CTextSession& OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream);
 
