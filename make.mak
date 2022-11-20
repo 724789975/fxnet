@@ -13,24 +13,23 @@ PLATFORM_DIR = x64\\
 !ENDIF
 
 !IF "$(DEBUG)" == "1"
-DIR_OUT = ..\\$(PLATFORM_DIR)Debug\\
+DIR_OUT = .\\$(PLATFORM_DIR)Debug\\
 OBJ_OUT = .\\$(PLATFORM_DIR)Debug
-COMMON_OUT = .\\common\\$(PLATFORM_DIR)Debug
+#COMMON_OUT = .\\common\\$(PLATFORM_DIR)Debug
 CFLAGS = $(CFLAGS) /JMC /GS /ZI /Od /sdl- /D"_DEBUG" /D"_MBCS" /RTC1 /Oy- /MTd
 !ELSE
 CFLAGS = $(CFLAGS) /GS /GL /Gy /Zi /O2 /sdl- /D"NDEBUG" /Oy- /Oi /MT
-DIR_OUT = ..\\$(PLATFORM_DIR)Release\\
+DIR_OUT = .\\$(PLATFORM_DIR)Release\\
 OBJ_OUT = .\\$(PLATFORM_DIR)Release
-COMMON_OUT = .\\common\\$(PLATFORM_DIR)Release
+#COMMON_OUT = .\\common\\$(PLATFORM_DIR)Release
 !ENDIF
 
 CFLAGS = $(CFLAGS) /Fp"$(DIR_OUT)\$(TARGET).pch" /Fd"$(OBJ_OUT)\$(TARGET)_nmake.pdb"
 
 DIR_SRC = .\\
-DIR_COMMON = .\\common
+#DIR_COMMON = .\\common
 DIR_INCLUDE = \
-        /I "./include" \
-		/I "./common"
+        /I "./include"
         
 LK = link
 LKFLAGS = /NOLOGO /MANIFEST:NO
@@ -39,14 +38,14 @@ LKFLAGS = /NOLOGO /MANIFEST:NO
 LKFLAGS = $(LKFLAGS) /OPT:REF /OPT:ICF
 !ENDIF
  
-LKFLAGS = $(LKFLAGS) /DEBUG /PDB:"$(DIR_OUT)$(TARGET).pdb" /ManifestFile:"$(OBJ_OUT)\$(DYNAMIC_LIB_NAME).intermediate.manifest" /OUT:"$(DIR_OUT)\$(EXECUTABLE_NAME)" /FUNCTIONPADMIN:5 /INCREMENTAL
+LKFLAGS = $(LKFLAGS) /DEBUG /PDB:"$(DIR_OUT)$(TARGET).pdb" /ManifestFile:"$(OBJ_OUT)\$(EXECUTABLE_NAME).intermediate.manifest" /OUT:"$(DIR_OUT)\$(EXECUTABLE_NAME)" /FUNCTIONPADMIN:5 /INCREMENTAL
 
 !IF "$(DEBUG)" == "1"
-LIBDIRS = ..\\$(PLATFORM_DIR)DEBUG\\
-LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib dbghelp.lib Win32_Interop.lib libprotobufd.lib
+LIBDIRS = $(PLATFORM_DIR)DEBUG\\
+LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib dbghelp.lib NetLib.lib
 !ELSE
-LIBDIRS = ..\\$(PLATFORM_DIR)RELEASE\\
-LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib dbghelp.lib Win32_Interop.lib libprotobuf.lib
+LIBDIRS = $(PLATFORM_DIR)RELEASE\\
+LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib dbghelp.lib NetLib.lib
 !ENDIF
 LINKLIBS = $(LIBDIRS) $(LIBS)
 
@@ -61,24 +60,20 @@ target : $(EXECUTABLE_NAME)
 
 $(EXECUTABLE_NAME) : makeobj
 	@echo Linking $(EXECUTABLE_NAME)...
-	$(LK) $(LKFLAGS) $(OBJ_OUT)\*.obj $(COMMON_OUT)\*.obj
+	$(LK) $(LKFLAGS) $(OBJ_OUT)\*.obj
 
-makeobj: $(OBJ_OUT) $(COMMON_OUT)
+makeobj: $(OBJ_OUT)
 	@for %%f in (*.cpp) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
-	@for %%f in ($(DIR_COMMON)\*.cpp) do ( $(CC) $(CFLAGS) /Fo"$(COMMON_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
 	@for %%f in (*.cc) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
 
 # delete output directories
 clean:
 	@if exist $(OBJ_OUT) del $(OBJ_OUT)\*.obj
 	@if exist $(OBJ_OUT) del $(OBJ_OUT)\*.pdb
-	@if exist $(COMMON_OUT) del $(COMMON_OUT)\*.obj
 	@if exist $(DIR_OUT) del $(DIR_OUT)$(TARGET)*
 
 $(OBJ_OUT):
 	@if not exist $(OBJ_OUT) mkdir $(OBJ_OUT)
-$(COMMON_OUT):
-	@if not exist $(COMMON_OUT) mkdir $(COMMON_OUT)
 
 # create directories and build application
 all: clean target
