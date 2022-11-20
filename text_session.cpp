@@ -13,7 +13,7 @@ CTextSession::TextMessageEvent::TextMessageEvent(ISession* pSession, std::string
 	: m_pSession(pSession)
 {
 	assert(refData.size());
-	m_szData.swap(refData);
+	this->m_szData.swap(refData);
 }
 
 void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
@@ -22,7 +22,7 @@ void CTextSession::TextMessageEvent::operator()(std::ostream* pOStream)
 
 	//LOG(pOStream, ELOG_LEVEL_INFO) << m_pSession->GetSocket()->NativeSocket() << ", " << m_szData.size() //<< ", " << m_szData
 	//	<< "[" << __FILE__ << ":" << __LINE__ << "," << __FUNCTION__ << "]\n";
-	m_pSession->OnRecv(m_szData.c_str(), (unsigned int)m_szData.size(), pOStream);
+	this->m_pSession->OnRecv(this->m_szData.c_str(), (unsigned int)this->m_szData.size(), pOStream);
 }
 
 CTextSession::ConnectedEvent::ConnectedEvent(ISession* pSession)
@@ -33,7 +33,7 @@ CTextSession::ConnectedEvent::ConnectedEvent(ISession* pSession)
 void CTextSession::ConnectedEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(ConnectedEvent, this);
-	m_pSession->OnConnected(pOStream);
+	this->m_pSession->OnConnected(pOStream);
 }
 
 CTextSession::SessionErrorEvent::SessionErrorEvent(ISession* pSession, int dwError)
@@ -45,7 +45,7 @@ CTextSession::SessionErrorEvent::SessionErrorEvent(ISession* pSession, int dwErr
 void CTextSession::SessionErrorEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(SessionErrorEvent, this);
-	m_pSession->OnError(m_dwError, pOStream);
+	this->m_pSession->OnError(this->m_dwError, pOStream);
 }
 
 CTextSession::CloseSessionEvent::CloseSessionEvent(ISession* pSession)
@@ -56,7 +56,7 @@ CTextSession::CloseSessionEvent::CloseSessionEvent(ISession* pSession)
 void CTextSession::CloseSessionEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(CloseSessionEvent, this);
-	m_pSession->OnClose(pOStream);
+	this->m_pSession->OnClose(pOStream);
 }
 
 CTextSession::SessionOnSendEvent::SessionOnSendEvent(ISession* pSession)
@@ -88,13 +88,13 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 		{
 			DELETE_WHEN_DESTRUCT(SendOperator, this);
 
-			FXNET::CConnectorSocket* poConnector = dynamic_cast<FXNET::CConnectorSocket*>(m_opSock);
+			FXNET::CConnectorSocket* poConnector = dynamic_cast<FXNET::CConnectorSocket*>(this->m_opSock);
 			if (poConnector->GetError())
 			{
 				return;
 			}
 			CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
-			poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)m_szData.size());
+			poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)this->m_szData.size());
 			poConnector->SendMessage(pOStream);
 		}
 		FXNET::ISocketBase* m_opSock;
@@ -103,7 +103,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 	private:
 	};
 
-	SendOperator* pOperator = new SendOperator(m_opSock);
+	SendOperator* pOperator = new SendOperator(this->m_opSock);
 	pOperator->m_szData.assign(szData, dwLen);
 	FXNET::PostEvent(pOperator);
 	return *this;
@@ -120,7 +120,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	//}
 	//Send(strData.c_str(), (unsigned int)strData.size(), pOStream);
 
-	m_dwPacketLength += dwLen;
+	this->m_dwPacketLength += dwLen;
 	// LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
 	// 	<< ", total: " << m_dwPacketLength << ", average: "
 	// 	<< m_dwPacketLength / (FXNET::FxIoModule::Instance()->FxGetCurrentTime() - m_dConnectedTime)
@@ -128,26 +128,26 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	
 	int dwRecv = atoi(szData);
 	double dCurrentTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
-	m_dCurrentDelay = dCurrentTime - m_mapSendTimes[dwRecv];
-	++m_dwRecvPackagetNum;
-	m_dAllDelayTime += m_dCurrentDelay;
-	m_dAverageDelay = m_dAllDelayTime / m_dwRecvPackagetNum;
+	this->m_dCurrentDelay = dCurrentTime - this->m_mapSendTimes[dwRecv];
+	++this->m_dwRecvPackagetNum;
+	this->m_dAllDelayTime += this->m_dCurrentDelay;
+	this->m_dAverageDelay = this->m_dAllDelayTime / this->m_dwRecvPackagetNum;
 
-	LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
-	 	<< ", " << m_opSock->NativeSocket()
-		<< ", current delay: " << m_dCurrentDelay << ", average: "
-		<< m_dAverageDelay
-		<< ", package num: " << m_dwRecvPackagetNum
+	LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+	 	<< ", " << this->m_opSock->NativeSocket()
+		<< ", current delay: " << this->m_dCurrentDelay << ", average: "
+		<< this->m_dAverageDelay
+		<< ", package num: " << this->m_dwRecvPackagetNum
 		<< "\n";
 
 	char szBuff[256] = {0};
 	sprintf(szBuff, "%d", dwRecv + 1);
 	std::string szSend(szBuff);
 
-	m_mapSendTimes[dwRecv + 1] = dCurrentTime;
+	this->m_mapSendTimes[dwRecv + 1] = dCurrentTime;
 	Send(szSend.c_str(), szSend.size(), pOStream);
 
-	m_mapSendTimes.erase(dwRecv);
+	this->m_mapSendTimes.erase(dwRecv);
 	return *this;
 }
 
@@ -160,15 +160,15 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 	// sz.resize(1024 * 8);
 
 	Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
-	m_mapSendTimes[0] = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+	this->m_mapSendTimes[0] = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
 
-	m_dConnectedTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
-	m_dwPacketLength = 0;
+	this->m_dConnectedTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+	this->m_dwPacketLength = 0;
 }
 
 void CTextSession::OnError(int dwError, std::ostream* pOStream)
 {
-	LOG(pOStream, ELOG_LEVEL_ERROR) << GetSocket()->NativeSocket() << ", error: " << dwError
+	LOG(pOStream, ELOG_LEVEL_ERROR) << this->GetSocket()->NativeSocket() << ", error: " << dwError
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
 	class ErrorOperator : public IOEventBase
@@ -183,7 +183,7 @@ void CTextSession::OnError(int dwError, std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(ErrorOperator, this);
 
-			m_opSock->OnError(m_dwError, pOStream);
+			this->m_opSock->OnError(m_dwError, pOStream);
 		}
 		FXNET::ISocketBase* m_opSock;
 		int m_dwError;
@@ -197,7 +197,7 @@ void CTextSession::OnError(int dwError, std::ostream* pOStream)
 
 void CTextSession::OnClose(std::ostream* pOStream)
 {
-	LOG(pOStream, ELOG_LEVEL_INFO) << GetSocket()->NativeSocket()
+	LOG(pOStream, ELOG_LEVEL_INFO) << this->GetSocket()->NativeSocket()
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
 	class OnCloseOperator : public IOEventBase
@@ -211,7 +211,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(OnCloseOperator, this);
 
-			m_opSock->OnClose(pOStream);
+			this->m_opSock->OnClose(pOStream);
 		}
 		FXNET::ISocketBase* m_opSock;
 		std::string m_szData;
@@ -225,7 +225,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 	LOG(pOStream, ELOG_LEVEL_INFO) << "session close, " << this
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
-	SetSock(NULL);
+	this->SetSock(NULL);
 
 	//TODO 先在这里处理
 	delete this;
@@ -244,7 +244,7 @@ void CTextSession::Close(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(CloseOperator, this);
 
-			m_opSock->Close(pOStream);
+			this->m_opSock->Close(pOStream);
 		}
 		FXNET::ISocketBase* m_opSock;
 		std::string m_szData;

@@ -120,13 +120,13 @@ namespace FXNET
 		 */
 		SendWindow& Add2SendWindow(unsigned char btId, unsigned char btBuffId, unsigned short wPacketSize, double dTime, double dRetryTime)
 		{
-			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btarrSeqBufferId[btId] = btBuffId;
-			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_warrSeqSize[btId] = wPacketSize;
-			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqTime[btId] = dTime;
-			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetry[btId] = dTime;
-			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetryTime[btId] = dRetryTime;
-			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_dwarrSeqRetryCount[btId] = 0;
-			SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btEnd++;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btarrSeqBufferId[btId] = btBuffId;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_warrSeqSize[btId] = wPacketSize;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqTime[btId] = dTime;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetry[btId] = dTime;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetryTime[btId] = dRetryTime;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_dwarrSeqRetryCount[btId] = 0;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btEnd++;
 
 			return *this;
 		}

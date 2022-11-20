@@ -3,71 +3,71 @@
 
 void INetWorkStream::PopData(unsigned short wLen)
 {
-	assert(wLen <= m_wUseLen);
-	memmove(m_btData, m_btData + wLen, m_wUseLen - wLen);
-	m_wUseLen -= wLen;
+	assert(wLen <= this->m_wUseLen);
+	memmove(this->m_btData, this->m_btData + wLen, this->m_wUseLen - wLen);
+	this->m_wUseLen -= wLen;
 }
 
 void INetWorkStream::PushData(const char* szData, unsigned short wLen)
 {
-	assert(wLen <= GetFreeSize());
-	memcpy(m_btData + GetSize(), szData, wLen);
-	m_wUseLen += wLen;
+	assert(wLen <= this->GetFreeSize());
+	memcpy(this->m_btData + this->GetSize(), szData, wLen);
+	this->m_wUseLen += wLen;
 }
 
 void INetWorkStream::PushData(unsigned short wLen)
 {
-	assert((int)m_wUseLen + wLen <= BUFF_SIZE);
-	m_wUseLen += wLen;
+	assert((int)this->m_wUseLen + wLen <= BUFF_SIZE);
+	this->m_wUseLen += wLen;
 }
 
 TextWorkStream& TextWorkStream::WriteString(const char* szData, unsigned short wLen)
 {
-	FXNET::CNetStream oNetStream((char*)m_btData + GetSize(), GetFreeSize());
+	FXNET::CNetStream oNetStream((char*)this->m_btData + this->GetSize(), this->GetFreeSize());
 	oNetStream.WriteShort((unsigned short)(wLen + sizeof(wLen)));
 	oNetStream.WriteData(szData, wLen);
-	m_wUseLen += (wLen + sizeof(wLen));
+	this->m_wUseLen += (wLen + sizeof(wLen));
 	return *this;
 }
 
 TextWorkStream& TextWorkStream::ReadString(const char* szData, unsigned short wLen)
 {
-	FXNET::CNetStream oNetStream((char*)m_btData, GetSize());
+	FXNET::CNetStream oNetStream((char*)this->m_btData, this->GetSize());
 	unsigned short wReadLen = 0;
 	oNetStream.ReadShort(wReadLen);
 	memcpy((char*)szData, oNetStream.ReadData(wReadLen), wReadLen - sizeof(short));
-	m_wUseLen -= wReadLen;
-	memmove(m_btData, m_btData + wReadLen, m_wUseLen);
+	this->m_wUseLen -= wReadLen;
+	memmove(this->m_btData, this->m_btData + wReadLen, this->m_wUseLen);
 	return *this;
 }
 
 TextWorkStream& TextWorkStream::ReadString(std::string& strBuff)
 {
-	FXNET::CNetStream oNetStream((char*)m_btData, GetSize());
+	FXNET::CNetStream oNetStream((char*)this->m_btData, this->GetSize());
 	unsigned short wReadLen = 0;
 	oNetStream.ReadShort(wReadLen);
 	oNetStream.ReadString(strBuff, wReadLen - sizeof(short));
-	m_wUseLen -= wReadLen;
-	memmove(m_btData, m_btData + wReadLen, m_wUseLen);
+	this->m_wUseLen -= wReadLen;
+	memmove(this->m_btData, this->m_btData + wReadLen, this->m_wUseLen);
 
 	return *this;
 }
 
 void TextWorkStream::PopData(std::string& refData)
 {
-	ReadString(refData);
+	this->ReadString(refData);
 }
 
 bool TextWorkStream::CheckPackage()
 {
-	FXNET::CNetStream oNetStream((char*)m_btData, GetSize());
+	FXNET::CNetStream oNetStream((char*)this->m_btData, this->GetSize());
 	unsigned short wReadLen = 0;
 	if (!oNetStream.ReadShort(wReadLen))
 	{
 		return false;
 	}
 
-	if (wReadLen > GetSize())
+	if (wReadLen > this->GetSize())
 	{
 		return false;
 	}

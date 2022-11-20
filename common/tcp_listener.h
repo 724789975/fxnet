@@ -73,7 +73,6 @@ namespace FXNET
 
 #else
 #endif // _WIN32
-		int						OnAccept(std::ostream* pOStream);
 
 #ifdef _WIN32
 		LPFN_ACCEPTEX						m_lpfnAcceptEx;

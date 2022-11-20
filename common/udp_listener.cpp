@@ -32,7 +32,7 @@ namespace FXNET
 #ifdef _WIN32
 		UDPPacketHeader& oUDPPacketHeader = *(UDPPacketHeader*)m_stWsaBuff.buf;
 
-		sockaddr_in& stRemoteAddr = m_stRemoteAddr;
+		sockaddr_in& stRemoteAddr = this->m_stRemoteAddr;
 
 		if (dwLen != sizeof(oUDPPacketHeader))
 		{
@@ -218,7 +218,6 @@ namespace FXNET
 				continue;
 			}
 
-			// add accept req
 			refSock.AddAcceptReq(req);
 
 			//FxIoModule::Instance()->DeregisterIO(refSock.NativeSocket(), pOStream);
@@ -232,7 +231,7 @@ namespace FXNET
 			break;
 		}
 
-		// temp remove accept req at here
+		// 移除缓存的req
 		AcceptReq* pReq;
 		for (unsigned int i = 0; i < UDP_ACCEPT_HASH_SIZE; i++)
 		{
@@ -270,7 +269,7 @@ namespace FXNET
 
 	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
 	{
-		sockaddr_in& refLocalAddr = GetLocalAddr();
+		sockaddr_in& refLocalAddr = this->GetLocalAddr();
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
 		refLocalAddr.sin_family = AF_INET;
 
@@ -279,18 +278,18 @@ namespace FXNET
 		refLocalAddr.sin_port = htons(wPort);
 
 		int dwError = 0;
-		sockaddr_in oLocalAddr = GetLocalAddr();
+		sockaddr_in oLocalAddr = this->GetLocalAddr();
 		oLocalAddr.sin_addr.s_addr = 0;
 
 		// 创建socket
 #ifdef _WIN32
-		NativeSocket() = WSASocket(AF_INET
+		this->NativeSocket() = WSASocket(AF_INET
 			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
-		NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
+		this->NativeSocket() = socket(AF_INET, SOCK_DGRAM, 0);
 #endif // _WIN32
 
-		if (NativeSocket() == -1)
+		if (this->NativeSocket() == -1)
 		{
 #ifdef _WIN32
 			dwError = WSAGetLastError();
@@ -305,9 +304,9 @@ namespace FXNET
 
 #ifdef _WIN32
 		unsigned long ul = 1;
-		if (SOCKET_ERROR == ioctlsocket(NativeSocket(), FIONBIO, (unsigned long*)&ul))
+		if (SOCKET_ERROR == ioctlsocket(this->NativeSocket(), FIONBIO, (unsigned long*)&ul))
 #else
-		if (fcntl(NativeSocket(), F_SETFL, fcntl(NativeSocket(), F_GETFL) | O_NONBLOCK))
+		if (fcntl(this->NativeSocket(), F_SETFL, fcntl(this->NativeSocket(), F_GETFL) | O_NONBLOCK))
 #endif // _WIN32
 		{
 #ifdef _WIN32
@@ -315,8 +314,8 @@ namespace FXNET
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set nonblock failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -324,11 +323,11 @@ namespace FXNET
 		}
 
 #ifndef _WIN32
-		if (fcntl(NativeSocket(), F_SETFD, FD_CLOEXEC))
+		if (fcntl(this->NativeSocket(), F_SETFD, FD_CLOEXEC))
 		{
 			dwError = errno;
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
 				<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -338,67 +337,68 @@ namespace FXNET
 
 		// 地址重用
 		int nReuse = 1;
-		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&nReuse, sizeof(nReuse)))
+		if (setsockopt(this->NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&nReuse, sizeof(nReuse)))
 		{
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 
 		// bind
-		if (bind(NativeSocket(), (sockaddr*)&oLocalAddr, sizeof(oLocalAddr)))
+		if (bind(this->NativeSocket(), (sockaddr*)&oLocalAddr, sizeof(oLocalAddr)))
 		{
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket()
+					<< " bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 					<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(oLocalAddr.sin_addr)
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(oLocalAddr.sin_addr)
 			<< ", port:" << (int)ntohs(oLocalAddr.sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 		sockaddr_in addr;
 		socklen_t sock_len = sizeof(addr);
-		getsockname(NativeSocket(), (sockaddr*)&addr, &sock_len);
+		getsockname(this->NativeSocket(), (sockaddr*)&addr, &sock_len);
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
 			<< ", port:" << (int)ntohs(addr.sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 #ifdef _WIN32
-		if (dwError = FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream))
+		if (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), this, pOStream))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 #else
-		m_oAcceptPool.Init();
-		memset(m_arroAcceptQueue, 0, sizeof(m_arroAcceptQueue));
+		this->m_oAcceptPool.Init();
+		memset(this->m_arroAcceptQueue, 0, sizeof(this->m_arroAcceptQueue));
 
-		if (0 != (dwError = FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLIN, this, pOStream)))
+		if (0 != (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), EPOLLIN, this, pOStream)))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -409,7 +409,7 @@ namespace FXNET
 #ifdef _WIN32
 		for (int i = 0; i < 16; i++)
 		{
-			dwError = PostAccept(pOStream);
+			dwError = this->PostAccept(pOStream);
 		}
 #endif // _WIN32
 
@@ -458,7 +458,7 @@ namespace FXNET
 
 	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
-		CUdpConnector* pUdpSock = new CUdpConnector((*m_pSessionMaker)());
+		CUdpConnector* pUdpSock = new CUdpConnector((*this->m_pSessionMaker)());
 
 		pUdpSock->GetSession()->SetSock(pUdpSock);
 		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
@@ -492,20 +492,20 @@ namespace FXNET
 #ifdef _WIN32
 	int CUdpListener::PostAccept(std::ostream* pOStream)
 	{
-		IOReadOperation& refOperation = NewReadOperation();
+		IOReadOperation& refOperation = this->NewReadOperation();
 
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;
 
 		int dwSockAddr = sizeof(refOperation.m_stRemoteAddr);
 
-		if (SOCKET_ERROR == WSARecvFrom(NativeSocket(), &refOperation.m_stWsaBuff, 1, &dwReadLen
+		if (SOCKET_ERROR == WSARecvFrom(this->NativeSocket(), &refOperation.m_stWsaBuff, 1, &dwReadLen
 			, &dwFlags, (sockaddr*)(&refOperation.m_stRemoteAddr), &dwSockAddr, (OVERLAPPED*)(IOOperationBase*)(&refOperation), NULL))
 		{
 			int dwError = WSAGetLastError();
 			if (dwError != WSA_IO_PENDING)
 			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " WSARecvFrom errno : " << dwError
+				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " WSARecvFrom errno : " << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 				return dwError;
 			}
@@ -523,7 +523,7 @@ namespace FXNET
 
 	CUdpListener::AcceptReq* CUdpListener::GetAcceptReq(const sockaddr_in& addr)
 	{
-		for (AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)]; pReq != NULL; pReq = pReq->m_pNext)
+		for (AcceptReq* pReq = this->m_arroAcceptQueue[this->GenerateAcceptHash(addr)]; pReq != NULL; pReq = pReq->m_pNext)
 		{
 			if (pReq->addr.sin_addr.s_addr == addr.sin_addr.s_addr &&
 				pReq->addr.sin_port == addr.sin_port)
@@ -536,15 +536,15 @@ namespace FXNET
 	{
 		if (pReq && pReq->m_pNext == NULL)
 		{
-			unsigned int h = GenerateAcceptHash(pReq->addr);
-			pReq->m_pNext = m_arroAcceptQueue[h];
-			m_arroAcceptQueue[h] = pReq;
+			unsigned int h = this->GenerateAcceptHash(pReq->addr);
+			pReq->m_pNext = this->m_arroAcceptQueue[h];
+			this->m_arroAcceptQueue[h] = pReq;
 		}
 	}
 
 	void CUdpListener::RemoveAcceptReq(const sockaddr_in& addr)
 	{
-		AcceptReq* pReq = m_arroAcceptQueue[GenerateAcceptHash(addr)];
+		AcceptReq* pReq = this->m_arroAcceptQueue[this->GenerateAcceptHash(addr)];
 		AcceptReq* pPrev = NULL;
 
 		while (pReq != NULL)
@@ -553,7 +553,7 @@ namespace FXNET
 				pReq->addr.sin_port == addr.sin_port)
 			{
 				if (pPrev) pPrev->m_pNext = pReq->m_pNext;
-				m_oAcceptPool.Free(pReq);
+				this->m_oAcceptPool.Free(pReq);
 				break;
 			}
 

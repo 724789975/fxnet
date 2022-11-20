@@ -33,11 +33,11 @@ namespace FXNET
 		for (;;)
 		{
 #ifdef _WIN32
-			volatile long& lLock = reinterpret_cast<volatile long&>(m_lLock);
+			volatile long& lLock = reinterpret_cast<volatile long&>(this->m_lLock);
 			if (0 == InterlockedCompareExchange(&lLock, 1, 0)) break;
 #else // _WIN32
 			//if (atomic_cas_uint32(&m_lLock, 1, 0)) break;
-			if (__sync_bool_compare_and_swap(&m_lLock, 0, 1)) break;
+			if (__sync_bool_compare_and_swap(&this->m_lLock, 0, 1)) break;
 #endif // _WIN32
 		}
 		return *this;
@@ -47,11 +47,11 @@ namespace FXNET
 		for (;;)
 		{
 #ifdef _WIN32
-			volatile long& lLock = reinterpret_cast<volatile long&>(m_lLock);
+			volatile long& lLock = reinterpret_cast<volatile long&>(this->m_lLock);
 			if (1 == InterlockedCompareExchange(&lLock, 0, 1)) break;
 #else // _WIN32
 			//if (atomic_cas_uint32(&m_lLock, 0, 1)) break;
-			if (__sync_bool_compare_and_swap(&m_lLock, 1, 0)) break;
+			if (__sync_bool_compare_and_swap(&this->m_lLock, 1, 0)) break;
 #endif // _WIN32
 		}
 
@@ -61,11 +61,11 @@ namespace FXNET
 	CLockImp::CLockImp(CCasLock& refLock)
 		: m_refLock(refLock)
 	{
-		m_refLock.Lock();
+		this->m_refLock.Lock();
 	}
 	CLockImp::~CLockImp()
 	{
-		m_refLock.Unlock();
+		this->m_refLock.Unlock();
 	}
 }
 

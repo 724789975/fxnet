@@ -40,11 +40,11 @@ namespace FXNET
 #ifdef _WIN32
 		SYSTEMTIME st;
 		GetSystemTime(&st);
-		m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+		this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
 #else
 		static struct timeval tv;
 		gettimeofday(&tv, NULL);
-		m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+		this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
 #endif
 	}
 
@@ -52,16 +52,16 @@ namespace FXNET
 	{
 #ifdef _WIN32
 #else
-		if (m_hEpoll != (int)ISocketBase::InvalidNativeHandle())
+		if (this->m_hEpoll != (int)ISocketBase::InvalidNativeHandle())
 		{
 			close(m_hEpoll);
-			m_hEpoll = (int)ISocketBase::InvalidNativeHandle();
+			this->m_hEpoll = (int)ISocketBase::InvalidNativeHandle();
 		}
 
-		if (m_pEvents != NULL)
+		if (this->m_pEvents != NULL)
 		{
-			delete m_pEvents;
-			m_pEvents = NULL;
+			delete this->m_pEvents;
+			this->m_pEvents = NULL;
 		}
 #endif // _WIN32
 	}
@@ -71,7 +71,7 @@ namespace FXNET
 		SetTimeFunc(_FxGetCurrentTime);
 
 		std::ostream& refOStream = std::cout;
-		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " start, "
+		refOStream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start, "
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
 		while (!m_bStop)
@@ -79,11 +79,11 @@ namespace FXNET
 #ifdef _WIN32
 			SYSTEMTIME st;
 			GetSystemTime(&st);
-			m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+			this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
 #else
 			static struct timeval tv;
 			gettimeofday(&tv, NULL);
-			m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+			this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
 #endif
 
 			std::cout.flags(std::cout.fixed);
@@ -92,22 +92,22 @@ namespace FXNET
 
 			//LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
-			if (m_dCurrentTime - m_dLoatUpdateTime >= 0.02)
+			if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= 0.02)
 			{
-				m_dLoatUpdateTime = m_dCurrentTime;
-				for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = m_mapSockets.begin();
-					it != m_mapSockets.end();)
+				this->m_dLoatUpdateTime = this->m_dCurrentTime;
+				for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = this->m_mapSockets.begin();
+					it != this->m_mapSockets.end();)
 				{
 					std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
 					ISocketBase* pISock = it_tmp->second;
-					if (int dwError = pISock->Update(m_dCurrentTime, pOStream))
+					if (int dwError = pISock->Update(this->m_dCurrentTime, pOStream))
 					{
-						DeregisterIO(pISock->NativeSocket(), pOStream);
+						this->DeregisterIO(pISock->NativeSocket(), pOStream);
 						pISock->NewErrorOperation(dwError)(*pISock, 0, pOStream);
 					}
 				}
 			}
-			if (!DealData(pOStream))
+			if (!this->DealData(pOStream))
 			{
 				break;
 			}
@@ -118,24 +118,24 @@ namespace FXNET
 			//usleep(1000);
 #endif // _WIN32
 		}
-		refOStream << "thread id " << m_poThrdHandler->GetThreadId() << " end\n";
+		refOStream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
 	}
 
 	void FxIoModule::Stop()
 	{
-		m_bStop = true;
-		if (m_poThrdHandler != NULL)
+		this->m_bStop = true;
+		if (this->m_poThrdHandler != NULL)
 		{
-			m_poThrdHandler->WaitFor(3000);
-			m_poThrdHandler->Release();
-			m_poThrdHandler = NULL;
+			this->m_poThrdHandler->WaitFor(3000);
+			this->m_poThrdHandler->Release();
+			this->m_poThrdHandler = NULL;
 		}
 	}
 
 	bool FxIoModule::Start()
 	{
-		FxCreateThreadHandler(this, true, m_poThrdHandler);
-		if (NULL == m_poThrdHandler)
+		FxCreateThreadHandler(this, true, this->m_poThrdHandler);
+		if (NULL == this->m_poThrdHandler)
 		{
 			return false;
 		}
@@ -144,9 +144,9 @@ namespace FXNET
 
 	unsigned int FxIoModule::GetThreadId()
 	{
-		if (m_poThrdHandler)
+		if (this->m_poThrdHandler)
 		{
-			return m_poThrdHandler->GetThreadId();
+			return this->m_poThrdHandler->GetThreadId();
 		}
 		return 0;
 	}
@@ -157,25 +157,25 @@ namespace FXNET
 		// 初始化的时候 先获取下 创建完成端口 //
 		WSADATA wsaData;
 		WSAStartup(MAKEWORD(2, 2), &wsaData);
-		m_hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+		this->m_hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 
-		if (m_hCompletionPort == NULL)
+		if (this->m_hCompletionPort == NULL)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "CreateIoCompletionPort error " << WSAGetLastError()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
 #else
-		m_pEvents = new epoll_event[MAX_EVENT_NUM];
-		if (NULL == m_pEvents)
+		this->m_pEvents = new epoll_event[MAX_EVENT_NUM];
+		if (NULL == this->m_pEvents)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return false;
 		}
 
-		m_hEpoll = epoll_create(MAX_EVENT_NUM);
-		if (m_hEpoll < 0)
+		this->m_hEpoll = epoll_create(MAX_EVENT_NUM);
+		if (this->m_hEpoll < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -184,8 +184,8 @@ namespace FXNET
 
 		//m_hEvent = eventfd(0, EFD_NONBLOCK);
 		//m_hEvent = eventfd(0, EFD_CLOEXEC);
-		m_hEvent = eventfd(0, EFD_CLOEXEC);
-		if (m_hEvent < 0)
+		this->m_hEvent = eventfd(0, EFD_CLOEXEC);
+		if (this->m_hEvent < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -196,7 +196,7 @@ namespace FXNET
 		e.events = EPOLLIN;
 		e.data.ptr = 0;
 
-		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, m_hEvent, &e) < 0)
+		if (epoll_ctl(this->m_hEpoll, EPOLL_CTL_ADD, this->m_hEvent, &e) < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -204,7 +204,7 @@ namespace FXNET
 		}
 
 #endif // _WIN32
-		if (!Start())
+		if (!this->Start())
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -216,48 +216,48 @@ namespace FXNET
 
 	void FxIoModule::Uninit()
 	{
-		if (!m_bStop)
+		if (!this->m_bStop)
 		{
-			Stop();
+			this->Stop();
 		}
 #ifdef _WIN32
 #else
-		if (m_hEpoll != (int)ISocketBase::InvalidNativeHandle())
+		if (this->m_hEpoll != (int)ISocketBase::InvalidNativeHandle())
 		{
-			close(m_hEpoll);
-			m_hEpoll = (int)ISocketBase::InvalidNativeHandle();
+			close(this->m_hEpoll);
+			this->m_hEpoll = (int)ISocketBase::InvalidNativeHandle();
 		}
 
-		if (m_pEvents != NULL)
+		if (this->m_pEvents != NULL)
 		{
-			delete[] m_pEvents;
-			m_pEvents = NULL;
+			delete[] this->m_pEvents;
+			this->m_pEvents = NULL;
 		}
 #endif // _WIN32
 	}
 
 	double FxIoModule::FxGetCurrentTime()
 	{
-		return m_dCurrentTime;
+		return this->m_dCurrentTime;
 	}
 
 	void FxIoModule::PushMessageEvent(MessageEventBase* pMessageEvent)
 	{
-		CLockImp oImp(m_lockEventLock);
-		m_dequeEvent.push_back(pMessageEvent);
+		CLockImp oImp(this->m_lockEventLock);
+		this->m_dequeEvent.push_back(pMessageEvent);
 	}
 
 	void FxIoModule::SwapEvent(std::deque<MessageEventBase*>& refDeque)
 	{
-		CLockImp oImp(m_lockEventLock);
-		refDeque.swap(m_dequeEvent);
+		CLockImp oImp(this->m_lockEventLock);
+		refDeque.swap(this->m_dequeEvent);
 	}
 
 #ifdef _WIN32
 	HANDLE FxIoModule::GetHandle()
 	{
 		// 创建完成端口
-		return m_hCompletionPort;
+		return this->m_hCompletionPort;
 	}
 
 	int FxIoModule::RegisterIO(ISocketBase::NativeSocketType hSock, ISocketBase* poSock, std::ostream* pOStream)
@@ -284,7 +284,7 @@ namespace FXNET
 			return dwErr;
 		}
 
-		m_mapSockets[hSock] = poSock;
+		this->m_mapSockets[hSock] = poSock;
 		return 0;
 	}
 #else
@@ -297,7 +297,7 @@ namespace FXNET
 			return CODE_ERROR_NET_ERROR_SOCKET;
 		}
 
-		if (m_hEpoll < 0)
+		if (this->m_hEpoll < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "m_hEpoll < 0"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -307,7 +307,7 @@ namespace FXNET
 		e.events = dwEvents;
 		e.data.ptr = poSock;
 
-		if (epoll_ctl(m_hEpoll, EPOLL_CTL_ADD, hSock, &e) < 0)
+		if (epoll_ctl(this->m_hEpoll, EPOLL_CTL_ADD, hSock, &e) < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -316,13 +316,13 @@ namespace FXNET
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG) << "hSock : " << hSock << ", event: " << dwEvents
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-		m_mapSockets[hSock] = poSock;
+		this->m_mapSockets[hSock] = poSock;
 		return 0;
 	}
 
 	int FxIoModule::ChangeEvent(ISocketBase::NativeSocketType hSock, unsigned int dwEvents, ISocketBase* poSock, std::ostream* pOStream)
 	{
-		if (m_hEpoll < 0)
+		if (this->m_hEpoll < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " m_hEpoll < 0"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -340,7 +340,7 @@ namespace FXNET
 		e.events = dwEvents;
 		e.data.ptr = poSock;
 
-		if (epoll_ctl(m_hEpoll, EPOLL_CTL_MOD, hSock, &e) < 0)
+		if (epoll_ctl(this->m_hEpoll, EPOLL_CTL_MOD, hSock, &e) < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno : " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -356,10 +356,10 @@ namespace FXNET
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << "DeregisterIO : " << hSock
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 #ifdef _WIN32
-		CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
+		this->CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
 		//CancelIo((ISocketBase::NativeHandleType)hSock);
 #else
-		if (m_hEpoll < 0)
+		if (this->m_hEpoll < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "m_hEpoll < 0"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
@@ -374,14 +374,14 @@ namespace FXNET
 		}
 
 		epoll_event e;
-		if (epoll_ctl(m_hEpoll, EPOLL_CTL_DEL, hSock, &e) < 0)
+		if (epoll_ctl(this->m_hEpoll, EPOLL_CTL_DEL, hSock, &e) < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno : " << errno
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return errno;
 		}
 #endif // _WIN32
-		m_mapSockets.erase(hSock);
+		this->m_mapSockets.erase(hSock);
 		return 0;
 
 	}
@@ -395,9 +395,9 @@ namespace FXNET
 		//std::cout << lPoint << "\n";
 		unsigned long long lPoint = 1LL;
 
-		CLockImp oImp(m_lockEventLock);
-		m_vecIOEvent.push_back(pEvent);
-		write(m_hEvent, &lPoint, sizeof(lPoint));
+		CLockImp oImp(this->m_lockEventLock);
+		this->m_vecIOEvent.push_back(pEvent);
+		write(this->m_hEvent, &lPoint, sizeof(lPoint));
 #endif //_WIN32
 		return *this;
 	}
@@ -405,7 +405,7 @@ namespace FXNET
 #ifndef _WIN32
 	int FxIoModule::GetHandle()
 	{
-		return m_hEpoll;
+		return this->m_hEpoll;
 	}
 
 	int FxIoModule::WaitEvents(int nMilliSecond)
@@ -415,7 +415,7 @@ namespace FXNET
 			return 0;
 		}
 
-		int nCount = epoll_wait(m_hEpoll, m_pEvents, MAX_EVENT_NUM, nMilliSecond);
+		int nCount = epoll_wait(this->m_hEpoll, this->m_pEvents, MAX_EVENT_NUM, nMilliSecond);
 		if (nCount < 0)
 		{
 			if (errno != EINTR)
@@ -437,7 +437,7 @@ namespace FXNET
 			return NULL;
 		}
 
-		return &m_pEvents[nIndex];
+		return &this->m_pEvents[nIndex];
 	}
 #endif // _WIN32
 
@@ -458,7 +458,7 @@ namespace FXNET
 				IOOperationBase* pOp = (IOOperationBase*)(OVERLAPPED*)(pstPerIoData);
 				if (int dwError = (*pOp)(*poSock, dwByteTransferred, pOStream))
 				{
-					DeregisterIO(poSock->NativeSocket(), pOStream);
+					this->DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
 				}
 			}
@@ -500,12 +500,12 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_INFO) << poSock->NativeSocket() << " GetQueuedCompletionStatus FALSE " << dwError
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-			DeregisterIO(poSock->NativeSocket(), pOStream);
+			this->DeregisterIO(poSock->NativeSocket(), pOStream);
 			poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
 		}
 #else
 
-		int nCount = WaitEvents(dwTimeOut);
+		int nCount = this->WaitEvents(dwTimeOut);
 		if (nCount < 0)
 		{
 			return false;
@@ -513,7 +513,7 @@ namespace FXNET
 
 		for (int i = 0; i < nCount; i++)
 		{
-			epoll_event* pEvent = GetEvent(i);
+			epoll_event* pEvent = this->GetEvent(i);
 			if (NULL == pEvent)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "get event error "
@@ -533,11 +533,11 @@ namespace FXNET
 				{
 					std::vector<IOEventBase*> vecTmp;
 					unsigned long long lPoint;
-					int n = read(m_hEvent, &lPoint, sizeof(lPoint));
+					int n = read(this->m_hEvent, &lPoint, sizeof(lPoint));
 					if (sizeof(lPoint) == n)
 					{
-						CLockImp oImp(m_lockEventLock);
-						vecTmp.swap(m_vecIOEvent);
+						CLockImp oImp(this->m_lockEventLock);
+						vecTmp.swap(this->m_vecIOEvent);
 						//(*(IOEventBase*)((void*)lPoint))(pOStream);
 					}
 					for (std::vector<IOEventBase*>::iterator it = vecTmp.begin(); it != vecTmp.end(); ++it)
@@ -559,7 +559,7 @@ namespace FXNET
 			{
 				if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
 				{
-					DeregisterIO(poSock->NativeSocket(), pOStream);
+					this->DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					continue;
 				}
@@ -568,7 +568,7 @@ namespace FXNET
 			{
 				if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
 				{
-					DeregisterIO(poSock->NativeSocket(), pOStream);
+					this->DeregisterIO(poSock->NativeSocket(), pOStream);
 					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
 					continue;
 				}

@@ -28,12 +28,12 @@ namespace FXNET
 	public:
 		FxThreadHandler(IFxThread* pThread, bool bNeedWaitfor)
 		{
-			m_dwThreadId = 0;
-			m_bIsStop = true;
-			m_bNeedWaitfor = bNeedWaitfor;
-			m_pThread = pThread;
+			this->m_dwThreadId = 0;
+			this->m_bIsStop = true;
+			this->m_bNeedWaitfor = bNeedWaitfor;
+			this->m_pThread = pThread;
 #ifdef _WIN32
-			m_hHandle = INVALID_HANDLE_VALUE;
+			this->m_hHandle = INVALID_HANDLE_VALUE;
 #endif // _WIN32
 		}
 
@@ -44,62 +44,62 @@ namespace FXNET
 #endif // _WIN32
 			{
 				unsigned int dwErrCode = 0;
-				Kill(dwErrCode);
+				this->Kill(dwErrCode);
 			}
 		}
 
 	public:
 		inline virtual void Stop(void)
 		{
-			if (NULL != m_pThread)
+			if (NULL != this->m_pThread)
 			{
-				m_pThread->Stop();
+				this->m_pThread->Stop();
 			}
 		}
 
 		inline virtual bool Kill(unsigned int dwExitCode)
 		{
 #ifdef _WIN32
-			if (m_hHandle == INVALID_HANDLE_VALUE)
+			if (this->m_hHandle == INVALID_HANDLE_VALUE)
 			{
 				return false;
 			}
 
-			if (TerminateThread(m_hHandle, dwExitCode))
+			if (this->TerminateThread(this->m_hHandle, dwExitCode))
 			{
 				CloseHandle(m_hHandle);
-				m_hHandle = INVALID_HANDLE_VALUE;
+				this->m_hHandle = INVALID_HANDLE_VALUE;
 				return true;
 			}
 			return false;
 #else
-			pthread_cancel(m_dwThreadId);
+			pthread_cancel(this->m_dwThreadId);
 			return false;
 #endif // _WIN32
 		}
 
 		inline virtual bool WaitFor(unsigned int dwWaitTime = 0xffffffff)
 		{
-			if (!m_bNeedWaitfor)
+			if (!this->m_bNeedWaitfor)
 			{
 				return false;
 			}
 #ifdef _WIN32
-			if (INVALID_HANDLE_VALUE == m_hHandle)
+			if (INVALID_HANDLE_VALUE == this->m_hHandle)
 			{
 				return false;
 			}
-			DWORD dwRet = WaitForSingleObject(m_hHandle, dwWaitTime);
-			CloseHandle(m_hHandle);
-			m_hHandle = INVALID_HANDLE_VALUE;
-			m_bIsStop = true;
+			DWORD dwRet = WaitForSingleObject(this->m_hHandle, dwWaitTime);
+			CloseHandle(this->m_hHandle);
+			this->m_hHandle = INVALID_HANDLE_VALUE;
+			this->m_bIsStop = true;
 
 			if (WAIT_OBJECT_0 == dwRet)
 			{
 				return true;
 			}
 #else
-			pthread_join(m_dwThreadId, NULL);
+			pthread_join(this->m_dwThreadId, NULL);
 			return true;
 #endif // _WIN32
 			return false;
@@ -111,23 +111,23 @@ namespace FXNET
 		}
 		inline virtual unsigned int GetThreadId(void)
 		{
-			return m_dwThreadId;
+			return this->m_dwThreadId;
 		}
 		inline virtual IFxThread* GetThread(void)
 		{
-			return m_pThread;
+			return this->m_pThread;
 		}
 
 		inline bool Start()
 		{
 #ifdef _WIN32
-			m_hHandle = (HANDLE)_beginthreadex(0, 0, __StaticThreadFunc, this, 0, &m_dwThreadId);
-			if (m_hHandle == NULL)
+			this->m_hHandle = (HANDLE)_beginthreadex(0, 0, __StaticThreadFunc, this, 0, &this->m_dwThreadId);
+			if (this->m_hHandle == NULL)
 			{
 				return false;
 			}
 #else
-			if (0 != pthread_create(&m_dwThreadId, NULL, (void*
+			if (0 != pthread_create(&this->m_dwThreadId, NULL, (void*
 				(*)(void*))__StaticThreadFunc, this))
 			{
 				return false;

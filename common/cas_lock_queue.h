@@ -51,11 +51,11 @@ namespace FXNET
 	{
 		for (unsigned int i = 0; i < Size; ++i)
 		{
-			m_oElements[i].m_pNext = m_oElements + i;
-			m_oElements[i].m_dwUseCount = 0;
+			this->m_oElements[i].m_pNext = this->m_oElements + i;
+			this->m_oElements[i].m_dwUseCount = 0;
 		}
-		m_oElements[Size - 1].m_pNext = NULL;
-		m_pFreeNode = m_oElements;
+		this->m_oElements[Size - 1].m_pNext = NULL;
+		this->m_pFreeNode = this->m_oElements;
 
 		return *this;
 	}
@@ -63,18 +63,18 @@ namespace FXNET
 	template<typename T, unsigned int Size>
 	inline T* CCasLockQueue<T, Size>::Allocate()
 	{
-		if (!m_pFreeNode)
+		if (!this->m_pFreeNode)
 		{
 			return NULL;
 		}
 		CLockImp oLockImp(m_oLock);
-		if (!m_pFreeNode)
+		if (!this->m_pFreeNode)
 		{
 			return NULL;
 		}
 
-		Element* pElement = m_pFreeNode;
-		m_pFreeNode = m_pFreeNode->m_pNext;
+		Element* pElement = this->m_pFreeNode;
+		this->m_pFreeNode = this->m_pFreeNode->m_pNext;
 		pElement->m_pNext = NULL;
 
 #ifdef _DEBUG
@@ -99,8 +99,8 @@ namespace FXNET
 		}
 		--pElement->m_dwUseCount;
 #endif // DEBUG
-		pElement->m_pNext = m_pFreeNode;
-		m_pFreeNode = pElement;
+		pElement->m_pNext = this->m_pFreeNode;
+		this->m_pFreeNode = pElement;
 	}
 };
 

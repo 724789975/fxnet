@@ -42,7 +42,7 @@ namespace FXNET
 
 #ifdef _WIN32
 		//SOCKET hSock = m_hSocket;
-		::setsockopt(m_hSocket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT
+		::setsockopt(this->m_hSocket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT
 			, (char*)&(refListenerSocket.NativeSocket()), sizeof(refListenerSocket.NativeSocket()));
 
 		sockaddr_in* pstRemoteAddr = NULL;
@@ -85,13 +85,13 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSocket << ", Set keep alive error" 
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-			macro_closesocket(m_hSocket);
+			macro_closesocket(this->m_hSocket);
 			refListenerSocket.PostAccept(pOStream);
 			return dwError;
 		}
 
 		// send back
-		refListenerSocket.OnClientConnected(m_hSocket, *pstRemoteAddr, pOStream);
+		refListenerSocket.OnClientConnected(this->m_hSocket, *pstRemoteAddr, pOStream);
 
 		refListenerSocket.PostAccept(pOStream);
 #else
@@ -144,7 +144,7 @@ namespace FXNET
 
 	int CTcpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
 	{
-		sockaddr_in& refLocalAddr = GetLocalAddr();
+		sockaddr_in& refLocalAddr = this->GetLocalAddr();
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
 		refLocalAddr.sin_family = AF_INET;
 
@@ -156,13 +156,13 @@ namespace FXNET
 
 		// 创建socket
 #ifdef _WIN32
-		NativeSocket() = WSASocket(AF_INET
+		this->NativeSocket() = WSASocket(AF_INET
 			, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
-		NativeSocket() = socket(AF_INET, SOCK_STREAM, 0);
+		this->NativeSocket() = socket(AF_INET, SOCK_STREAM, 0);
 #endif // _WIN32
 
-		if (NativeSocket() == -1)
+		if (this->NativeSocket() == -1)
 		{
 #ifdef _WIN32
 			dwError = WSAGetLastError();
@@ -177,9 +177,9 @@ namespace FXNET
 
 #ifdef _WIN32
 		unsigned long ul = 1;
-		if (SOCKET_ERROR == ioctlsocket(NativeSocket(), FIONBIO, (unsigned long*)&ul))
+		if (SOCKET_ERROR == ioctlsocket(this->NativeSocket(), FIONBIO, (unsigned long*)&ul))
 #else
-		if (fcntl(NativeSocket(), F_SETFL, fcntl(NativeSocket(), F_GETFL) | O_NONBLOCK))
+		if (fcntl(this->NativeSocket(), F_SETFL, fcntl(this->NativeSocket(), F_GETFL) | O_NONBLOCK))
 #endif // _WIN32
 		{
 #ifdef _WIN32
@@ -187,8 +187,8 @@ namespace FXNET
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set nonblock failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -196,11 +196,11 @@ namespace FXNET
 		}
 
 #ifndef _WIN32
-		if (fcntl(NativeSocket(), F_SETFD, FD_CLOEXEC))
+		if (fcntl(this->NativeSocket(), F_SETFD, FD_CLOEXEC))
 		{
 			dwError = errno;
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
 				<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -210,80 +210,80 @@ namespace FXNET
 
 		// 地址重用
 		int nReuse = 1;
-		if (setsockopt(NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&nReuse, sizeof(nReuse)))
+		if (setsockopt(this->NativeSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&nReuse, sizeof(nReuse)))
 		{
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 
 		// bind
-		if (bind(NativeSocket(), (sockaddr*)&refLocalAddr, sizeof(refLocalAddr)))
+		if (bind(this->NativeSocket(), (sockaddr*)&refLocalAddr, sizeof(refLocalAddr)))
 		{
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else // _WIN32
 			dwError = errno;
 #endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 					<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
 					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 
-		if (listen(NativeSocket(), 128) < 0)
+		if (listen(this->NativeSocket(), 128) < 0)
 		{
 #ifdef _WIN32
 			dwError = WSAGetLastError();
 #else
 			dwError = errno;
 #endif // _WIN32
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " listen failed on (" << inet_ntoa(refLocalAddr.sin_addr)
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " listen failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(refLocalAddr.sin_addr)
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(refLocalAddr.sin_addr)
 			<< ", port:" << (int)ntohs(refLocalAddr.sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 		sockaddr_in addr;
 		socklen_t sock_len = sizeof(addr);
-		getsockname(NativeSocket(), (sockaddr*)&addr, &sock_len);
+		getsockname(this->NativeSocket(), (sockaddr*)&addr, &sock_len);
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
 			<< ", port:" << (int)ntohs(addr.sin_port)
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 #ifdef _WIN32
-		if (dwError = FxIoModule::Instance()->RegisterIO(NativeSocket(), this, pOStream))
+		if (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), this, pOStream))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return dwError;
 		}
 #else
 
-		if (0 != (dwError = FxIoModule::Instance()->RegisterIO(NativeSocket(), EPOLLIN, this, pOStream)))
+		if (0 != (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), EPOLLIN, this, pOStream)))
 		{
-			macro_closesocket(NativeSocket());
-			NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
@@ -292,9 +292,9 @@ namespace FXNET
 #endif // _WIN32
 
 #ifdef _WIN32
-		InitAcceptEx(pOStream);
+		this->InitAcceptEx(pOStream);
 
-		dwError = PostAccept(pOStream);
+		dwError = this->PostAccept(pOStream);
 #endif // _WIN32
 
 		return dwError;
@@ -439,11 +439,11 @@ namespace FXNET
 		}
 
 
-		IOAcceptOperation& refOperation = NewReadOperation();
+		IOAcceptOperation& refOperation = this->NewReadOperation();
 		refOperation.m_hSocket = hNewSock;
 
 		DWORD wLength = 0;
-		if (!m_lpfnAcceptEx( NativeSocket()
+		if (!m_lpfnAcceptEx( this->NativeSocket()
 			, hNewSock
 			, refOperation.m_stWsaBuff.buf
 			, 0
@@ -470,20 +470,20 @@ namespace FXNET
 
 		GUID m_GuidAcceptEx = WSAID_ACCEPTEX;
 
-		if (SOCKET_ERROR == ::WSAIoctl(NativeSocket()
+		if (SOCKET_ERROR == ::WSAIoctl(this->NativeSocket()
 			, SIO_GET_EXTENSION_FUNCTION_POINTER
-			, &m_GuidAcceptEx
-			, sizeof(m_GuidAcceptEx)
-			, &m_lpfnAcceptEx
+			, &this->m_GuidAcceptEx
+			, sizeof(this->m_GuidAcceptEx)
+			, &this->m_lpfnAcceptEx
 			, sizeof(LPFN_ACCEPTEX)
 			, &dwbytes
 			, NULL
 			, NULL))
 		{
 			int dwError = WSAGetLastError();
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			macro_closesocket(NativeSocket());
+			macro_closesocket(this->NativeSocket());
 			return dwError;
 		}
 
@@ -493,18 +493,18 @@ namespace FXNET
 
 		if (SOCKET_ERROR == ::WSAIoctl(NativeSocket()
 			, SIO_GET_EXTENSION_FUNCTION_POINTER
-			, &m_GuidGetAcceptExSockaddrs
-			, sizeof(m_GuidGetAcceptExSockaddrs)
-			, &m_lpfnGetAcceptExSockaddrs
+			, &this->m_GuidGetAcceptExSockaddrs
+			, sizeof(this->m_GuidGetAcceptExSockaddrs)
+			, &this->m_lpfnGetAcceptExSockaddrs
 			, sizeof(LPFN_GETACCEPTEXSOCKADDRS)
 			, &dwbytes
 			, NULL
 			, NULL))
 		{
 			int dwError = WSAGetLastError();
-			LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
-			macro_closesocket(NativeSocket());
+			macro_closesocket(this->NativeSocket());
 			return dwError;
 		}
 
@@ -513,11 +513,6 @@ namespace FXNET
 
 #else
 #endif // _WIN32
-
-	int CTcpListener::OnAccept(std::ostream* pOStream)
-	{
-		return 0;
-	}
 
 
 };
