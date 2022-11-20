@@ -1,6 +1,6 @@
-﻿#include "include/iothread.h"
-#include "include/error_code.h"
-#include "include/log_utility.h"
+﻿#include "../include/iothread.h"
+#include "../include/error_code.h"
+#include "../include/log_utility.h"
 #include <errno.h>
 #include <fcntl.h>
 
@@ -356,7 +356,7 @@ namespace FXNET
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << "DeregisterIO : " << hSock
 			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 #ifdef _WIN32
-		this->CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
+		CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
 		//CancelIo((ISocketBase::NativeHandleType)hSock);
 #else
 		if (this->m_hEpoll < 0)

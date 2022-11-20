@@ -1,7 +1,7 @@
 #ifndef __TCP_CONNECTOR_H__
 #define __TCP_CONNECTOR_H__
 
-#include "include/connector_socket.h"
+#include "../include/connector_socket.h"
 #include "buff_contral.h"
 
 

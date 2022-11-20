@@ -65,7 +65,7 @@ namespace FXNET
 				return false;
 			}
 
-			if (this->TerminateThread(this->m_hHandle, dwExitCode))
+			if (TerminateThread(this->m_hHandle, dwExitCode))
 			{
 				CloseHandle(m_hHandle);
 				this->m_hHandle = INVALID_HANDLE_VALUE;

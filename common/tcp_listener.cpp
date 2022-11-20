@@ -1,7 +1,7 @@
 #include "tcp_listener.h"
-#include "include/iothread.h"
+#include "../include/iothread.h"
 #include "tcp_connector.h"
-#include "include/log_utility.h"
+#include "../include/log_utility.h"
 #include <cstdlib>
 
 #ifdef _WIN32
@@ -468,12 +468,12 @@ namespace FXNET
 	{
 		DWORD dwbytes = 0;
 
-		GUID m_GuidAcceptEx = WSAID_ACCEPTEX;
+		GUID guidGuidAcceptEx = WSAID_ACCEPTEX;
 
 		if (SOCKET_ERROR == ::WSAIoctl(this->NativeSocket()
 			, SIO_GET_EXTENSION_FUNCTION_POINTER
-			, &this->m_GuidAcceptEx
-			, sizeof(this->m_GuidAcceptEx)
+			, &guidGuidAcceptEx
+			, sizeof(guidGuidAcceptEx)
 			, &this->m_lpfnAcceptEx
 			, sizeof(LPFN_ACCEPTEX)
 			, &dwbytes
@@ -487,14 +487,14 @@ namespace FXNET
 			return dwError;
 		}
 
-		GUID m_GuidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
+		GUID guidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
 
 		dwbytes = 0;
 
 		if (SOCKET_ERROR == ::WSAIoctl(NativeSocket()
 			, SIO_GET_EXTENSION_FUNCTION_POINTER
-			, &this->m_GuidGetAcceptExSockaddrs
-			, sizeof(this->m_GuidGetAcceptExSockaddrs)
+			, &guidGetAcceptExSockaddrs
+			, sizeof(guidGetAcceptExSockaddrs)
 			, &this->m_lpfnGetAcceptExSockaddrs
 			, sizeof(LPFN_GETACCEPTEXSOCKADDRS)
 			, &dwbytes

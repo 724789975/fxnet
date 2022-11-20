@@ -1,10 +1,10 @@
 #ifndef __TCP_LISTENER_H__
 #define __TCP_LISTENER_H__
 
-#include "include/sliding_window_def.h"
+#include "../include/sliding_window_def.h"
 #include "listen_socket.h"
 #include "cas_lock_queue.h"
-#include "include/i_session.h"
+#include "../include/i_session.h"
 
 #include <sstream>
 
