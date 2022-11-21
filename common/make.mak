@@ -21,7 +21,7 @@ DIR_OUT = ..\\$(PLATFORM_DIR)RELEASE\\
 OBJ_OUT = .\\$(PLATFORM_DIR)RELEASE
 !ENDIF
 
-CFLAGS = $(CFLAGS) /Fp"$(DIR_OUT)\$(TARGET).pch" /Fd"$(OBJ_OUT)\$(TARGET)_nmake.pdb"
+CFLAGS = $(CFLAGS) /Fd"$(OBJ_OUT)\$(TARGET)_nmake.pdb" /Fp"$(DIR_OUT)\$(TARGET).pch"
 
 EXECUTABLE_NAME = $(TARGET).exe
 STATIC_LIB_NAME = $(TARGET).lib
@@ -31,9 +31,19 @@ DIR_INCLUDE = \
         
 LK = link
 LKFLAGS = /lib /NOLOGO
- 
-LKFLAGS = $(LKFLAGS) /OUT:"$(DIR_OUT)\$(STATIC_LIB_NAME)"
 
+!IF "$(DEBUG)" == "0"
+LKFLAGS = $(LKFLAGS) /OPT:REF /OPT:ICF
+!ELSE
+LKFLAGS = $(LKFLAGS)
+!ENDIF
+
+LKFLAGS = $(LKFLAGS) /PDB:"$(DIR_OUT)$(TARGET).lib.pdb" /ManifestFile:"$(OBJ_OUT)\$(STATIC_LIB_NAME).intermediate.manifest" /OUT:"$(DIR_OUT)$(STATIC_LIB_NAME)" /MANIFEST /NXCOMPAT /INCREMENTAL /SUBSYSTEM:WINDOWS /MANIFESTUAC:NO /TLBID:1
+
+!IFNDEF WIN32
+LKFLAGS = $(LKFLAGS) /MACHINE:X64
+!ENDIF
+ 
 # build application
 target: $(STATIC_LIB_NAME)
 
@@ -43,15 +53,18 @@ $(STATIC_LIB_NAME) : makeobj
 	$(LK) $(LKFLAGS) $(OBJ_OUT)\*.obj
 
 # cl ojbs
-makeobj:
+makeobj: $(OBJ_OUT)
 	@for %%f in (*.cpp) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
 	@for %%f in (*.c) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
 
+$(OBJ_OUT):
+	@if not exist $(OBJ_OUT) mkdir $(OBJ_OUT)
+
 # delete output directories
 clean:
- @if exist $(OBJ_OUT) del $(OBJ_OUT)\*.obj
- @if exist $(DIR_OUT) del $(DIR_OUT)\$(STATIC_LIB_NAME)
- @if exist $(OBJ_OUT) del $(OBJ_OUT)\$(TARGET).pdb
+	if exist $(OBJ_OUT) del $(OBJ_OUT)\*.obj
+	if exist $(DIR_OUT) del $(DIR_OUT)\$(STATIC_LIB_NAME)
+	if exist $(OBJ_OUT) del $(OBJ_OUT)\$(TARGET)_nmake.pdb
 
 # create directories and build application
 all: clean target
