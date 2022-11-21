@@ -172,7 +172,7 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 	// sz.resize(1024 * 8);
 
 	Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
-	this->m_mapSendTimes[0] = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+	this->m_mapSendTimes[qwSend] = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
 
 	this->m_dConnectedTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
 	this->m_dwPacketLength = 0;
