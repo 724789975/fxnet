@@ -165,7 +165,7 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 	long long qwSend = 0;
-	qwSend |= (this->GetSocket()->GetLocalAddr().sin_addr.S_un.S_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
+	qwSend |= (this->GetSocket()->GetLocalAddr().sin_addr.s_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
 	char szBuff[512] = {0};
 	sprintf(szBuff, "%d", qwSend);
 	std::string sz(szBuff, 400);
