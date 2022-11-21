@@ -148,7 +148,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 
 		char szBuff[512] = {0};
 		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
-		sprintf(szBuff, "%d", qwSend);
+		sprintf(szBuff, "%lld", qwSend);
 		std::string szSend(szBuff, 400);
 
 		this->m_mapSendTimes.erase(qwRecv);
@@ -164,10 +164,9 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 	LOG(pOStream, ELOG_LEVEL_INFO) << GetSocket()->NativeSocket() << ", connected!!!"
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-	long long qwSend = 0;
-	qwSend |= (this->GetSocket()->GetLocalAddr().sin_addr.s_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
+	long long qwSend = (long long)(this->GetSocket()->GetLocalAddr().sin_addr.s_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
 	char szBuff[512] = {0};
-	sprintf(szBuff, "%d", qwSend);
+	sprintf(szBuff, "%lld", qwSend);
 	std::string sz(szBuff, 400);
 	// std::string sz;
 	// sz.resize(1024 * 8);
