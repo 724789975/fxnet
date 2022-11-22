@@ -53,12 +53,15 @@ $(STATIC_LIB_NAME) : makeobj
 	$(LK) $(LKFLAGS) $(OBJ_OUT)\*.obj
 
 # cl ojbs
-makeobj: $(OBJ_OUT)
+makeobj: $(OBJ_OUT) $(DIR_OUT)
 	@for %%f in (*.cpp) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
 	@for %%f in (*.c) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
 
 $(OBJ_OUT):
 	@if not exist $(OBJ_OUT) mkdir $(OBJ_OUT)
+
+$(DIR_OUT):
+	@if not exist $(DIR_OUT) mkdir $(DIR_OUT)
 
 # delete output directories
 clean:
