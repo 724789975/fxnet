@@ -153,7 +153,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 
 		this->m_mapSendTimes.erase(qwRecv);
 		this->m_mapSendTimes[qwSend] = dCurrentTime;
-		this->Send(szSend.c_str(), szSend.size(), pOStream);
+		this->Send(szSend.c_str(), (unsigned int)szSend.size(), pOStream);
 	}
 	
 	return *this;

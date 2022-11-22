@@ -430,7 +430,7 @@ namespace FXNET
 		this->GetSession()->GetSendBuff().PopData(GetSession()->GetSendBuff().GetSize());
 		//GetSession()->GetSendBuff().PopData(refIOWriteOperation.m_strData);
 		refIOWriteOperation.m_stWsaBuff.buf = &(*refIOWriteOperation.m_strData.begin());
-		refIOWriteOperation.m_stWsaBuff.len = refIOWriteOperation.m_strData.size();
+		refIOWriteOperation.m_stWsaBuff.len = (unsigned long)refIOWriteOperation.m_strData.size();
 
 		DWORD dwWriteLen = 0;
 		DWORD dwFlags = 0;
@@ -469,6 +469,9 @@ namespace FXNET
 
 	void CTcpConnector::OnConnected(std::ostream* pOStream)
 	{
+		socklen_t dwAddrLen = sizeof(this->GetLocalAddr());
+		getsockname(this->NativeSocket(), (sockaddr*)&this->GetLocalAddr(), &dwAddrLen);
+
 		LOG(pOStream, ELOG_LEVEL_INFO) << this->NativeSocket() << " ip:" << inet_ntoa(this->GetLocalAddr().sin_addr)
 			<< ", port:" << (int)ntohs(this->GetLocalAddr().sin_port)
 			<< " remote_ip:" << inet_ntoa(this->GetRemoteAddr().sin_addr)
@@ -533,9 +536,6 @@ namespace FXNET
 		l.l_onoff = 0;
 		l.l_linger = 0;
 		setsockopt(this->NativeSocket(), SOL_SOCKET, SO_LINGER, (const char*)&l, sizeof(l));
-
-		socklen_t dwAddrLen = sizeof(this->GetLocalAddr());
-		getsockname(hSock, (sockaddr*)&this->GetLocalAddr(), &dwAddrLen);
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket()
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";

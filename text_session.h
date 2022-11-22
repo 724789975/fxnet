@@ -82,7 +82,7 @@ protected:
 	double m_dConnectedTime;
 	int m_dwPacketLength;
 
-	std::map<int, double> m_mapSendTimes;
+	std::map<long long, double> m_mapSendTimes;
 	int m_dwRecvPackagetNum;
 	double m_dAllDelayTime;
 	double m_dCurrentDelay;

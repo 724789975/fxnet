@@ -1,7 +1,7 @@
 #define macros
 
 CC = cl
-CFLAGS = /c /analyze- /W3 /Zc:wchar_t /Gm- /Zc:inline /fp:precise /D"WIN32" /D"_LIB" /D"_CRT_SECURE_NO_DEPRECATE" /D"_CRT_NONSTDC_NO_DEPRECATE" /D"_MBCS" /errorReport:prompt /WX- /Zc:forScope /Gd /Oy- /FC /EHsc /nologo /diagnostics:classic
+CFLAGS = /c /analyze- /W3 /Zc:wchar_t /Gm- /Zc:inline /fp:precise /D"WIN32" /D"_LIB" /D"_CRT_SECURE_NO_DEPRECATE" /D"_CRT_NONSTDC_NO_DEPRECATE" /D"_WINSOCK_DEPRECATED_NO_WARNINGS" /D"_MBCS" /errorReport:prompt /WX- /Zc:forScope /Gd /Oy- /FC /EHsc /nologo /diagnostics:classic
 
 !IFDEF WIN32
 PLATFORM_DIR = ""
@@ -33,12 +33,12 @@ LK = link
 LKFLAGS = /lib /NOLOGO
 
 !IF "$(DEBUG)" == "0"
-LKFLAGS = $(LKFLAGS) /OPT:REF /OPT:ICF
+#LKFLAGS = $(LKFLAGS) /OPT:REF /OPT:ICF
 !ELSE
 LKFLAGS = $(LKFLAGS)
 !ENDIF
 
-LKFLAGS = $(LKFLAGS) /PDB:"$(DIR_OUT)$(TARGET).lib.pdb" /ManifestFile:"$(OBJ_OUT)\$(STATIC_LIB_NAME).intermediate.manifest" /OUT:"$(DIR_OUT)$(STATIC_LIB_NAME)" /MANIFEST /NXCOMPAT /INCREMENTAL /SUBSYSTEM:WINDOWS /MANIFESTUAC:NO /TLBID:1
+LKFLAGS = $(LKFLAGS) /OUT:"$(DIR_OUT)$(STATIC_LIB_NAME)" /INCREMENTAL /SUBSYSTEM:WINDOWS
 
 !IFNDEF WIN32
 LKFLAGS = $(LKFLAGS) /MACHINE:X64
