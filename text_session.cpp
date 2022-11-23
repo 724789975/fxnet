@@ -130,6 +130,10 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	if (this->m_mapSendTimes.end() == this->m_mapSendTimes.find(qwRecv))
 	{
 		this->Send(szData, dwLen, pOStream);
+		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+			<< ", " << this->m_opSock->NativeSocket()
+			<< ", seq: " << (qwRecv & 0xFFFF)
+			<< "\n";
 	}
 	else
 	{
