@@ -623,7 +623,11 @@ namespace FXNET
 				this->m_dSendEmptyDataTime = dTime + dTempFrequency;
 			}
 		}
-		else { this->m_dSendEmptyDataTime = dTime + this->m_dSendEmptyDataFrequency; }
+		else
+		{
+			this->m_dSendEmptyDataTime = dTime + this->m_dSendEmptyDataFrequency;
+			m_dwSendEmptyDataFactor = 0;
+		}
 
 		//¿ªÊ¼·¢ËÍ
 		for (unsigned char i = this->m_oSendWindow.m_btBegin; i != this->m_oSendWindow.m_btEnd; i++)
