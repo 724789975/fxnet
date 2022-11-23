@@ -252,15 +252,21 @@ namespace FXNET
 		/**
 		 * @brief 
 		 * 
-		 * 下次发送同步包时间
+		 * 下次发送空包时间
 		 */
-		double m_dSendDataTime;
+		double m_dSendEmptyDataTime;
 		/**
 		 * @brief 
 		 * 
-		 * 发送同步包频率
+		 * 发送空包频率
 		 */
-		double m_dSendDataFrequency;
+		double m_dSendEmptyDataFrequency;
+		/**
+		 * @brief 
+		 * 
+		 * 发送空包因子 等下一次非空包时 置零
+		 */
+		int m_dwSendEmptyDataFactor;
 
 		/**
 		 * @brief 
@@ -340,7 +346,8 @@ namespace FXNET
 		, m_dwNumBytesReceived(0)
 		, m_dSendTime(0.)
 		, m_dSendFrequency(0.02)
-		, m_dSendDataFrequency(1.)
+		, m_dSendEmptyDataFrequency(0.1)
+		, m_dwSendEmptyDataFactor(0)
 		, m_dwNumPacketsSend(0)
 		, m_dwNumPacketsRetry(0)
 		, m_bConnected(false)
@@ -367,7 +374,7 @@ namespace FXNET
 		this->m_dwAckTimeoutRetry = 1;
 		this->m_dwAckSameCount = 0;
 		this->m_bQuickRetry = false;
-		this->m_dSendDataTime = 0;
+		this->m_dSendEmptyDataTime = 0;
 
 		this->m_btAckLast = 0;
 		this->m_btSynLast = 0;
@@ -579,7 +586,7 @@ namespace FXNET
 		//没有数据发送 那么创建一个空的 用来同步窗口数据
 		if (this->m_oSendWindow.m_btBegin == this->m_oSendWindow.m_btEnd)
 		{
-			if (dTime >= this->m_dSendDataTime)
+			if (dTime >= this->m_dSendEmptyDataTime)
 			{
 				if (this->m_oSendWindow.m_btFreeBufferId < this->m_oSendWindow.window_size)
 				{
@@ -605,9 +612,18 @@ namespace FXNET
 					// 添加到发送窗口
 					this->m_oSendWindow.Add2SendWindow(btId, btBufferId, sizeof(oPacket), dTime, this->m_dRetryTime);
 				}
+				m_dwSendEmptyDataFactor = 1 << m_dwSendEmptyDataFactor;
+
+				double dTempFrequency = this->m_dSendEmptyDataFrequency * (1 << m_dwSendEmptyDataFactor);
+				if (1. < dTempFrequency)
+				{
+					dTempFrequency = 1.;
+				}
+
+				this->m_dSendEmptyDataTime = dTime + dTempFrequency;
 			}
 		}
-		else { this->m_dSendDataTime = dTime + this->m_dSendDataFrequency; }
+		else { this->m_dSendEmptyDataTime = dTime + this->m_dSendEmptyDataFrequency; }
 
 		//开始发送
 		for (unsigned char i = this->m_oSendWindow.m_btBegin; i != this->m_oSendWindow.m_btEnd; i++)
@@ -654,7 +670,7 @@ namespace FXNET
 				if (dTime != this->m_oSendWindow.m_darrSeqTime[btId]) { this->m_dwNumPacketsRetry++; }
 
 				this->m_dSendTime = dTime + this->m_dSendFrequency;
-				this->m_dSendDataTime = dTime + this->m_dSendDataFrequency;
+				// this->m_dSendEmptyDataTime = dTime + this->m_dSendEmptyDataFrequency;
 				this->m_bSendAck = false;
 
 				this->m_oSendWindow.m_dwarrSeqRetryCount[btId]++;
