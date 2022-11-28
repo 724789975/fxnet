@@ -68,57 +68,53 @@ namespace FXNET
 
 	void FxIoModule::ThrdFunc()
 	{
-		SetTimeFunc(_FxGetCurrentTime);
-
 		std::ostream& refOStream = std::cout;
+		std::cout.flags(std::cout.fixed);
 		refOStream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start, "
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
 		while (!m_bStop)
 		{
-#ifdef _WIN32
-			SYSTEMTIME st;
-			GetSystemTime(&st);
-			this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
-#else
-			static struct timeval tv;
-			gettimeofday(&tv, NULL);
-			this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
-#endif
-
-			std::cout.flags(std::cout.fixed);
-			std::ostream* pOStream = &std::cout;
-			//pOStream = NULL;
-
-			//LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
-
-			if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= 0.02)
-			{
-				this->m_dLoatUpdateTime = this->m_dCurrentTime;
-				for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = this->m_mapSockets.begin();
-					it != this->m_mapSockets.end();)
-				{
-					std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
-					ISocketBase* pISock = it_tmp->second;
-					if (int dwError = pISock->Update(this->m_dCurrentTime, pOStream))
-					{
-						this->DeregisterIO(pISock->NativeSocket(), pOStream);
-						pISock->NewErrorOperation(dwError)(*pISock, 0, pOStream);
-					}
-				}
-			}
-			if (!this->DealData(pOStream))
-			{
-				break;
-			}
-
-#ifdef _WIN32
-			//Sleep(1);
-#else
-			//usleep(1000);
-#endif // _WIN32
+			this->DealFunction(&refOStream);
 		}
 		refOStream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
+	}
+
+	void FxIoModule::DealFunction(std::ostream* pOStream)
+	{
+#ifdef _WIN32
+		SYSTEMTIME st;
+		GetSystemTime(&st);
+		this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+#else
+		static struct timeval tv;
+		gettimeofday(&tv, NULL);
+		this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+#endif
+
+		//pOStream = NULL;
+
+		//LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
+
+		if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= 0.02)
+		{
+			this->m_dLoatUpdateTime = this->m_dCurrentTime;
+			for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = this->m_mapSockets.begin();
+				it != this->m_mapSockets.end();)
+			{
+				std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
+				ISocketBase* pISock = it_tmp->second;
+				if (int dwError = pISock->Update(this->m_dCurrentTime, pOStream))
+				{
+					this->DeregisterIO(pISock->NativeSocket(), pOStream);
+					pISock->NewErrorOperation(dwError)(*pISock, 0, pOStream);
+				}
+			}
+		}
+		if (!this->DealData(pOStream))
+		{
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "deal data error";
+		}
 	}
 
 	void FxIoModule::Stop()
@@ -134,11 +130,14 @@ namespace FXNET
 
 	bool FxIoModule::Start()
 	{
+#ifdef __SINGLE_THREAD__
+#else
 		FxCreateThreadHandler(this, true, this->m_poThrdHandler);
 		if (NULL == this->m_poThrdHandler)
 		{
 			return false;
 		}
+#endif	// !__SINGLE_THREAD__
 		return true;
 	}
 
@@ -153,6 +152,8 @@ namespace FXNET
 
 	bool FxIoModule::Init(std::ostream* pOStream)
 	{
+		SetTimeFunc(_FxGetCurrentTime);
+
 #ifdef _WIN32
 		// 初始化的时候 先获取下 创建完成端口 //
 		WSADATA wsaData;

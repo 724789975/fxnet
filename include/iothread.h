@@ -37,6 +37,12 @@ namespace FXNET
 		/**
 		 * @brief 
 		 * 
+		 * 处理函数 单线程 多线程都可调用
+		 */
+		void					DealFunction(std::ostream* pOStream);
+		/**
+		 * @brief 
+		 * 
 		 * 停止执行
 		 */
 		virtual void			Stop();
