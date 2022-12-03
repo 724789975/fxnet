@@ -1,6 +1,8 @@
 #ifndef __GetTime_H__
 #define __GetTime_H__
 
+#include "singleton.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #include <time.h>
@@ -10,6 +12,10 @@
 
 namespace UTILITY
 {
+	class TimeUtility : public TSingleton<TimeUtility>
+	{
+
+	};
 	static unsigned long long GetTimeUS( void )
 	{
 #ifdef _WIN32
