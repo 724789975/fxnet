@@ -7,20 +7,20 @@ class INetWorkStream
 {
 public:
 	enum { BUFF_SIZE = 64 * 1024 - 1, };
-	INetWorkStream() : m_wUseLen(0) {}
+	INetWorkStream() : m_dwUseLen(0) {}
 	virtual ~INetWorkStream() {}
 	unsigned char* GetData() { return m_btData; }
-	virtual unsigned short GetSize() { return m_wUseLen; }
-	unsigned short GetFreeSize() { return BUFF_SIZE - GetSize(); }
+	virtual unsigned int GetSize() { return m_dwUseLen; }
+	unsigned int GetFreeSize() { return BUFF_SIZE - GetSize(); }
 
-	void PopData(unsigned short wLen);
+	void PopData(unsigned int wLen);
 	virtual void PopData(std::string& refData) = 0;
-	void PushData(const char* szData, unsigned short wLen);
-	void PushData(unsigned short wLen);
+	void PushData(const char* szData, unsigned int wLen);
+	void PushData(unsigned int wLen);
 	virtual bool CheckPackage() = 0;
 protected:
 	unsigned char m_btData[BUFF_SIZE];
-	unsigned short m_wUseLen;
+	unsigned int m_dwUseLen;
 private:
 };
 
@@ -29,8 +29,8 @@ class TextWorkStream : public INetWorkStream
 public:
 	TextWorkStream() {}
 
-	TextWorkStream& WriteString(const char* szData, unsigned short wLen);
-	TextWorkStream& ReadString(const char* szData, unsigned short wLen);
+	TextWorkStream& WriteString(const char* szData, unsigned int dwLen);
+	TextWorkStream& ReadString(const char* szData, unsigned int dwLen);
 	TextWorkStream& ReadString(std::string& strBuff);
 	virtual void PopData(std::string& refData);
 
