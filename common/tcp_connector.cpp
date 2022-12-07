@@ -31,25 +31,23 @@ namespace FXNET
 		CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
 #ifdef _WIN32
 		refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
-		if (!refConnector.GetSession()->GetRecvBuff().CheckPackage())
+		while (refConnector.GetSession()->GetRecvBuff().CheckPackage())
 		{
-			refConnector.PostRecv(pOStream);
-			return 0;
+			std::string szData;
+			refConnector.GetSession()->GetRecvBuff().PopData(szData);
+
+			MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
+
+			if (NULL == pOperator)
+			{
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " failed " << CODE_ERROR_NET_PARSE_MESSAGE
+					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				return CODE_ERROR_NET_PARSE_MESSAGE;
+			}
+
+			FxIoModule::Instance()->PushMessageEvent(pOperator);
 		}
-
-		std::string szData;
-		refConnector.GetSession()->GetRecvBuff().PopData(szData);
-
-		MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
-
-		if (NULL == pOperator)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " failed " << CODE_ERROR_NET_PARSE_MESSAGE
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return CODE_ERROR_NET_PARSE_MESSAGE;
-		}
-
-		FxIoModule::Instance()->PushMessageEvent(pOperator);
+		
 		refConnector.PostRecv(pOStream);
 #else
 		if (!refConnector.m_bConnecting)
@@ -78,24 +76,23 @@ namespace FXNET
 			else
 			{
 				refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
-				if (!refConnector.GetSession()->GetRecvBuff().CheckPackage())
+				while (refConnector.GetSession()->GetRecvBuff().CheckPackage())
 				{
-					continue;
+					std::string szData;
+					refConnector.GetSession()->GetRecvBuff().PopData(szData);
+
+					MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
+
+					if (NULL == pOperator)
+					{
+						LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " failed " << CODE_ERROR_NET_PARSE_MESSAGE
+							<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+						return CODE_ERROR_NET_PARSE_MESSAGE;
+					}
+
+					FxIoModule::Instance()->PushMessageEvent(pOperator);
 				}
 
-				std::string szData;
-				refConnector.GetSession()->GetRecvBuff().PopData(szData);
-
-				MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
-
-				if (NULL == pOperator)
-				{
-					LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " failed " << CODE_ERROR_NET_PARSE_MESSAGE
-						<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-					return CODE_ERROR_NET_PARSE_MESSAGE;
-				}
-
-				FxIoModule::Instance()->PushMessageEvent(pOperator);
 				continue;
 			}
 		}

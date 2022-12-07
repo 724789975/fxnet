@@ -119,24 +119,23 @@ namespace FXNET
 		}
 
 		this->m_refUdpConnector.GetSession()->GetRecvBuff().PushData(szBuff, wSize);
-		if (!this->m_refUdpConnector.GetSession()->GetRecvBuff().CheckPackage())
+		while (this->m_refUdpConnector.GetSession()->GetRecvBuff().CheckPackage())
 		{
-			return 0;
+			std::string szData;
+			this->m_refUdpConnector.GetSession()->GetRecvBuff().PopData(szData);
+
+			MessageEventBase* pOperator = this->m_refUdpConnector.GetSession()->NewRecvMessageEvent(szData);
+
+			if (NULL == pOperator)
+			{
+				LOG(pOStream, ELOG_LEVEL_ERROR) << this->m_refUdpConnector.NativeSocket() << " UDPOnRecvOperator failed " << CODE_ERROR_NET_PARSE_MESSAGE
+					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+				return CODE_ERROR_NET_PARSE_MESSAGE;
+			}
+
+			FxIoModule::Instance()->PushMessageEvent(pOperator);
 		}
 
-		std::string szData;
-		this->m_refUdpConnector.GetSession()->GetRecvBuff().PopData(szData);
-
-		MessageEventBase* pOperator = this->m_refUdpConnector.GetSession()->NewRecvMessageEvent(szData);
-
-		if (NULL == pOperator)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << this->m_refUdpConnector.NativeSocket() << " UDPOnRecvOperator failed " << CODE_ERROR_NET_PARSE_MESSAGE
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return CODE_ERROR_NET_PARSE_MESSAGE;
-		}
-
-		FxIoModule::Instance()->PushMessageEvent(pOperator);
 		return 0;
 	}
 
