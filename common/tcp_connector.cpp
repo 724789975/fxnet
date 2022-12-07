@@ -443,10 +443,10 @@ namespace FXNET
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << NativeSocket() << ", " << "PostSend failed." << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";;
-				delete& refIOWriteOperation;
+				// delete& refIOWriteOperation;
+				return dwError;
 			}
 
-			return dwError;
 		}
 
 		return 0;

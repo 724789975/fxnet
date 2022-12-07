@@ -67,6 +67,8 @@ bool TextWorkStream::CheckPackage()
 		return false;
 	}
 
+	assert(dwReadLen <= INetWorkStream::BUFF_SIZE);
+
 	if (dwReadLen > this->GetSize())
 	{
 		return false;
