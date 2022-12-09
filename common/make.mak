@@ -1,7 +1,7 @@
 #define macros
 
 CC = cl
-CFLAGS = /c /analyze- /W3 /Zc:wchar_t /Gm- /Zc:inline /fp:precise /D"WIN32" /D"_LIB" /D"_CRT_SECURE_NO_DEPRECATE" /D"_CRT_NONSTDC_NO_DEPRECATE" /D"_WINSOCK_DEPRECATED_NO_WARNINGS" /D"__SINGLE_THREAD__" /D"_MBCS" /errorReport:prompt /WX- /Zc:forScope /Gd /Oy- /FC /EHsc /nologo /diagnostics:classic
+CFLAGS = /c /analyze- /W3 /Zc:wchar_t /Gm- /Zc:inline /fp:precise /D"WIN32" /D"_LIB" /D"_CRT_SECURE_NO_DEPRECATE" /D"_CRT_NONSTDC_NO_DEPRECATE" /D"_WINSOCK_DEPRECATED_NO_WARNINGS" /D"_MBCS" /errorReport:prompt /WX- /Zc:forScope /Gd /Oy- /FC /EHsc /nologo /diagnostics:classic
 
 !IFDEF WIN32
 PLATFORM_DIR = ""
@@ -19,6 +19,10 @@ OBJ_OUT = .\\$(PLATFORM_DIR)DEBUG
 CFLAGS = $(CFLAGS) /D"NDEBUG" /GS /GL /Gy /Zi /Oi /O2 /MT
 DIR_OUT = ..\\$(PLATFORM_DIR)RELEASE\\
 OBJ_OUT = .\\$(PLATFORM_DIR)RELEASE
+!ENDIF
+
+!IF "$(SINGLE_THREAD)" == "1"
+CFLAGS = $(CFLAGS) /D"__SINGLE_THREAD__"
 !ENDIF
 
 CFLAGS = $(CFLAGS) /Fd"$(OBJ_OUT)\$(TARGET)_nmake.pdb" /Fp"$(DIR_OUT)\$(TARGET).pch"
