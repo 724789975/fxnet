@@ -20,6 +20,11 @@ C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX -fpic -ldl
 CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX -fpic -ldl
 endif
 
+ifeq ($(SINGLE_THREAD),1)
+C_FLAGS			+= -D__SINGLE_THREAD__
+CXX_FLAGS		+= -D__SINGLE_THREAD__
+endif
+
 ifeq ($(ASAN),1)
 C_FLAGS		+= -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold
 CXX_FLAGS	+= -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold

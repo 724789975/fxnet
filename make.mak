@@ -1,7 +1,7 @@
 #define macros
 
 CC = cl
-CFLAGS = /c /analyze- /W3 /Zc:wchar_t /Gm- /Zc:inline /fp:precise /D "WIN32" /D "_CONSOLE" /D"__SINGLE_THREAD__" /errorReport:prompt /WX- /Zc:forScope /Gd /FC /EHsc /nologo /diagnostics:classic
+CFLAGS = /c /analyze- /W3 /Zc:wchar_t /Gm- /Zc:inline /fp:precise /D "WIN32" /D "_CONSOLE" /errorReport:prompt /WX- /Zc:forScope /Gd /FC /EHsc /nologo /diagnostics:classic
 
 TARGET = fxnet
 EXECUTABLE_NAME = $(TARGET).exe
@@ -20,6 +20,10 @@ CFLAGS = $(CFLAGS) /JMC /GS /ZI /Od /sdl- /D"_DEBUG" /D"_MBCS" /RTC1 /Oy- /MTd
 CFLAGS = $(CFLAGS) /GS /GL /Gy /Zi /O2 /sdl- /D"NDEBUG" /Oy- /Oi /MT
 DIR_OUT = .\\$(PLATFORM_DIR)Release\\
 OBJ_OUT = .\\$(PLATFORM_DIR)Release
+!ENDIF
+
+!IF "$(SINGLE_THREAD)" == "1"
+CFLAGS = $(CFLAGS) /D"__SINGLE_THREAD__"
 !ENDIF
 
 CFLAGS = $(CFLAGS) /Fp"$(DIR_OUT)\$(TARGET).pch" /Fd"$(OBJ_OUT)\$(TARGET)_nmake.pdb"

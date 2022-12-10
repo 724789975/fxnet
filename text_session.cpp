@@ -8,6 +8,8 @@
 #include "include/iothread.h"
 
 #include <string>
+#include <stdlib.h>
+#include <stdio.h>
 
 CTextSession::TextMessageEvent::TextMessageEvent(ISession* pSession, std::string& refData)
 	: m_pSession(pSession)
