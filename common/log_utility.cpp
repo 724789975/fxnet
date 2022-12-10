@@ -1,4 +1,5 @@
 #include "../include/log_utility.h"
+#include "../utility/time_utility.h"
 
 
 
@@ -25,10 +26,11 @@ TimeFunc GetTimeFunc()
 
 double GetNow()
 {
-	if (pTimeFunc)
-	{
-		return pTimeFunc();
-	}
+	// if (pTimeFunc)
+	// {
+	// 	return pTimeFunc();
+	// }
+	return UTILITY::TimeUtility::GetTimeUS() / 1000000.;
 	return 0.;
 }
 

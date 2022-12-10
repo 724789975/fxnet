@@ -191,6 +191,8 @@ namespace FXNET
 		}
 #endif // _WIN32
 
+		LOG(pOStream, ELOG_LEVEL_INFO) << pBuff + 7
+			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 		return 0;
 	}
 
@@ -223,6 +225,8 @@ namespace FXNET
 			return errno;
 		}
 #endif // _WIN32
+		LOG(pOStream, ELOG_LEVEL_INFO) << szBuff + 7
+			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 		return 0;
 	}
 
@@ -247,6 +251,9 @@ namespace FXNET
 			this->m_refUdpConnector.GetSession()->GetSendBuff().PopData(wLen);
 
 			FxIoModule::Instance()->PushMessageEvent(this->m_refUdpConnector.GetSession()->NewOnSendEvent(wLen));
+
+			LOG(pOStream, ELOG_LEVEL_INFO) << (char*)this->m_refUdpConnector.GetSession()->GetSendBuff().GetData() + 4
+				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
 		return wLen;

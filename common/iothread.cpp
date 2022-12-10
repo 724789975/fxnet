@@ -554,7 +554,7 @@ namespace FXNET
 				continue;
 			}
 
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name()
+			LOG(pOStream, ELOG_LEVEL_INFO) << poSock->NativeSocket() << ", " << pEvent->events << ", " << poSock->Name()
 				<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			if (pEvent->events & (EPOLLOUT | EPOLLERR | EPOLLHUP))
 			{
