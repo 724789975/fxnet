@@ -93,9 +93,19 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 			{
 				return;
 			}
+
+			LOG(pOStream, ELOG_LEVEL_INFO) << "\n";
+			LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+				<< ", " << this->m_opSock->NativeSocket()
+				<< ", " << m_szData
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
 			poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)this->m_szData.size());
 			poConnector->SendMessage(pOStream);
+			LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+				<< ", " << this->m_opSock->NativeSocket()
+				<< ", " << m_szData
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 		FXNET::ISocketBase* m_opSock;
 		std::string m_szData;
@@ -134,6 +144,14 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 			<< ", " << this->m_opSock->NativeSocket()
 			<< ", seq: " << (qwRecv & 0xFFFF)
 			<< "\n";
+		// for (size_t i = 0; i < 1000; i++)
+		// {
+		// 	this->Send(szData, dwLen, pOStream);
+		// 	LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+		// 		<< ", " << this->m_opSock->NativeSocket()
+		// 		<< ", seq: " << (qwRecv & 0xFFFF)
+		// 		<< "\n";
+		// }
 	}
 	else
 	{
@@ -143,12 +161,12 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 		this->m_dAllDelayTime += this->m_dCurrentDelay;
 		this->m_dAverageDelay = this->m_dAllDelayTime / this->m_dwRecvPackagetNum;
 
-		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-			<< ", " << this->m_opSock->NativeSocket()
-			<< ", current delay: " << this->m_dCurrentDelay << ", average: "
-			<< this->m_dAverageDelay
-			<< ", package num: " << this->m_dwRecvPackagetNum
-			<< "\n";
+		// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+		// 	<< ", " << this->m_opSock->NativeSocket()
+		// 	<< ", current delay: " << this->m_dCurrentDelay << ", average: "
+		// 	<< this->m_dAverageDelay
+		// 	<< ", package num: " << this->m_dwRecvPackagetNum
+		// 	<< "\n";
 
 		char szBuff[512] = {0};
 		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
@@ -158,6 +176,11 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 		this->m_mapSendTimes.erase(qwRecv);
 		this->m_mapSendTimes[qwSend] = dCurrentTime;
 		this->Send(szSend.c_str(), (unsigned int)szSend.size(), pOStream);
+
+		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+			<< ", " << this->m_opSock->NativeSocket()
+			<< ", " << szSend
+			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 	}
 	
 	return *this;

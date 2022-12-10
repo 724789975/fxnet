@@ -1,8 +1,6 @@
 #ifndef __GetTime_H__
 #define __GetTime_H__
 
-#include "singleton.h"
-
 #ifdef _WIN32
 #include <windows.h>
 #include <time.h>
@@ -12,9 +10,10 @@
 
 namespace UTILITY
 {
-	class TimeUtility : public TSingleton<TimeUtility>
+	class TimeUtility
 	{
-		unsigned long long GetTimeUS( void )
+	public:
+		static unsigned long long GetTimeUS( void )
 		{
 #ifdef _WIN32
 			// 从1601年1月1日0:0:0:000到1970年1月1日0:0:0:000的时间(单位100ns)
@@ -31,18 +30,18 @@ namespace UTILITY
 #else
 			timeval tv;
 			gettimeofday(&tv, 0);
-			return (unsigned long long)tv.tv_sec * 1000000 + (int64_t)tv.tv_usec;
+			return (unsigned long long)tv.tv_sec * 1000000 + (unsigned long long)tv.tv_usec;
 #endif
 		}
 
-		unsigned long long GetTimeMS( void )
+		static unsigned long long GetTimeMS( void )
 		{
-			return this->GetTimeUS() / 1000;
+			return GetTimeUS() / 1000;
 		}
 		
-		unsigned long long GetTime( void )
+		static unsigned long long GetTime( void )
 		{
-			return this->GetTimeMS() / 1000;
+			return GetTimeMS() / 1000;
 		}
 	};
 	

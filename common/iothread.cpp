@@ -96,7 +96,7 @@ namespace FXNET
 
 		//LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
-		if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= 0.02)
+		if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= 0.05)
 		{
 			this->m_dLoatUpdateTime = this->m_dCurrentTime;
 			for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = this->m_mapSockets.begin();
