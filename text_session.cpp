@@ -163,12 +163,12 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 		this->m_dAllDelayTime += this->m_dCurrentDelay;
 		this->m_dAverageDelay = this->m_dAllDelayTime / this->m_dwRecvPackagetNum;
 
-		// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-		// 	<< ", " << this->m_opSock->NativeSocket()
-		// 	<< ", current delay: " << this->m_dCurrentDelay << ", average: "
-		// 	<< this->m_dAverageDelay
-		// 	<< ", package num: " << this->m_dwRecvPackagetNum
-		// 	<< "\n";
+		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+			<< ", " << this->m_opSock->NativeSocket()
+			<< ", current delay: " << this->m_dCurrentDelay << ", average: "
+			<< this->m_dAverageDelay
+			<< ", package num: " << this->m_dwRecvPackagetNum
+			<< "\n";
 
 		char szBuff[512] = {0};
 		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
