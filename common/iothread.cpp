@@ -1,6 +1,7 @@
 ﻿#include "../include/iothread.h"
 #include "../include/error_code.h"
 #include "../include/log_utility.h"
+#include "../utility/time_utility.h"
 #include <errno.h>
 #include <fcntl.h>
 
@@ -37,15 +38,15 @@ namespace FXNET
 #endif // _WIN32
 		, m_dLoatUpdateTime(0.)
 	{
-#ifdef _WIN32
-		SYSTEMTIME st;
-		GetSystemTime(&st);
-		this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
-#else
-		static struct timeval tv;
-		gettimeofday(&tv, NULL);
-		this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
-#endif
+// #ifdef _WIN32
+// 		SYSTEMTIME st;
+// 		GetSystemTime(&st);
+// 		this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+// #else
+// 		static struct timeval tv;
+// 		gettimeofday(&tv, NULL);
+// 		this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+// #endif
 	}
 
 	FxIoModule::~FxIoModule()
@@ -82,15 +83,17 @@ namespace FXNET
 
 	void FxIoModule::DealFunction(std::ostream* pOStream)
 	{
-#ifdef _WIN32
-		SYSTEMTIME st;
-		GetSystemTime(&st);
-		this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
-#else
-		static struct timeval tv;
-		gettimeofday(&tv, NULL);
-		this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
-#endif
+// #ifdef _WIN32
+// 		SYSTEMTIME st;
+// 		GetSystemTime(&st);
+// 		this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
+// #else
+// 		static struct timeval tv;
+// 		gettimeofday(&tv, NULL);
+// 		this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
+// #endif
+
+		this->m_dCurrentTime = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
 
 		//pOStream = NULL;
 

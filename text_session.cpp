@@ -6,6 +6,7 @@
 #include "include/fxnet_interface.h"
 #include "include/log_utility.h"
 #include "include/iothread.h"
+#include "utility/time_utility.h"
 
 #include <string>
 #include <stdlib.h>
@@ -96,18 +97,17 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 				return;
 			}
 
-			LOG(pOStream, ELOG_LEVEL_INFO) << "\n";
-			LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-				<< ", " << this->m_opSock->NativeSocket()
-				<< ", " << m_szData
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+			// 	<< ", " << this->m_opSock->NativeSocket()
+			// 	<< ", " << m_szData
+			// 	<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
 			poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)this->m_szData.size());
 			poConnector->SendMessage(pOStream);
-			LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-				<< ", " << this->m_opSock->NativeSocket()
-				<< ", " << m_szData
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+			// 	<< ", " << this->m_opSock->NativeSocket()
+			// 	<< ", " << m_szData
+			// 	<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 		FXNET::ISocketBase* m_opSock;
 		std::string m_szData;
@@ -157,7 +157,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	}
 	else
 	{
-		double dCurrentTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+		double dCurrentTime = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
 		this->m_dCurrentDelay = dCurrentTime - this->m_mapSendTimes[qwRecv];
 		++this->m_dwRecvPackagetNum;
 		this->m_dAllDelayTime += this->m_dCurrentDelay;
@@ -179,10 +179,10 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 		this->m_mapSendTimes[qwSend] = dCurrentTime;
 		this->Send(szSend.c_str(), (unsigned int)szSend.size(), pOStream);
 
-		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-			<< ", " << this->m_opSock->NativeSocket()
-			<< ", " << szSend
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
+		// 	<< ", " << this->m_opSock->NativeSocket()
+		// 	<< ", " << szSend
+		// 	<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 	}
 	
 	return *this;
@@ -200,10 +200,10 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 	// std::string sz;
 	// sz.resize(1024 * 8);
 
-	Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
-	this->m_mapSendTimes[qwSend] = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+	this->Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
+	this->m_mapSendTimes[qwSend] = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
 
-	this->m_dConnectedTime = FXNET::FxIoModule::Instance()->FxGetCurrentTime();
+	this->m_dConnectedTime = this->m_mapSendTimes[qwSend];
 	this->m_dwPacketLength = 0;
 }
 

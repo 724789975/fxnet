@@ -50,11 +50,6 @@ namespace FXNET
 		
 		refConnector.PostRecv(pOStream);
 #else
-		if (!refConnector.m_bConnecting)
-		{
-			refConnector.m_bConnecting = true;
-			refConnector.OnConnected(pOStream);
-		}
 		refConnector.m_bReadable = true;
 		while (refConnector.m_bReadable)
 		{
@@ -119,6 +114,19 @@ namespace FXNET
 #ifdef _WIN32
 		FxIoModule::Instance()->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
 #else
+		if (!refConnector.m_bConnecting)
+		{
+			int dwConnectError = 0;
+			socklen_t dwLen = sizeof(dwConnectError);
+			if (0 > getsockopt(refConnector.NativeSocket(), SOL_SOCKET, SO_ERROR, (void*)(&dwConnectError), &dwLen))
+			{
+				int dwError = errno;
+				return dwError;
+			}
+			if (dwConnectError) return dwConnectError;
+			refConnector.m_bConnecting = true;
+			refConnector.OnConnected(pOStream);
+		}
 		refConnector.m_bWritable = true;
 #endif // _WIN32
 
@@ -223,9 +231,9 @@ namespace FXNET
 #else
 		if (-1 == connect(this->NativeSocket(), (sockaddr*)&this->GetRemoteAddr(), sizeof(this->GetRemoteAddr())))
 		{
-			if (errno != EINPROGRESS && errno != EINTR && errno != EAGAIN)
+			int dwError = errno;
+			if (dwError != EINPROGRESS && dwError != EINTR && dwError != EAGAIN)
 			{ 
-				int dwError = errno;
 				macro_closesocket(this->NativeSocket());
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
 					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
