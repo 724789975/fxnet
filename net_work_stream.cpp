@@ -52,7 +52,7 @@ TextWorkStream& TextWorkStream::WriteString(const char* szData, unsigned int dwL
 	oNetStream.WriteInt((unsigned int)(dwLen + 2 * sizeof(dwLen)));
 	oNetStream.WriteInt('T' << 24 | 'E' << 16 | 'S' << 8 | 'T');
 	oNetStream.WriteData(szData, dwLen);
-	this->m_dwUseLen += (dwLen + sizeof(dwLen)); 
+	this->m_dwUseLen += (dwLen + 2 * sizeof(dwLen)); 
 	return *this;
 }
 
