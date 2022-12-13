@@ -221,6 +221,7 @@ namespace FXNET
 		if (0 > dwSendLen)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "UDPSendOperator failed " << errno
+				<< ", BufferSize : " << wBufferSize << ", " << this->m_refUdpConnector.NativeSocket()
 				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			return errno;
 		}
