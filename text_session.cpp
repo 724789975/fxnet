@@ -157,6 +157,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	}
 	else
 	{
+		int dwRandLen = UTILITY::TimeUtility::GetTimeUS() % 1024;
 		double dCurrentTime = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
 		this->m_dCurrentDelay = dCurrentTime - this->m_mapSendTimes[qwRecv];
 		++this->m_dwRecvPackagetNum;
@@ -170,10 +171,10 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 			<< ", package num: " << this->m_dwRecvPackagetNum
 			<< "\n";
 
-		char szBuff[512] = {0};
+		char szBuff[2048] = {0};
 		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
 		sprintf(szBuff, "%lld", qwSend);
-		std::string szSend(szBuff, 400);
+		std::string szSend(szBuff, 400 + dwRandLen);
 
 		this->m_mapSendTimes.erase(qwRecv);
 		this->m_mapSendTimes[qwSend] = dCurrentTime;
@@ -288,7 +289,6 @@ void CTextSession::Close(std::ostream* pOStream)
 			this->m_opSock->Close(pOStream);
 		}
 		FXNET::ISocketBase* m_opSock;
-		std::string m_szData;
 	protected:
 	private:
 	};
