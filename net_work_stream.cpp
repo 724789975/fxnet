@@ -99,7 +99,7 @@ bool TextWorkStream::CheckPackage()
 
 	assert(dwReadLen);
 
-	assert(dwReadLen <= this->GetSize());
+	// assert(dwReadLen <= this->GetSize());
 
 	if (dwReadLen > this->GetSize())
 	{
