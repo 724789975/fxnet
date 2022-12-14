@@ -174,7 +174,7 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 		char szBuff[2048] = {0};
 		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
 		sprintf(szBuff, "%lld", qwSend);
-		std::string szSend(szBuff, 400 + dwRandLen);
+		std::string szSend(szBuff, 30 + dwRandLen);
 
 		this->m_mapSendTimes.erase(qwRecv);
 		this->m_mapSendTimes[qwSend] = dCurrentTime;
