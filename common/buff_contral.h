@@ -379,7 +379,8 @@ namespace FXNET
 		this->m_btAckLast = 0;
 		this->m_btSynLast = 0;
 		this->m_bSendAck = false;
-		this->m_dSendWindowControl = 1;
+		// this->m_dSendWindowControl = 1;
+		this->m_dSendWindowControl = _SendWindow::window_size;
 		this->m_dSendWindowThreshhold = _SendWindow::window_size;
 
 		// 清空滑动窗口
@@ -807,7 +808,8 @@ namespace FXNET
 				// 用于计算delay的因子
 				static const double err_factor = 0.125;
 				static const double average_factor = 0.25;
-				static const double retry_factor = 2;
+				// static const double retry_factor = 2;
+				static const double retry_factor = 1.5;
 
 				double rtt = m_dDelayTime;
 				double dErrTime = 0;
