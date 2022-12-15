@@ -97,17 +97,17 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 				return;
 			}
 
-			// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-			// 	<< ", " << this->m_opSock->NativeSocket()
-			// 	<< ", " << m_szData
-			// 	<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
+				<< ", " << this->m_opSock->NativeSocket()
+				<< ", " << m_szData
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			CTextSession* poSession = dynamic_cast<CTextSession*>(poConnector->GetSession());
 			poSession->GetSendBuff().WriteString(m_szData.c_str(), (unsigned int)this->m_szData.size());
 			poConnector->SendMessage(pOStream);
-			// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-			// 	<< ", " << this->m_opSock->NativeSocket()
-			// 	<< ", " << m_szData
-			// 	<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
+				<< ", " << this->m_opSock->NativeSocket()
+				<< ", " << m_szData
+				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 		FXNET::ISocketBase* m_opSock;
 		std::string m_szData;
@@ -181,10 +181,10 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 		this->m_mapSendTimes[qwSend] = dCurrentTime;
 		this->Send(szSend.c_str(), (unsigned int)szSend.size(), pOStream);
 
-		// LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-		// 	<< ", " << this->m_opSock->NativeSocket()
-		// 	<< ", " << szSend
-		// 	<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
+			<< ", " << this->m_opSock->NativeSocket()
+			<< ", " << szSend
+			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 	}
 	
 	return *this;

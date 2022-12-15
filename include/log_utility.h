@@ -20,6 +20,7 @@ enum ELogLevel
 	ELOG_LEVEL_DEBUG1 = 1 << 4,
 	ELOG_LEVEL_DEBUG2 = 1 << 5,
 	ELOG_LEVEL_DEBUG3 = 1 << 6,
+	ELOG_LEVEL_DEBUG4 = 1 << 7,
 
 };
 
