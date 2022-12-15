@@ -157,7 +157,8 @@ CTextSession& CTextSession::OnRecv(const char* szData, unsigned int dwLen, std::
 	}
 	else
 	{
-		int dwRandLen = UTILITY::TimeUtility::GetTimeUS() % 2017;
+		// int dwRandLen = UTILITY::TimeUtility::GetTimeUS() % 2017;
+		int dwRandLen = UTILITY::TimeUtility::GetTimeUS() % 470;
 		double dCurrentTime = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
 		this->m_dCurrentDelay = dCurrentTime - this->m_mapSendTimes[qwRecv];
 		++this->m_dwRecvPackagetNum;
