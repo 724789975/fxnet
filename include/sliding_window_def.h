@@ -8,6 +8,6 @@
 /**
  * @brief ∑¢ÀÕª∫¥Ê÷°≥§∂»
  */
-#define UDP_WINDOW_BUFF_SIZE 512
+#define UDP_WINDOW_BUFF_SIZE 1024
 
 #endif	//! __SLIDING_WINDOW_DEF_H__
