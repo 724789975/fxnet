@@ -3,9 +3,9 @@
 
 #include "../include/sliding_window_def.h"
 #include "../include/error_code.h"
-#include "sliding_window.h"
 #include "../include/iothread.h"
 #include "../include/log_utility.h"
+#include "sliding_window.h"
 
 #include <math.h>
 #include <errno.h>
@@ -32,9 +32,9 @@ namespace FXNET
 		 *
 		 * @param szBuff 接收的数据
 		 * @param dwSize 接收的长度
-		 * @return int 错误码
+		 * @return ErrorCode 错误码
 		 */
-		virtual int operator() (char* szBuff, unsigned short wSize, std::ostream* pOStream) = 0;
+		virtual ErrorCode operator() (char* szBuff, unsigned short wSize, std::ostream* pOStream) = 0;
 	};
 
 	class OnConnectedOperator
@@ -45,7 +45,7 @@ namespace FXNET
 		 * @brief 连接处理
 		 *
 		 */
-		virtual int operator() (std::ostream* pOStream) = 0;
+		virtual ErrorCode operator() (std::ostream* pOStream) = 0;
 	};
 
 	class RecvOperator
@@ -58,9 +58,9 @@ namespace FXNET
 		 * @param pBuff 接收的数据
 		 * @param wBuffSize 接收缓冲区的长度
 		 * @param wRecvSize 接收的长度
-		 * @return int 错误码
+		 * @return ErrorCode 错误码
 		 */
-		virtual int operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream) = 0;
+		virtual ErrorCode operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream) = 0;
 	};
 
 	class SendOperator
@@ -73,9 +73,9 @@ namespace FXNET
 		 * @param szBuff 要发送的数据
 		 * @param wBufferSize 要发送的长度
 		 * @param wSendLen 发送长度
-		 * @return int 错误码
+		 * @return ErrorCode 错误码
 		 */
-		virtual int operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream) = 0;
+		virtual ErrorCode operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream) = 0;
 	};
 
 	class ReadStreamOperator
@@ -171,7 +171,7 @@ namespace FXNET
 		 * @param pOStream 
 		 * @return int 
 		 */
-		int SendMessages(double dTime, std::ostream* pOStream);
+		ErrorCode SendMessages(double dTime, std::ostream* pOStream);
 		/**
 		 * @brief 
 		 * 
@@ -181,7 +181,7 @@ namespace FXNET
 		 * @param pOStream 
 		 * @return int 
 		 */
-		int ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream);
+		ErrorCode ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream);
 		
 	private:
 		_SendWindow m_oSendWindow;
@@ -502,7 +502,7 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages(double dTime, std::ostream* pOStream)
+	inline ErrorCode BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages(double dTime, std::ostream* pOStream)
 	{
 		// 检查是否超时
 		if (dTime - this->m_dAckRecvTime > m_dAckOutTime)
@@ -511,11 +511,11 @@ namespace FXNET
 
 			if (--this->m_dwAckTimeoutRetry <= 0)
 			{
-				return CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY;
+				return ErrorCode(CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY, __FILE__ ":" __LINE2STR__(__LINE__));
 			}
 		}
 
-		if (dTime < this->m_dSendTime) { return 0; }
+		if (dTime < this->m_dSendTime) { return ErrorCode(); }
 
 		//if (m_dwStatus == ST_SYN_RECV) {return 0;}
 
@@ -653,15 +653,15 @@ namespace FXNET
 				oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
 
 				int dwLen = 0;
-				int dwErrorCode = (*this->m_pSendOperator)((char*)pBuffer, wSize, dwLen, pOStream);
-				if (dwErrorCode)
+				ErrorCode oErrorCode = (*this->m_pSendOperator)((char*)pBuffer, wSize, dwLen, pOStream);
+				if (oErrorCode)
 				{
-					if (EAGAIN == dwErrorCode || EINTR == dwErrorCode)
+					if (EAGAIN == oErrorCode || EINTR == oErrorCode)
 					{
 						break;
 					}
 					//发送出错 断开连接
-					return dwErrorCode;
+					return oErrorCode;
 				}
 				else
 				{
@@ -695,21 +695,21 @@ namespace FXNET
 			oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
 
 			int dwLen = 0;
-			if (int dwErrorCode = (*this->m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, pOStream))
+			if (ErrorCode oErrorCode = (*this->m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, pOStream))
 			{
 				//发送出错 断开连接
-				return dwErrorCode;
+				return oErrorCode;
 			}
 
 			this->m_dSendTime = dTime + this->m_dSendFrequency;
 			this->m_bSendAck = false;
 		}
 
-		return 0;
+		return ErrorCode();
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream)
+	inline ErrorCode BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream)
 	{
 		// packet received
 		bool bPacketReceived = false;
@@ -725,22 +725,22 @@ namespace FXNET
 			// 没有buffer了 断开连接
 			if (btBufferId >= this->m_oRecvWindow.window_size)
 			{
-				return CODE_ERROR_NET_UDP_ALLOC_BUFF;
+				return ErrorCode(CODE_ERROR_NET_UDP_ALLOC_BUFF, __FILE__ ":" __LINE2STR__(__LINE__));
 			}
 
 			int dwLen = 0;
-			int dwErrorCode = (*this->m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, dwLen, pOStream);
+			ErrorCode oErrorCode = (*this->m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, dwLen, pOStream);
 
-			if (dwErrorCode)
+			if (oErrorCode)
 			{
-				if (EINTR == dwErrorCode)
+				if (EINTR == oErrorCode)
 				{
 					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
 					this->m_oRecvWindow.m_btFreeBufferId = btBufferId;
 					continue;
 				}
 
-				if (EAGAIN == dwErrorCode)
+				if (EAGAIN == oErrorCode)
 				{
 					refbReadable = false;
 					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
@@ -749,9 +749,9 @@ namespace FXNET
 				}
 
 #ifdef _WIN32
-				if (WSA_IO_PENDING == dwErrorCode || CODE_SUCCESS_NO_BUFF_READ == dwErrorCode)
+				if (WSA_IO_PENDING == oErrorCode || CODE_SUCCESS_NO_BUFF_READ == oErrorCode)
 #else
-				if (EAGAIN == dwErrorCode || EWOULDBLOCK == dwErrorCode)
+				if (EAGAIN == oErrorCode || EWOULDBLOCK == oErrorCode)
 #endif	//_WIN32
 				{
 					refbReadable = false;
@@ -760,7 +760,7 @@ namespace FXNET
 					break;
 				}
 
-				return dwErrorCode;
+				return oErrorCode;
 			}
 
 			if (dwLen < (unsigned short)sizeof(UDPPacketHeader))
@@ -966,7 +966,7 @@ namespace FXNET
 			this->m_btSynLast = this->m_oRecvWindow.m_btBegin - 1;
 		}
 
-		return 0;
+		return ErrorCode();
 	}
 
 } // namespace FXNET

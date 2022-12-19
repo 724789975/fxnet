@@ -1,6 +1,8 @@
 #ifndef __ERROR_CODE_H__
 #define __ERROR_CODE_H__
 
+#include <string>
+
 enum UserError
 {
 	////////////////////设备 模块(不可用 参与下面错误码计算)//////////////////////
@@ -36,6 +38,40 @@ enum UserError
 	CODE_ERROR_NET_ERROR_EPOLL_HANDLE,												//epoll < 0
 	CODE_ERROR_END = 3 << 30 | 1 << 29 | FACILITY_END << 16 | 15,
 	////////////////////////////////////错误//////////////////////////////////////
+};
+
+#define __ERROR_CONCAT__(a, b) __ERROR_CONCAT__1(a, b)
+#define __ERROR_CONCAT__1(a, b) __ERROR_CONCAT__2(a) __ERROR_CONCAT__2(b)
+#define __ERROR_CONCAT__2(a) #a
+
+#define __LINE2STR__(a) __LINE2STR__2(a)
+#define __LINE2STR__2(a) #a
+class ErrorCode
+{
+public:
+	ErrorCode(int dwError, const char* szWhat)
+		: m_dwError(dwError)
+		, m_strWhat(szWhat)
+	{}
+
+	ErrorCode(int dwError)
+		: m_dwError(dwError)
+	{}
+
+	ErrorCode()
+		: m_dwError(0)
+	{}
+
+	operator int() const { return m_dwError; }
+	std::string What() const
+	{
+		char buff[32] = { 0 };
+		sprintf(buff, "%d", m_dwError);
+		return m_strWhat + ",error:" + buff;
+	}
+	// private:
+	int m_dwError;
+	std::string m_strWhat;
 };
 
 #endif // !__ERROR_CODE_H__

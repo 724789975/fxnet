@@ -28,7 +28,7 @@ public:
 	public:
 		SessionErrorEvent(ISession* pSession, int dwError);
 		virtual void operator ()(std::ostream* pOStream);
-		int m_dwError;
+		int m_oError;
 		ISession* m_pSession;
 	};
 	class CloseSessionEvent : public MessageEventBase
@@ -61,7 +61,7 @@ public:
 	virtual CTextSession& OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream);
 
 	virtual void OnConnected(std::ostream* pOStream);
-	virtual void OnError(int dwError, std::ostream* pOStream);
+	virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
 	virtual void OnClose(std::ostream* pOStream);
 
 	virtual void Close(std::ostream* pOStream);
@@ -71,7 +71,7 @@ public:
 
 	virtual TextMessageEvent* NewRecvMessageEvent(std::string& refData);
 	virtual MessageEventBase* NewConnectedEvent();
-	virtual SessionErrorEvent* NewErrorEvent(int dwError);
+	virtual SessionErrorEvent* NewErrorEvent(const ErrorCode& refError);
 	virtual CloseSessionEvent* NewCloseEvent();
 	virtual SessionOnSendEvent* NewOnSendEvent(int dwLen);
 

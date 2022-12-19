@@ -2,9 +2,10 @@
 #define __UDP_LISTENER_H__
 
 #include "../include/sliding_window_def.h"
+#include "../include/i_session.h"
+#include "../include/error_code.h"
 #include "listen_socket.h"
 #include "cas_lock_queue.h"
-#include "../include/i_session.h"
 
 #include <sstream>
 
@@ -31,7 +32,7 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpListener;
-			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
+			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 		private:
 #ifdef _WIN32
 			WSABUF m_stWsaBuff;
@@ -44,22 +45,22 @@ namespace FXNET
 		{
 		public:
 			friend class CUdpListener;
-			virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
+			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
 		};
 
 		CUdpListener(SessionMaker* pMaker);
 		virtual const char* Name()const { return "CUdpListener"; }
-		virtual int Update(double dTimedouble, std::ostream* pOStream);
+		virtual ErrorCode Update(double dTimedouble, std::ostream* pOStream);
 
-		int Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream);
+		ErrorCode Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream);
 
 		virtual void Close(std::ostream* pOStream);
 
 		virtual IOReadOperation& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
-		virtual IOErrorOperation& NewErrorOperation(int dwError);
+		virtual IOErrorOperation& NewErrorOperation(const ErrorCode& refError);
 
-		virtual void OnError(int dwError, std::ostream* pOStream);
+		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);
 	protected:
 	private:
@@ -69,7 +70,7 @@ namespace FXNET
 		CUdpListener& OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 
 #ifdef _WIN32
-		int PostAccept(std::ostream* pOStream);
+		ErrorCode PostAccept(std::ostream* pOStream);
 #else
 		struct AcceptReq
 		{

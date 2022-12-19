@@ -31,7 +31,7 @@ struct tcp_keepalive
 
 namespace FXNET
 {
-	int CTcpListener::IOAcceptOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	ErrorCode CTcpListener::IOAcceptOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CTcpListener::IOAcceptOperation, this);
 
@@ -87,7 +87,7 @@ namespace FXNET
 
 			macro_closesocket(this->m_hSocket);
 			refListenerSocket.PostAccept(pOStream);
-			return dwError;
+			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 
 		// send back
@@ -102,7 +102,7 @@ namespace FXNET
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "accept error(" << errno << ")"
 				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return errno;
+			return ErrorCode(errno, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 
 		// keep alive
@@ -119,15 +119,15 @@ namespace FXNET
 		// send back
 		refListenerSocket.OnClientConnected(hAcceptSock, stRemoteAddr, pOStream);
 #endif
-		return 0;
+		return ErrorCode();
 	}
 
-	int CTcpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	ErrorCode CTcpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CTcpListener::IOErrorOperation, this);
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_dwError << ")"
+		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-		return 0;
+		return ErrorCode();
 	}
 
 	CTcpListener::CTcpListener(SessionMaker* pMaker)
@@ -136,13 +136,13 @@ namespace FXNET
 
 	}
 
-	int CTcpListener::Update(double dTimedouble, std::ostream* pOStream)
+	ErrorCode CTcpListener::Update(double dTimedouble, std::ostream* pOStream)
 	{
 		//TODO
-		return 0;
+		return ErrorCode();
 	}
 
-	int CTcpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
+	ErrorCode CTcpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
 	{
 		sockaddr_in& refLocalAddr = this->GetLocalAddr();
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
@@ -324,13 +324,13 @@ namespace FXNET
 		return oPeration;
 	}
 
-	CTcpListener::IOErrorOperation& CTcpListener::NewErrorOperation(int dwError)
+	CTcpListener::IOErrorOperation& CTcpListener::NewErrorOperation(const ErrorCode& refError)
 	{
 		IOErrorOperation& refPeration = *(new IOErrorOperation());
 		return refPeration;
 	}
 
-	void CTcpListener::OnError(int dwError, std::ostream* pOStream)
+	void CTcpListener::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	{
 
 	}

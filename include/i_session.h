@@ -1,6 +1,7 @@
 #ifndef __ISESSION_H__
 #define __ISESSION_H__
 
+#include "error_code.h"
 #include "socket_base.h"
 
 #ifdef _WIN32
@@ -67,7 +68,7 @@ namespace FXNET
 		 * @param dwError ´íÎóÂë
 		 * @param pOStream 
 		 */
-		virtual void OnError(int dwError, std::ostream* pOStream) = 0;
+		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream) = 0;
 		/**
 		 * @brief 
 		 * 
@@ -113,7 +114,7 @@ namespace FXNET
 		 * @param dwError ´íÎóÂë
 		 * @return MessageEventBase* 
 		 */
-		virtual MessageEventBase* NewErrorEvent(int dwError) = 0;
+		virtual MessageEventBase* NewErrorEvent(const ErrorCode& refError) = 0;
 		/**
 		 * @brief 
 		 * 

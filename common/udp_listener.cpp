@@ -20,7 +20,7 @@
 
 namespace FXNET
 {
-	int CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	ErrorCode CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpListener::IOReadOperation, this);
 
@@ -38,27 +38,27 @@ namespace FXNET
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
+			return ErrorCode();
 		}
 
 		if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
+			return ErrorCode();
 		}
 
 		if (oUDPPacketHeader.m_btAck != 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
+			return ErrorCode();
 		}
 		if (oUDPPacketHeader.m_btSyn != 1)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-			return 0;
+			return ErrorCode();
 		}
 
 		LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
@@ -71,7 +71,7 @@ namespace FXNET
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
-			return 0;
+			return ErrorCode();
 		}
 
 		// set reuseaddr
@@ -81,7 +81,7 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";;
 			macro_closesocket(hSock);
-			return 0;
+			return ErrorCode();
 		}
 
 		// bind
@@ -91,7 +91,7 @@ namespace FXNET
 				<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 			macro_closesocket(hSock);
-			return 0;
+			return ErrorCode();
 		}
 
 		// send back
@@ -244,15 +244,15 @@ namespace FXNET
 		}
 	
 #endif
-		return 0;
+		return ErrorCode();
 	}
 
-	int CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	ErrorCode CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpListener::IOErrorOperation, this);
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_dwError << ")"
+		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-		return 0;
+		return ErrorCode();
 	}
 
 	CUdpListener::CUdpListener(SessionMaker* pMaker)
@@ -261,13 +261,13 @@ namespace FXNET
 
 	}
 
-	int CUdpListener::Update(double dTimedouble, std::ostream* pOStream)
+	ErrorCode CUdpListener::Update(double dTimedouble, std::ostream* pOStream)
 	{
 		//TODO
-		return 0;
+		return ErrorCode();
 	}
 
-	int CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
+	ErrorCode CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
 	{
 		sockaddr_in& refLocalAddr = this->GetLocalAddr();
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
@@ -299,7 +299,7 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket create failed(" << dwError << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return dwError;
+			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 
 #ifdef _WIN32
@@ -440,13 +440,13 @@ namespace FXNET
 		return oPeration;
 	}
 
-	CUdpListener::IOErrorOperation& CUdpListener::NewErrorOperation(int dwError)
+	CUdpListener::IOErrorOperation& CUdpListener::NewErrorOperation(const ErrorCode& refError)
 	{
 		IOErrorOperation& refPeration = *(new IOErrorOperation());
 		return refPeration;
 	}
 
-	void CUdpListener::OnError(int dwError, std::ostream* pOStream)
+	void CUdpListener::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	{
 
 	}
@@ -490,7 +490,7 @@ namespace FXNET
 	}
 
 #ifdef _WIN32
-	int CUdpListener::PostAccept(std::ostream* pOStream)
+	ErrorCode CUdpListener::PostAccept(std::ostream* pOStream)
 	{
 		IOReadOperation& refOperation = this->NewReadOperation();
 
@@ -507,10 +507,10 @@ namespace FXNET
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " WSARecvFrom errno : " << dwError
 					<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-				return dwError;
+				return ErrorCode(dwError, __FILE__ __LINE2STR__(__LINE__));
 			}
 		}
-		return 0;
+		return ErrorCode();
 	}
 #else
 	unsigned int CUdpListener::GenerateAcceptHash(const sockaddr_in& addr)

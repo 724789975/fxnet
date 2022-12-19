@@ -40,7 +40,7 @@ void CTextSession::ConnectedEvent::operator()(std::ostream* pOStream)
 }
 
 CTextSession::SessionErrorEvent::SessionErrorEvent(ISession* pSession, int dwError)
-	: m_dwError(dwError)
+	: m_oError(dwError)
 	, m_pSession(pSession)
 {
 }
@@ -48,7 +48,7 @@ CTextSession::SessionErrorEvent::SessionErrorEvent(ISession* pSession, int dwErr
 void CTextSession::SessionErrorEvent::operator()(std::ostream* pOStream)
 {
 	DELETE_WHEN_DESTRUCT(SessionErrorEvent, this);
-	this->m_pSession->OnError(this->m_dwError, pOStream);
+	this->m_pSession->OnError(this->m_oError, pOStream);
 }
 
 CTextSession::CloseSessionEvent::CloseSessionEvent(ISession* pSession)
@@ -209,32 +209,32 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 	this->m_dwPacketLength = 0;
 }
 
-void CTextSession::OnError(int dwError, std::ostream* pOStream)
+void CTextSession::OnError(const ErrorCode& refError, std::ostream* pOStream)
 {
-	LOG(pOStream, ELOG_LEVEL_ERROR) << this->GetSocket()->NativeSocket() << ", error: " << dwError
+	LOG(pOStream, ELOG_LEVEL_ERROR) << this->GetSocket()->NativeSocket() << ", error: " << refError.What()
 		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
 
 	class ErrorOperator : public IOEventBase
 	{
 	public:
-		ErrorOperator(FXNET::ISocketBase* opSock, int dwError)
+		ErrorOperator(FXNET::ISocketBase* opSock, ErrorCode dwError)
 			: m_opSock(opSock)
-			, m_dwError(dwError)
+			, m_oError(dwError)
 		{
 		}
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(ErrorOperator, this);
 
-			this->m_opSock->OnError(m_dwError, pOStream);
+			this->m_opSock->OnError(m_oError, pOStream);
 		}
 		FXNET::ISocketBase* m_opSock;
-		int m_dwError;
+		ErrorCode m_oError;
 	protected:
 	private:
 	};
 
-	ErrorOperator* pOperator = new ErrorOperator(m_opSock, dwError);
+	ErrorOperator* pOperator = new ErrorOperator(m_opSock, refError);
 	FXNET::PostEvent(pOperator);
 }
 
@@ -310,9 +310,9 @@ MessageEventBase* CTextSession::NewConnectedEvent()
 	return pEvent;
 }
 
-CTextSession::SessionErrorEvent* CTextSession::NewErrorEvent(int dwError)
+CTextSession::SessionErrorEvent* CTextSession::NewErrorEvent(const ErrorCode& refError)
 {
-	CTextSession::SessionErrorEvent* pEvent = new CTextSession::SessionErrorEvent(this, dwError);
+	CTextSession::SessionErrorEvent* pEvent = new CTextSession::SessionErrorEvent(this, refError);
 	return pEvent;
 }
 

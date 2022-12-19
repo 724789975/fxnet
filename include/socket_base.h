@@ -1,6 +1,8 @@
 #ifndef __SOCKET_BASE_H__
 #define __SOCKET_BASE_H__
 
+#include "error_code.h"
+
 #ifdef _WIN32
 #include <WinSock2.h>
 #include <Windows.h>
@@ -37,7 +39,7 @@ namespace FXNET
 
 		ISocketBase()
 			: m_hNativeHandle((NativeHandleType)-1)
-			, m_dwError(0)
+			, m_oError(0, "")
 #ifndef _WIN32
 			, m_bReadable(false)
 			, m_bWritable(false)
@@ -47,7 +49,7 @@ namespace FXNET
 		}
 		virtual ~ISocketBase() {}
 		virtual const char* Name()const { return "CSocketBase"; }
-		virtual int Update(double dTime, std::ostream* POStream) = 0;
+		virtual ErrorCode Update(double dTime, std::ostream* POStream) = 0;
 
 		static NativeHandleType InvalidNativeHandle() { return (NativeHandleType)-1; };
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
@@ -64,7 +66,7 @@ namespace FXNET
 		 * 
 		 * @return int 
 		 */
-		int GetError() { return m_dwError; }
+		int GetError() { return m_oError; }
 
 		/**
 		 * @brief 
@@ -95,7 +97,7 @@ namespace FXNET
 		 * @param dwError error code
 		 * @return IOOperationBase& 
 		 */
-		virtual IOOperationBase& NewErrorOperation(int dwError) = 0;
+		virtual IOOperationBase& NewErrorOperation(const ErrorCode& oError) = 0;
 
 		/**
 		 * @brief 
@@ -103,7 +105,7 @@ namespace FXNET
 		 * @param dwError 
 		 * @param pOStream 
 		 */
-		virtual void OnError(int dwError, std::ostream* pOStream) = 0;
+		virtual void OnError(const ErrorCode& oError, std::ostream* pOStream) = 0;
 		/**
 		 * @brief 
 		 * 
@@ -113,7 +115,7 @@ namespace FXNET
 	protected:
 		NativeHandleType m_hNativeHandle;
 		sockaddr_in m_stLocalAddr;
-		int m_dwError;
+		ErrorCode m_oError;
 
 #ifdef _WIN32
 #else
@@ -130,16 +132,17 @@ namespace FXNET
 #endif // _WIN32
 	{
 	public:
-		IOOperationBase() : m_dwError(0)
+		IOOperationBase()
+			: m_oError(0, "")
 		{
 #ifdef _WIN32
 			memset((OVERLAPPED*)this, 0, sizeof(OVERLAPPED));
 #endif // _WIN32
 		}
 		virtual ~IOOperationBase() {}
-		virtual int operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream) = 0;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream) = 0;
 
-		int m_dwError;
+		ErrorCode m_oError;
 	protected:
 	private:
 	};

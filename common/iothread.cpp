@@ -1,4 +1,4 @@
-ï»¿#include "../include/iothread.h"
+#include "../include/iothread.h"
 #include "../include/error_code.h"
 #include "../include/log_utility.h"
 #include "../utility/time_utility.h"
@@ -107,10 +107,10 @@ namespace FXNET
 			{
 				std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
 				ISocketBase* pISock = it_tmp->second;
-				if (int dwError = pISock->Update(this->m_dCurrentTime, pOStream))
+				if (ErrorCode oError = pISock->Update(this->m_dCurrentTime, pOStream))
 				{
 					this->DeregisterIO(pISock->NativeSocket(), pOStream);
-					pISock->NewErrorOperation(dwError)(*pISock, 0, pOStream);
+					pISock->NewErrorOperation(oError)(*pISock, 0, pOStream);
 				}
 			}
 		}
@@ -158,7 +158,7 @@ namespace FXNET
 		SetTimeFunc(_FxGetCurrentTime);
 
 #ifdef _WIN32
-		// åˆå§‹åŒ–çš„æ—¶å€™ å…ˆèŽ·å–ä¸‹ åˆ›å»ºå®Œæˆç«¯å£ //
+		// ³õÊ¼»¯µÄÊ±ºò ÏÈ»ñÈ¡ÏÂ ´´½¨Íê³É¶Ë¿Ú //
 		WSADATA wsaData;
 		WSAStartup(MAKEWORD(2, 2), &wsaData);
 		this->m_hCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
@@ -260,7 +260,7 @@ namespace FXNET
 #ifdef _WIN32
 	HANDLE FxIoModule::GetHandle()
 	{
-		// åˆ›å»ºå®Œæˆç«¯å£
+		// ´´½¨Íê³É¶Ë¿Ú
 		return this->m_hCompletionPort;
 	}
 
@@ -460,10 +460,10 @@ namespace FXNET
 			if (poSock)
 			{
 				IOOperationBase* pOp = (IOOperationBase*)(OVERLAPPED*)(pstPerIoData);
-				if (int dwError = (*pOp)(*poSock, dwByteTransferred, pOStream))
+				if (ErrorCode oError = (*pOp)(*poSock, dwByteTransferred, pOStream))
 				{
 					this->DeregisterIO(poSock->NativeSocket(), pOStream);
-					poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
+					poSock->NewErrorOperation(oError)(*poSock, dwByteTransferred, pOStream);
 				}
 			}
 			else
@@ -505,7 +505,7 @@ namespace FXNET
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 			this->DeregisterIO(poSock->NativeSocket(), pOStream);
-			poSock->NewErrorOperation(dwError)(*poSock, dwByteTransferred, pOStream);
+			poSock->NewErrorOperation(ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__)))(*poSock, dwByteTransferred, pOStream);
 		}
 #else
 
@@ -561,19 +561,19 @@ namespace FXNET
 			// 	<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			if (pEvent->events & (EPOLLOUT | EPOLLERR | EPOLLHUP))
 			{
-				if (int dwError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
+				if (ErrorCode oError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
 				{
 					this->DeregisterIO(poSock->NativeSocket(), pOStream);
-					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
+					poSock->NewErrorOperation(oError)(*poSock, 0, pOStream);
 					continue;
 				}
 			}
 			if (pEvent->events & (EPOLLIN | EPOLLERR | EPOLLHUP))
 			{
-				if (int dwError = poSock->NewReadOperation()(*poSock, 0, pOStream))
+				if (ErrorCode oError = poSock->NewReadOperation()(*poSock, 0, pOStream))
 				{
 					this->DeregisterIO(poSock->NativeSocket(), pOStream);
-					poSock->NewErrorOperation(dwError)(*poSock, 0, pOStream);
+					poSock->NewErrorOperation(oError)(*poSock, 0, pOStream);
 					continue;
 				}
 			}
