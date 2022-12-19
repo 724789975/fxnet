@@ -39,8 +39,8 @@ void CTextSession::ConnectedEvent::operator()(std::ostream* pOStream)
 	this->m_pSession->OnConnected(pOStream);
 }
 
-CTextSession::SessionErrorEvent::SessionErrorEvent(ISession* pSession, int dwError)
-	: m_oError(dwError)
+CTextSession::SessionErrorEvent::SessionErrorEvent(ISession* pSession, const ErrorCode& oError)
+	: m_oError(oError)
 	, m_pSession(pSession)
 {
 }

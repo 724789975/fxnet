@@ -137,11 +137,11 @@ namespace FXNET
 	{
 		DELETE_WHEN_DESTRUCT(CTcpConnector::IOErrorOperation, this);
 
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError << ")"
+		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError.What() << ")"
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		if (NULL == ((CTcpConnector&)refSocketBase).GetSession())
 		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError << ")"
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError.What() << ")"
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			return ErrorCode();
 		}
@@ -178,7 +178,7 @@ namespace FXNET
 
 	ErrorCode CTcpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << ", error: " << m_oError
+		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << ", error: " << m_oError.What()
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 		return ErrorCode();

@@ -26,9 +26,9 @@ public:
 	class SessionErrorEvent : public MessageEventBase
 	{
 	public:
-		SessionErrorEvent(ISession* pSession, int dwError);
+		SessionErrorEvent(ISession* pSession, const ErrorCode& oError);
 		virtual void operator ()(std::ostream* pOStream);
-		int m_oError;
+		ErrorCode m_oError;
 		ISession* m_pSession;
 	};
 	class CloseSessionEvent : public MessageEventBase
