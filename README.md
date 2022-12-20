@@ -11,7 +11,9 @@ UDP监听了0.0.0.0 但传递参数的时候 需填对应IP地址(有网卡为网卡对应外网地址 腾讯云
 e.g. FXNET::PostEvent(new FXNET::UDPListen("192.168.10.103", 10085));
 #
 #### 测试方法
-使用clumsy 模拟丢包（丢包率20%）
+使用clumsy 模拟丢包（丢包率20%）  
+BufferContral::m_dSendFrequency 会控制最高发送频率 内网测试需修改为接近0的值
+以防止因为发送频率限制导致的延迟较高
 #
 #### 测试结果
 正常无丢包情况下 tcp udp 延迟接近
