@@ -2,6 +2,7 @@
 #define __ERROR_CODE_H__
 
 #include <string>
+#include <stdio.h>
 
 enum UserError
 {

@@ -1,6 +1,8 @@
 #include "include/net_work_stream.h"
 #include "include/netstream.h"
 
+#include <stdlib.h>
+
 INetWorkStream::INetWorkStream()
 	: m_dwUseLen(0)
 {
