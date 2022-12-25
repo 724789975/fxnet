@@ -80,10 +80,12 @@ namespace FXNET
 			this->DealFunction(&strstream);
 
 			LogModule::Instance()->PushLog(strstream);
+			strstream.flags(std::cout.fixed);
 		}
 		strstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
 
 		LogModule::Instance()->PushLog(strstream);
+		strstream.flags(std::cout.fixed);
 	}
 
 	void FxIoModule::DealFunction(std::ostream* pOStream)
