@@ -17,6 +17,7 @@
 #endif
 
 #include <iostream>
+#include <sstream>
 
 namespace FXNET
 {
@@ -69,16 +70,20 @@ namespace FXNET
 
 	void FxIoModule::ThrdFunc()
 	{
-		std::ostream& refOStream = std::cout;
-		std::cout.flags(std::cout.fixed);
-		refOStream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start, "
+		std::stringstream strstream;
+		strstream.flags(std::cout.fixed);
+		strstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start, "
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
 		while (!m_bStop)
 		{
-			this->DealFunction(&refOStream);
+			this->DealFunction(&strstream);
+
+			LogModule::Instance()->PushLog(strstream);
 		}
-		refOStream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
+		strstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
+
+		LogModule::Instance()->PushLog(strstream);
 	}
 
 	void FxIoModule::DealFunction(std::ostream* pOStream)
