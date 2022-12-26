@@ -70,22 +70,22 @@ namespace FXNET
 
 	void FxIoModule::ThrdFunc()
 	{
-		std::stringstream strstream;
-		strstream.flags(std::cout.fixed);
-		strstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start, "
+		std::stringstream* pStrstream = LogModule::Instance()->GetStream();
+		pStrstream->flags(std::cout.fixed);
+		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start, "
 			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
 		while (!m_bStop)
 		{
-			this->DealFunction(&strstream);
+			this->DealFunction(pStrstream);
 
-			LogModule::Instance()->PushLog(strstream);
-			strstream.flags(std::cout.fixed);
+			LogModule::Instance()->PushLog(pStrstream);
+			pStrstream->flags(std::cout.fixed);
 		}
-		strstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
+		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
 
-		LogModule::Instance()->PushLog(strstream);
-		strstream.flags(std::cout.fixed);
+		LogModule::Instance()->PushLog(pStrstream);
+		pStrstream->flags(std::cout.fixed);
 	}
 
 	void FxIoModule::DealFunction(std::ostream* pOStream)

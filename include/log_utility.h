@@ -71,7 +71,8 @@ public:
 	bool					Init();
 	void					Uninit();
 
-	void					PushLog(std::stringstream& refStream);
+	void					PushLog(std::stringstream*& refpStream);
+	std::stringstream*		GetStream();
 
 private:
 
@@ -85,11 +86,7 @@ protected:
 	FXNET::IFxThreadHandler* m_poThrdHandler;
 	bool					m_bStop;
 	FXNET::CCasLock			m_lockEventLock;
-#if __cplusplus < 201103L
-	std::vector<std::string>	m_vecLogStream;
-#else
-	std::vector<std::stringstream>	m_vecLogStream;
-#endif
+	std::vector<std::stringstream*>	m_vecLogStream;
 };
 
 #endif // !__LOG_UTILITY_H__

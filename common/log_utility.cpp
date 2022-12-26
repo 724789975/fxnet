@@ -43,7 +43,7 @@ void LogModule::ThrdFunc()
 {
 	while (!m_bStop)
 	{
-		std::vector<std::stringstream> vecTemp;
+		std::vector<std::stringstream*> vecTemp;
 		{
 			FXNET::CLockImp oImp(this->m_lockEventLock);
 			vecTemp.swap(this->m_vecLogStream);
@@ -59,10 +59,11 @@ void LogModule::ThrdFunc()
 			continue;
 		}
 
-		for (std::vector<std::stringstream>::iterator it = vecTemp.begin()
+		for (std::vector<std::stringstream*>::iterator it = vecTemp.begin()
 			; it != vecTemp.end(); ++it)
 		{
-			std::cout << it->str();
+			std::cout << (*it)->str();
+			delete (*it);
 		}
 
 		std::cout << std::flush;
@@ -110,16 +111,14 @@ void LogModule::Uninit()
 	this->Stop();
 }
 
-void LogModule::PushLog(std::stringstream& refStream)
+void LogModule::PushLog(std::stringstream*& refpStream)
 {
 	FXNET::CLockImp oImp(this->m_lockEventLock);
-#if __cplusplus < 201103L
-	m_vecLogStream.push_back(refStream.str());
-	refStream.clear();
-	refStream.str("");
-#else
-	m_vecLogStream.push_back(std::stringstream());
-	std::swap(m_vecLogStream.back(), refStream);
-#endif
+	m_vecLogStream.push_back(refpStream);
+	refpStream = new std::stringstream;
 }
 
+std::stringstream* LogModule::GetStream()
+{
+	return new std::stringstream;
+}
