@@ -113,7 +113,13 @@ void LogModule::Uninit()
 void LogModule::PushLog(std::stringstream& refStream)
 {
 	FXNET::CLockImp oImp(this->m_lockEventLock);
+#if __cplusplus < 201103L
+	m_vecLogStream.push_back(refStream.str());
+	refStream.clear();
+	refStream.str("");
+#else
 	m_vecLogStream.push_back(std::stringstream());
 	std::swap(m_vecLogStream.back(), refStream);
+#endif
 }
 

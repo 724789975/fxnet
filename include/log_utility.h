@@ -85,7 +85,11 @@ protected:
 	FXNET::IFxThreadHandler* m_poThrdHandler;
 	bool					m_bStop;
 	FXNET::CCasLock			m_lockEventLock;
+#if __cplusplus < 201103L
+	std::vector<std::string>	m_vecLogStream;
+#else
 	std::vector<std::stringstream>	m_vecLogStream;
+#endif
 };
 
 #endif // !__LOG_UTILITY_H__
