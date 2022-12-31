@@ -45,8 +45,8 @@ OUTPUT_DIR =./Debug
 OUTPUT = Test
 
 ifeq ($(GPERF),1)
-C_FLAGS		+= -pg -DGPERF
-CXX_FLAGS	+= -pg -DGPERF
+C_FLAGS		+= -DGPERF
+CXX_FLAGS	+= -DGPERF
 LIB_FILE += -ltcmalloc_and_profiler
 endif
 
