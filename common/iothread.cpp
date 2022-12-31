@@ -405,9 +405,10 @@ namespace FXNET
 		//unsigned long long lPoint = (unsigned long long)pEvent;
 		//std::cout << lPoint << "\n";
 		unsigned long long lPoint = 1LL;
-
-		CLockImp oImp(this->m_lockEventLock);
-		this->m_vecIOEvent.push_back(pEvent);
+		{
+			CLockImp oImp(this->m_lockEventLock);
+			this->m_vecIOEvent.push_back(pEvent);
+		}
 		write(this->m_hEvent, &lPoint, sizeof(lPoint));
 #endif //_WIN32
 		return *this;

@@ -71,7 +71,7 @@ public:
 		: m_dwError(0)
 	{}
 
-	operator int() const { return m_dwError; }
+	operator const int&() const { return m_dwError; }
 	std::string What() const
 	{
 		char buff[32] = { 0 };
