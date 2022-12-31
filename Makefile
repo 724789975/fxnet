@@ -43,6 +43,13 @@ LIB_FILE	+= -lasan
 endif
 OUTPUT_DIR =./Debug
 OUTPUT = Test
+
+ifeq ($(GPERF),1)
+C_FLAGS		+= -pg -DGPERF
+CXX_FLAGS	+= -pg -DGPERF
+LIB_FILE += -ltcmalloc_and_profiler
+endif
+
 #==========================================================
 
 OBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -name "*.cpp"))
