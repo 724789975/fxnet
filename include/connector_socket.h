@@ -25,16 +25,16 @@ namespace FXNET
 		/**
 		 * @brief Get the Session object
 		 * 
-		 * @return ISession* 
+		 * @return ISession* const& 
 		 */
-		ISession* GetSession() { return m_pSession; }
+		inline ISession * const & GetSession() { return m_pSession; }
 		/**
 		 * @brief Set the Session object
 		 * 
-		 * @param poSession 
-		 * @return CConnectorSocket& 
+		 * @param poSession
+		 * @return CConnectorSocket&
 		 */
-		CConnectorSocket& SetSession(ISession* poSession) { m_pSession = poSession; return *this; }
+		inline CConnectorSocket& SetSession(ISession* poSession) { m_pSession = poSession; return *this; }
 	protected:
 
 		ISession* m_pSession;
