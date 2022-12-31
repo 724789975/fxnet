@@ -8,8 +8,7 @@ namespace FXNET
 	{
 	public:
 		virtual ~TSingleton() {}
-		//static volatile T* Instance() { return (T*)(m_pInstance); }
-		static T* Instance() { return (T*)(m_pInstance); }
+		static T* const & Instance() { return (T*)(m_pInstance); }
 		static bool CreateInstance()
 		{
 			if (!m_pInstance)
