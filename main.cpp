@@ -8,9 +8,16 @@
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+#include <signal.h>
+
+void OnSIgSegv(int n)
+{
+	std::cout <<__FUNCTION__ << "\n";
+}
 
 int main()
 {
+	signal(45, OnSIgSegv);
 	LogModule::CreateInstance();
 	LogModule::Instance()->Init();
 #ifdef _WIN32
