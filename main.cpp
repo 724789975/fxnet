@@ -1,23 +1,40 @@
 #include "common/buff_contral.h"
 #include "include/cas_lock.h"
 #include "include/iothread.h"
-
 #include "include/fxnet_interface.h"
 #include "text_session.h"
+
+#ifdef GPERF
+#include "gperftools/tcmalloc.h"
+#include "gperftools/profiler.h"
+#endif	//!GPERF
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 #include <signal.h>
 
-void OnSIgSegv(int n)
+bool g_bProFileState = false;
+void OnSIg45(int n)
 {
+	g_bProFileState = !g_bProFileState;
+#ifdef GPERF
+	if (g_bProFileState)
+	{
+		ProfilerStart("prefix");
+	}
+	else
+	{
+		ProfilerStop();
+	}
+#endif	//!GPERF
+	
 	std::cout <<__FUNCTION__ << "\n";
 }
 
 int main()
 {
-	signal(45, OnSIgSegv);
+	signal(45, OnSIg45);
 	LogModule::CreateInstance();
 	LogModule::Instance()->Init();
 #ifdef _WIN32
