@@ -15,6 +15,7 @@ class MessageEventBase;
 
 namespace FXNET
 {
+	class CConnectorSocket;
 	/**
 	 * @brief 
 	 * 
@@ -32,8 +33,8 @@ namespace FXNET
 #endif //_WIN32
 
 		virtual ~ISession() {}
-		void SetSock(ISocketBase* opSock) { m_opSock = opSock; }
-		ISocketBase* GetSocket() { return m_opSock; }
+		void SetSock(CConnectorSocket* opSock) { m_opSock = opSock; }
+		CConnectorSocket* GetSocket() { return m_opSock; }
 
 		/**
 		 * @brief 
@@ -125,7 +126,7 @@ namespace FXNET
 
 		virtual MessageEventBase* NewOnSendEvent(int dwLen) = 0;
 	protected:
-		ISocketBase* m_opSock;
+		CConnectorSocket* m_opSock;
 	private:
 	};
 

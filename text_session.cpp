@@ -83,7 +83,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 	class SendOperator : public IOEventBase
 	{
 	public:
-		SendOperator(FXNET::ISocketBase* opSock)
+		SendOperator(FXNET::CConnectorSocket* opSock)
 			: m_opSock(opSock)
 		{
 		}
@@ -91,7 +91,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 		{
 			DELETE_WHEN_DESTRUCT(SendOperator, this);
 
-			FXNET::CConnectorSocket* poConnector = dynamic_cast<FXNET::CConnectorSocket*>(this->m_opSock);
+			FXNET::CConnectorSocket* poConnector = this->m_opSock;
 			if (poConnector->GetError())
 			{
 				return;
@@ -109,7 +109,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 				<< ", " << m_szData
 				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 		}
-		FXNET::ISocketBase* m_opSock;
+		FXNET::CConnectorSocket* m_opSock;
 		std::string m_szData;
 	protected:
 	private:
