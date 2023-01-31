@@ -13,4 +13,4 @@ jobs:
 
     steps:
     - name: make
-      run: make
+      run: cd ../../ && make
