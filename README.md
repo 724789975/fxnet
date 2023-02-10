@@ -22,3 +22,6 @@ BufferContral::m_dSendFrequency 会控制最高发送频率 内网测试需修改为接近0的值
 #### 编译环境
 windows 使用nmake  
 linux 使用gcc（4.8.5）  
+#
+#### 测试环境
+udp使用绑定端口的方式实现有连接传输 因此 服务器 客户端 必须部署在不同机器上
