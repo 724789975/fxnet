@@ -6,6 +6,9 @@
 
 #ifdef _WIN32
 #include <WinSock2.h>
+#include <Iphlpapi.h>
+#include <iostream>
+#pragma comment(lib,"Iphlpapi.lib") //需要添加Iphlpapi.lib库
 #ifndef macro_closesocket
 #define macro_closesocket closesocket
 #endif //macro_closesocket
@@ -20,6 +23,106 @@
 
 namespace FXNET
 {
+	const char* GetIp(const char* szIp)
+	{
+		std::string szRetIp = szIp;
+		if (strcmp(szIp, "0.0.0.0"))
+		{
+			//记录网卡数量
+			int netCardNum = 0;
+			//记录每张网卡上的IP地址数量
+			int IPnumPerNetCard = 0;
+			//PIP_ADAPTER_INFO结构体指针存储本机网卡信息
+			PIP_ADAPTER_INFO pIpAdapterInfo = new IP_ADAPTER_INFO();
+			//得到结构体大小,用于GetAdaptersInfo参数
+			unsigned long stSize = sizeof(IP_ADAPTER_INFO);
+			//调用GetAdaptersInfo函数,填充pIpAdapterInfo指针变量;其中stSize参数既是一个输入量也是一个输出量
+			int nRel = GetAdaptersInfo(pIpAdapterInfo, &stSize);
+			if (ERROR_BUFFER_OVERFLOW == nRel) {
+				//如果函数返回的是ERROR_BUFFER_OVERFLOW
+				//则说明GetAdaptersInfo参数传递的内存空间不够,同时其传出stSize,表示需要的空间大小
+				//这也是说明为什么stSize既是一个输入量也是一个输出量
+				//释放原来的内存空间
+				delete pIpAdapterInfo;
+				//重新申请内存空间用来存储所有网卡信息
+				pIpAdapterInfo = (PIP_ADAPTER_INFO)new BYTE[stSize];
+				//再次调用GetAdaptersInfo函数,填充pIpAdapterInfo指针变量
+				nRel = GetAdaptersInfo(pIpAdapterInfo, &stSize);
+			}
+			if (ERROR_SUCCESS == nRel) {
+				//输出网卡信息
+				//可能有多网卡,因此通过循环去判断
+				while (pIpAdapterInfo)
+				{
+					//std::cout << "网卡数量：" << ++netCardNum << std::endl;
+					//std::cout << "网卡名称：" << pIpAdapterInfo->AdapterName << std::endl;
+					//std::cout << "网卡描述：" << pIpAdapterInfo->Description << std::endl;
+					switch (pIpAdapterInfo->Type) {
+					case MIB_IF_TYPE_OTHER:
+						//std::cout << "网卡类型：" << "OTHER" << std::endl;
+						break;
+					case MIB_IF_TYPE_ETHERNET:
+						//std::cout << "网卡类型：" << "ETHERNET" << std::endl;
+						break;
+					case MIB_IF_TYPE_TOKENRING:
+						//std::cout << "网卡类型：" << "TOKENRING" << std::endl;
+						break;
+					case MIB_IF_TYPE_FDDI:
+						//std::cout << "网卡类型：" << "FDDI" << std::endl;
+						break;
+					case MIB_IF_TYPE_PPP:
+						//printf("PP\n");
+						//std::cout << "网卡类型：" << "PPP" << std::endl;
+						break;
+					case MIB_IF_TYPE_LOOPBACK:
+						//std::cout << "网卡类型：" << "LOOPBACK" << std::endl;
+						break;
+					case MIB_IF_TYPE_SLIP:
+						//std::cout << "网卡类型：" << "SLIP" << std::endl;
+						break;
+					default:
+						break;
+					}
+					//std::cout << "网卡MAC地址：";
+					for (DWORD i = 0; i < pIpAdapterInfo->AddressLength; i++)
+						if (i < pIpAdapterInfo->AddressLength - 1) {
+							//printf("%02X-", pIpAdapterInfo->Address[i]);
+						}
+						else {
+							//printf("%02X\n", pIpAdapterInfo->Address[i]);
+						}
+					//std::cout << "网卡IP地址如下：" << std::endl;
+					//可能网卡有多IP,因此通过循环去判断
+					IP_ADDR_STRING* pIpAddrString = &(pIpAdapterInfo->IpAddressList);
+					do {
+						if (strcmp(pIpAddrString->IpAddress.String, "127.0.0.1"))
+						{
+							szRetIp = pIpAddrString->IpAddress.String;
+							break;
+						}
+						//std::cout << "该网卡上的IP数量：" << ++IPnumPerNetCard << std::endl;
+						//std::cout << "IP 地址：" << pIpAddrString->IpAddress.String << std::endl;
+						//std::cout << "子网地址：" << pIpAddrString->IpMask.String << std::endl;
+						//std::cout << "网关地址：" << pIpAdapterInfo->GatewayList.IpAddress.String << std::endl;
+						pIpAddrString = pIpAddrString->Next;
+					} while (pIpAddrString);
+
+					PIP_ADAPTER_INFO p = pIpAdapterInfo;
+					pIpAdapterInfo = pIpAdapterInfo->Next;
+					delete p;
+					//std::cout << "--------------------------------------------------------------------" << std::endl;
+				}
+			}
+			//释放内存空间
+			if (pIpAdapterInfo) {
+				delete pIpAdapterInfo;
+			}
+
+			return szRetIp.c_str();
+		}
+		return szIp;
+	}
+
 	ErrorCode CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpListener::IOReadOperation, this);
@@ -273,7 +376,7 @@ namespace FXNET
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
 		refLocalAddr.sin_family = AF_INET;
 
-		if (szIp) { refLocalAddr.sin_addr.s_addr = inet_addr(szIp); }
+		if (szIp) { refLocalAddr.sin_addr.s_addr = inet_addr(GetIp(szIp)); }
 
 		refLocalAddr.sin_port = htons(wPort);
 
