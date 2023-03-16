@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <ifaddrs.h>
 #ifndef macro_closesocket
 #define macro_closesocket close
 #endif //macro_closesocket
@@ -25,9 +26,10 @@ namespace FXNET
 {
 	const char* GetIp(const char* szIp)
 	{
-		std::string szRetIp = szIp;
-		if (strcmp(szIp, "0.0.0.0"))
+		static std::string szRetIp = szIp;
+		if (0 == strcmp(szIp, "0.0.0.0"))
 		{
+#ifdef _WIN32
 			//记录网卡数量
 			int netCardNum = 0;
 			//记录每张网卡上的IP地址数量
@@ -49,6 +51,7 @@ namespace FXNET
 				//再次调用GetAdaptersInfo函数,填充pIpAdapterInfo指针变量
 				nRel = GetAdaptersInfo(pIpAdapterInfo, &stSize);
 			}
+			PIP_ADAPTER_INFO p = pIpAdapterInfo;
 			if (ERROR_SUCCESS == nRel) {
 				//输出网卡信息
 				//可能有多网卡,因此通过循环去判断
@@ -95,7 +98,8 @@ namespace FXNET
 					//可能网卡有多IP,因此通过循环去判断
 					IP_ADDR_STRING* pIpAddrString = &(pIpAdapterInfo->IpAddressList);
 					do {
-						if (strcmp(pIpAddrString->IpAddress.String, "127.0.0.1"))
+						if (strcmp(pIpAddrString->IpAddress.String, "127.0.0.1")
+							&& strcmp(pIpAddrString->IpAddress.String, ""))
 						{
 							szRetIp = pIpAddrString->IpAddress.String;
 							break;
@@ -107,30 +111,61 @@ namespace FXNET
 						pIpAddrString = pIpAddrString->Next;
 					} while (pIpAddrString);
 
-					PIP_ADAPTER_INFO p = pIpAdapterInfo;
 					pIpAdapterInfo = pIpAdapterInfo->Next;
-					delete p;
 					//std::cout << "--------------------------------------------------------------------" << std::endl;
 				}
 			}
 			//释放内存空间
-			if (pIpAdapterInfo) {
-				delete pIpAdapterInfo;
+			if (p) {
+				delete p;
 			}
 
 			return szRetIp.c_str();
+#else
+			struct ifaddrs *ifc, *ifc1;
+			char ip[64] = {};
+		
+			if(0 == getifaddrs(&ifc))
+			{
+				ifc1 = ifc;
+				for (; NULL != ifc; ifc = (*ifc).ifa_next)
+				{
+					if ((*ifc).ifa_addr)
+					{
+						inet_ntop(AF_INET, &(((struct sockaddr_in *)((*ifc).ifa_addr))->sin_addr), ip, 64);
+						if (strcmp(ip, "127.0.0.1") && strcmp(ip, ""))
+						{
+							szRetIp = ip;
+							break;
+						}
+					}
+					else
+					{
+					}
+					if ((*ifc).ifa_netmask)
+					{
+					}
+					else
+					{
+					}
+				}
+
+				freeifaddrs(ifc1);
+			}
+
+#endif //!_WIN32
 		}
 		return szIp;
 	}
 
-	ErrorCode CUdpListener::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	ErrorCode CUdpListener::IOReadOperation::operator()(ISocketBase &refSocketBase, unsigned int dwLen, std::ostream *pOStream)
 	{
 		DELETE_WHEN_DESTRUCT(CUdpListener::IOReadOperation, this);
 
-		CUdpListener& refSock = (CUdpListener&) refSocketBase;
+		CUdpListener &refSock = (CUdpListener &)refSocketBase;
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << ", " << refSock.Name()
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+										 << " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 #ifdef _WIN32
 		UDPPacketHeader& oUDPPacketHeader = *(UDPPacketHeader*)m_stWsaBuff.buf;
