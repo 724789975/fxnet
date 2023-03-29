@@ -1,5 +1,6 @@
 #include "include/net_work_stream.h"
 #include "include/netstream.h"
+#include "include/net_stream_package.h"
 
 #include <stdlib.h>
 
