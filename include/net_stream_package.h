@@ -288,8 +288,9 @@ namespace FXNET
 			WriteData(refStr.c_str(), refStr.size());
 		}
 
-		void WriteString(const char *pData, size_t dwLen)
+		void WriteString(const char *pData, unsigned int dwLen)
 		{
+			WriteInt(dwLen);
 			WriteData(pData, dwLen);
 		}
 
