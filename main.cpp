@@ -32,9 +32,28 @@ void OnSIg45(int n)
 	std::cout <<__FUNCTION__ << "\n";
 }
 
+bool g_bHeapProFileState = false;
+void OnSIg46(int n)
+{
+	g_bHeapProFileState = !g_bHeapProFileState;
+#ifdef GPERF
+	if (g_bHeapProFileState)
+	{
+		HeapProfilerStart("prefix");
+	}
+	else
+	{
+		HeapProfilerStop();
+	}
+#endif	//!GPERF
+	
+	std::cout <<__FUNCTION__ << "\n";
+}
+
 int main()
 {
 	signal(45, OnSIg45);
+	signal(46, OnSIg46);
 	LogModule::CreateInstance();
 	LogModule::Instance()->Init();
 #ifdef _WIN32
