@@ -35,6 +35,7 @@ void INetWorkStream::PopData(FXNET::CNetStreamPackage& refPackage)
 
 	new (&refPackage) FXNET::CNetStreamPackage((char*)m_btData + HEADER_LENGTH, dwLen - HEADER_LENGTH);
 	memmove(this->m_btData, this->m_btData + dwLen, this->m_dwUseLen - dwLen);
+	m_dwUseLen -= dwLen;
 }
 
 void* INetWorkStream::PushData(const char* szData, unsigned int dwLen)
