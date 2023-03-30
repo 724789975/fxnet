@@ -136,6 +136,8 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 	// 	<< m_dwPacketLength / (FXNET::FxIoModule::Instance()->FxGetCurrentTime() - m_dConnectedTime)
 	// 	<< "\n";
 	
+	int dwMagicNum = 0;
+	refPackage.ReadInt(dwMagicNum);
 	std::string szData;
 	refPackage.ReadString(szData);
 
