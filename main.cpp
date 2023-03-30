@@ -7,6 +7,7 @@
 #ifdef GPERF
 #include "gperftools/tcmalloc.h"
 #include "gperftools/profiler.h"
+#include "gperftools/heap-profiler.h"
 #endif	//!GPERF
 
 #ifndef _WIN32
@@ -39,7 +40,7 @@ void OnSIg46(int n)
 #ifdef GPERF
 	if (g_bHeapProFileState)
 	{
-		HeapProfilerStart("prefix");
+		HeapProfilerStart("heap_prefix");
 	}
 	else
 	{
