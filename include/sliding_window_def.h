@@ -10,4 +10,9 @@
  */
 #define UDP_WINDOW_BUFF_SIZE 1024
 
+/**
+ * @brief udp发送时间间隔
+ */
+#define UDP_SEND_FREQUENCY 0.02
+
 #endif	//! __SLIDING_WINDOW_DEF_H__

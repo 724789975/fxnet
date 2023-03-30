@@ -1,6 +1,7 @@
 #include "../include/iothread.h"
 #include "../include/error_code.h"
 #include "../include/log_utility.h"
+#include "../include/sliding_window_def.h"
 #include "../utility/time_utility.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -106,7 +107,7 @@ namespace FXNET
 
 		//LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
-		if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= 0.05)
+		if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= UDP_SEND_FREQUENCY)
 		{
 			this->m_dLoatUpdateTime = this->m_dCurrentTime;
 			for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = this->m_mapSockets.begin();
