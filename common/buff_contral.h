@@ -365,7 +365,7 @@ namespace FXNET
 	{
 		this->m_dwStatus = dwState;
 		this->m_dDelayTime = 0;
-		this->m_dSendFrequency = 0.02;
+		this->m_dSendFrequency = 0.01;
 		this->m_dDelayAverage = 3 * m_dSendFrequency;
 		this->m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
 		this->m_dSendTime = 0;
