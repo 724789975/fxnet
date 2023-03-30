@@ -173,6 +173,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 			<< ", current delay: " << this->m_dCurrentDelay << ", average: "
 			<< this->m_dAverageDelay
 			<< ", package num: " << this->m_dwRecvPackagetNum
+			<< ", seq: " << (qwRecv & 0xFFFF)
 			<< "\n";
 
 		char szBuff[2048] = {0};
