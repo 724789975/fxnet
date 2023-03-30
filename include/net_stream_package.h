@@ -24,7 +24,7 @@ namespace FXNET
 
 		CNetStreamPackage()
 		{
-			m_strData.reserve(32 * 1024);
+			m_strData.reserve(2 * 1024);
 		}
 
 		~CNetStreamPackage() {}
