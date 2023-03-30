@@ -1,5 +1,5 @@
-#ifndef __NetStream_H__
-#define __NetStream_H__
+#ifndef __NetStreamPackage_H__
+#define __NetStreamPackage_H__
 
 #ifdef _WIN32
 #include <Winsock2.h>
@@ -29,8 +29,8 @@ namespace FXNET
 
 		~CNetStreamPackage() {}
 
-		size_t GetDataLength() { return m_strData.size(); }
-		void *GetData() { return m_strData.data(); }
+		unsigned int GetDataLength() const { return (unsigned int)m_strData.size(); }
+		const char* GetData() const { return m_strData.data(); }
 
 		bool ReadByte(char &cData)
 		{
@@ -86,7 +86,7 @@ namespace FXNET
 			}
 			dwData = *(int *)m_strData.data();
 			m_strData.erase(0, sizeof(dwData));
-			dwData = ntohs(dwData);
+			dwData = ntohl(dwData);
 			return true;
 		}
 
@@ -98,7 +98,7 @@ namespace FXNET
 			}
 			dwData = *(unsigned int *)m_strData.data();
 			m_strData.erase(0, sizeof(dwData));
-			dwData = ntohs(dwData);
+			dwData = ntohl(dwData);
 			return true;
 		}
 
@@ -288,9 +288,14 @@ namespace FXNET
 			WriteData(refStr.c_str(), refStr.size());
 		}
 
+		void WriteString(const char *pData, size_t dwLen)
+		{
+			WriteData(pData, dwLen);
+		}
+
 	private:
 		std::string m_strData;
 	};
 };
 
-#endif //	__NetStream_H__
+#endif //	__NetStreamPackage_H__

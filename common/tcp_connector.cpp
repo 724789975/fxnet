@@ -33,10 +33,8 @@ namespace FXNET
 		refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
 		while (refConnector.GetSession()->GetRecvBuff().CheckPackage())
 		{
-			std::string szData;
-			refConnector.GetSession()->GetRecvBuff().PopData(szData);
-
-			MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
+			MessageRecvEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent();
+			refConnector.GetSession()->GetRecvBuff().PopData(pOperator->m_oPackage);
 
 			if (NULL == pOperator)
 			{
@@ -73,10 +71,8 @@ namespace FXNET
 				refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
 				while (refConnector.GetSession()->GetRecvBuff().CheckPackage())
 				{
-					std::string szData;
-					refConnector.GetSession()->GetRecvBuff().PopData(szData);
-
-					MessageEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent(szData);
+					MessageRecvEventBase* pOperator = refConnector.GetSession()->NewRecvMessageEvent();
+					refConnector.GetSession()->GetRecvBuff().PopData(pOperator->m_oPackage);
 
 					if (NULL == pOperator)
 					{

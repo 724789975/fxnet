@@ -1,11 +1,13 @@
 #ifndef __NET_WORK_STREAM_H__
 #define __NET_WORK_STREAM_H__
 
+#include "net_stream_package.h"
 #include <string>
 
 class INetWorkStream
 {
 public:
+	enum {HEADER_LENGTH = sizeof(unsigned int)};
 	INetWorkStream();
 	virtual ~INetWorkStream();
 	unsigned char *GetData() { return m_btData; }
@@ -13,10 +15,12 @@ public:
 	unsigned int GetFreeSize() { return m_dwDataLen - GetSize(); }
 
 	void PopData(unsigned int wLen);
+	void PopData(FXNET::CNetStreamPackage& refPackage);
 	virtual void PopData(std::string &refData) = 0;
 	void* PushData(const char *szData, unsigned int wLen);
 	void* PushData(unsigned int wLen);
-	virtual bool CheckPackage() = 0;
+	void PushData(const FXNET::CNetStreamPackage& refPackage);
+	virtual bool CheckPackage();
 
 private:
 	void Realloc(unsigned int dwLen);

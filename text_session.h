@@ -8,13 +8,12 @@
 class CTextSession : public FXNET::ISession
 {
 public:
-	class TextMessageEvent : public MessageEventBase
+	class TextMessageEvent : public MessageRecvEventBase
 	{
 	public:
-		TextMessageEvent(ISession* pSession, std::string& refData);
+		TextMessageEvent(ISession* pSession);
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
-		std::string m_szData;
 	};
 	class ConnectedEvent : public MessageEventBase
 	{
@@ -58,7 +57,7 @@ public:
 	~CTextSession(){}
 
 	virtual CTextSession& Send(const char* szData, unsigned int dwLen, std::ostream* pOStream);
-	virtual CTextSession& OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream);
+	virtual CTextSession& OnRecv(FXNET::CNetStreamPackage& refPackage, std::ostream* pOStream);
 
 	virtual void OnConnected(std::ostream* pOStream);
 	virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
@@ -69,7 +68,7 @@ public:
 	virtual TextWorkStream& GetSendBuff() { return m_oSendBuff; }
 	virtual TextWorkStream& GetRecvBuff() { return m_oRecvBuff; }
 
-	virtual TextMessageEvent* NewRecvMessageEvent(std::string& refData);
+	virtual TextMessageEvent* NewRecvMessageEvent();
 	virtual MessageEventBase* NewConnectedEvent();
 	virtual SessionErrorEvent* NewErrorEvent(const ErrorCode& refError);
 	virtual CloseSessionEvent* NewCloseEvent();

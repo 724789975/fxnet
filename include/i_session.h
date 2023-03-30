@@ -12,9 +12,11 @@
 
 class INetWorkStream;
 class MessageEventBase;
+class MessageRecvEventBase;
 
 namespace FXNET
 {
+	class CNetStreamPackage;
 	class CConnectorSocket;
 	/**
 	 * @brief 
@@ -53,7 +55,7 @@ namespace FXNET
 		 * @param dwLen 
 		 * @return ISession& 
 		 */
-		virtual ISession& OnRecv(const char* szData, unsigned int dwLen, std::ostream* pOStream) = 0;
+		virtual ISession& OnRecv(CNetStreamPackage& refPackage, std::ostream* pOStream) = 0;
 
 		/**
 		 * @brief 
@@ -100,7 +102,7 @@ namespace FXNET
 		 * @param refData 
 		 * @return MessageEventBase* 
 		 */
-		virtual MessageEventBase* NewRecvMessageEvent(std::string& refData) = 0;
+		virtual MessageRecvEventBase* NewRecvMessageEvent() = 0;
 		/**
 		 * @brief 
 		 * 

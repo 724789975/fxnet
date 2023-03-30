@@ -121,10 +121,8 @@ namespace FXNET
 		this->m_refUdpConnector.GetSession()->GetRecvBuff().PushData(szBuff, wSize);
 		while (this->m_refUdpConnector.GetSession()->GetRecvBuff().CheckPackage())
 		{
-			std::string szData;
-			this->m_refUdpConnector.GetSession()->GetRecvBuff().PopData(szData);
-
-			MessageEventBase* pOperator = this->m_refUdpConnector.GetSession()->NewRecvMessageEvent(szData);
+			MessageRecvEventBase* pOperator = this->m_refUdpConnector.GetSession()->NewRecvMessageEvent();
+			this->m_refUdpConnector.GetSession()->GetRecvBuff().PopData(pOperator->m_oPackage);
 
 			if (NULL == pOperator)
 			{
