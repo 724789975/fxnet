@@ -34,6 +34,7 @@ void INetWorkStream::PopData(FXNET::CNetStreamPackage& refPackage)
 	dwLen = ntohl(dwLen);
 
 	new (&refPackage) FXNET::CNetStreamPackage((char*)m_btData + HEADER_LENGTH, dwLen - HEADER_LENGTH);
+	memmove(this->m_btData, this->m_btData + dwLen, this->m_dwUseLen - dwLen);
 }
 
 void* INetWorkStream::PushData(const char* szData, unsigned int dwLen)
@@ -61,7 +62,7 @@ void INetWorkStream::PushData(const FXNET::CNetStreamPackage& refPackage)
 	refLen = refPackage.GetDataLength() + HEADER_LENGTH;
 	refLen = htonl(refLen);
 
-	memcpy(this->m_btData, refPackage.GetData(), refPackage.GetDataLength());
+	memcpy(this->m_btData + this->GetSize(), refPackage.GetData(), refPackage.GetDataLength());
 	this->m_dwUseLen += refPackage.GetDataLength();
 }
 
