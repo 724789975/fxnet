@@ -16,7 +16,6 @@ public:
 
 	void PopData(unsigned int wLen);
 	void PopData(FXNET::CNetStreamPackage& refPackage);
-	virtual void PopData(std::string &refData) = 0;
 	void* PushData(const char *szData, unsigned int wLen);
 	void* PushData(unsigned int wLen);
 	void PushData(const FXNET::CNetStreamPackage& refPackage);
@@ -37,11 +36,6 @@ class TextWorkStream : public INetWorkStream
 {
 public:
 	TextWorkStream() {}
-
-	TextWorkStream &WriteString(const char *szData, unsigned int dwLen);
-	TextWorkStream &ReadString(const char *szData, unsigned int dwLen);
-	TextWorkStream &ReadString(std::string &strBuff);
-	virtual void PopData(std::string &refData);
 
 	virtual bool CheckPackage();
 

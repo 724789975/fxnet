@@ -1,6 +1,5 @@
 #include "text_session.h"
 #include "include/message_event.h"
-#include "include/netstream.h"
 #include "include/iothread.h"
 #include "include/connector_socket.h"
 #include "include/fxnet_interface.h"
