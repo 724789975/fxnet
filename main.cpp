@@ -55,7 +55,7 @@ void OnSig46(int n)
 void OnSig47(int sig)
 {
 #ifdef GPERF
-	MallocExtension::instance()->ReleaseFreeMemory()
+	MallocExtension::instance()->ReleaseFreeMemory();
 #endif	//!GPERF
 }
 
