@@ -8,6 +8,7 @@
 #include "gperftools/tcmalloc.h"
 #include "gperftools/profiler.h"
 #include "gperftools/heap-profiler.h"
+#include "gperftools/malloc_extension.h"
 #endif	//!GPERF
 
 #ifndef _WIN32
@@ -16,7 +17,7 @@
 #include <signal.h>
 
 bool g_bProFileState = false;
-void OnSIg45(int n)
+void OnSig45(int sig)
 {
 	g_bProFileState = !g_bProFileState;
 #ifdef GPERF
@@ -34,7 +35,7 @@ void OnSIg45(int n)
 }
 
 bool g_bHeapProFileState = false;
-void OnSIg46(int n)
+void OnSig46(int n)
 {
 	g_bHeapProFileState = !g_bHeapProFileState;
 #ifdef GPERF
@@ -51,10 +52,18 @@ void OnSIg46(int n)
 	std::cout <<__FUNCTION__ << "\n";
 }
 
+void OnSig47(int sig)
+{
+#ifdef GPERF
+	MallocExtension::instance()->ReleaseFreeMemory()
+#endif	//!GPERF
+}
+
 int main()
 {
-	signal(45, OnSIg45);
-	signal(46, OnSIg46);
+	signal(45, OnSig45);
+	signal(46, OnSig46);
+	signal(47, OnSig47);
 	LogModule::CreateInstance();
 	LogModule::Instance()->Init();
 #ifdef _WIN32
