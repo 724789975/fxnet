@@ -33,6 +33,7 @@ void INetWorkStream::PopData(FXNET::CNetStreamPackage& refPackage)
 	unsigned int dwLen = *(unsigned int*)(this->m_btData);
 	dwLen = ntohl(dwLen);
 
+	refPackage.~CNetStreamPackage();
 	new (&refPackage) FXNET::CNetStreamPackage((char*)m_btData + HEADER_LENGTH, dwLen - HEADER_LENGTH);
 	memmove(this->m_btData, this->m_btData + dwLen, this->m_dwUseLen - dwLen);
 	m_dwUseLen -= dwLen;
