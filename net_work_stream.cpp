@@ -82,7 +82,7 @@ bool INetWorkStream::CheckPackage()
 
 void INetWorkStream::Realloc(unsigned int dwLen)
 {
-	if (dwLen > m_dwDataLen)
+	if (dwLen >= m_dwDataLen)
 	{
 		m_dwDataLen = (dwLen << 1) & (~0x3FF);
 		m_btData = (unsigned char*)realloc(m_btData, m_dwDataLen);
