@@ -49,7 +49,7 @@ namespace FXNET
 		refConnector.PostRecv(pOStream);
 #else
 		refConnector.m_bReadable = true;
-		while (refConnector.m_bReadable)
+		while (refConnector.m_bReadable && refConnector.GetSession()->GetRecvBuff().GetFreeSize())
 		{
 			int dwLen = recv(refConnector.NativeSocket()
 				, refConnector.GetSession()->GetRecvBuff().GetData() + refConnector.GetSession()->GetRecvBuff().GetSize()
@@ -363,7 +363,7 @@ namespace FXNET
 		return this->PostSend(pOStream);
 #else
 		// send as much data as we can.
-		while (this->m_bWritable)
+		while (this->m_bWritable && this->GetSession()->GetSendBuff().GetSize())
 		{
 			int dwLen = send(this->NativeSocket()
 				, this->GetSession()->GetSendBuff().GetData()
