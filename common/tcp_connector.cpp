@@ -174,7 +174,7 @@ namespace FXNET
 
 	ErrorCode CTcpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << NativeSocket() << ", error: " << m_oError.What()
+		LOG(pOStream, ELOG_LEVEL_DEBUG4) << NativeSocket() << ", error: " << m_oError.What()
 			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 		return ErrorCode();
