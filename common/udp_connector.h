@@ -99,7 +99,7 @@ namespace FXNET
 		{
 		public:
 			UDPReadStreamOperator(CUdpConnector& refUdpConnector);
-			virtual int operator() (std::ostream* pOStream);
+			virtual unsigned int operator() (std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};

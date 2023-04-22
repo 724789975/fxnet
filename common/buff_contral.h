@@ -82,7 +82,7 @@ namespace FXNET
 	{
 	public:
 		virtual ~ReadStreamOperator() {};
-		virtual int operator() (std::ostream* pOStream) = 0;
+		virtual unsigned int operator() (std::ostream* pOStream) = 0;
 	protected:
 	private:
 	};
@@ -161,7 +161,7 @@ namespace FXNET
 		 * @param wSize 要发送的长度
 		 * @return unsigned short 放入发送缓冲的长度 <= wSize
 		 */
-		unsigned short Send(const char* pSendBuffer, unsigned short wSize);
+		unsigned int Send(const char* pSendBuffer, unsigned int dwSize);
 
 		/**
 		 * @brief 
@@ -454,12 +454,12 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline unsigned short BufferContral<BUFF_SIZE, WINDOW_SIZE>
-		::Send(const char* pSendBuffer, unsigned short wSize)
+	inline unsigned int BufferContral<BUFF_SIZE, WINDOW_SIZE>
+		::Send(const char* pSendBuffer, unsigned int dwSize)
 	{
-		unsigned short wSendSize = 0;
+		unsigned int dwSendSize = 0;
 		while ((this->m_oSendWindow.m_btFreeBufferId < _SendWindow::window_size) && // there is a free buffer
-			(wSize > 0))
+			(dwSize > 0))
 		{
 			//长度不会大于拥塞窗口
 			if (this->m_oSendWindow.m_btEnd - this->m_oSendWindow.m_btBegin > this->m_dSendWindowControl) break;
@@ -482,15 +482,15 @@ namespace FXNET
 			// 复制数据
 			unsigned int dwCopyOffset = sizeof(oPacket);
 			unsigned int dwCopySize = _SendWindow::buff_size - dwCopyOffset;
-			if (dwCopySize > wSize)
-				dwCopySize = wSize;
+			if (dwCopySize > dwSize)
+				dwCopySize = dwSize;
 
 			if (dwCopySize > 0)
 			{
-				memcpy((void*)(pBuffer + dwCopyOffset), pSendBuffer + wSendSize, dwCopySize);
+				memcpy((void*)(pBuffer + dwCopyOffset), pSendBuffer + dwSendSize, dwCopySize);
 
-				wSize -= dwCopySize;
-				wSendSize += dwCopySize;
+				dwSize -= dwCopySize;
+				dwSendSize += dwCopySize;
 			}
 
 			// 添加到发送窗口
@@ -498,7 +498,7 @@ namespace FXNET
 				, FxIoModule::Instance()->FxGetCurrentTime(), m_dRetryTime);
 		}
 
-		return wSendSize;
+		return dwSendSize;
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>

@@ -234,28 +234,28 @@ namespace FXNET
 	{
 	}
 
-	int CUdpConnector::UDPReadStreamOperator::operator()(std::ostream* pOStream)
+	unsigned int CUdpConnector::UDPReadStreamOperator::operator()(std::ostream* pOStream)
 	{
 		if (0 == this->m_refUdpConnector.GetSession()->GetSendBuff().GetSize())
 		{
 			return 0;
 		}
 
-		unsigned short wLen = this->m_refUdpConnector.m_oBuffContral.Send(
+		unsigned int dwLen = this->m_refUdpConnector.m_oBuffContral.Send(
 			(char*)this->m_refUdpConnector.GetSession()->GetSendBuff().GetData()
 			, this->m_refUdpConnector.GetSession()->GetSendBuff().GetSize());
 
-		if (wLen)
+		if (dwLen)
 		{
-			this->m_refUdpConnector.GetSession()->GetSendBuff().PopData(wLen);
+			this->m_refUdpConnector.GetSession()->GetSendBuff().PopData(dwLen);
 
-			FxIoModule::Instance()->PushMessageEvent(this->m_refUdpConnector.GetSession()->NewOnSendEvent(wLen));
+			FxIoModule::Instance()->PushMessageEvent(this->m_refUdpConnector.GetSession()->NewOnSendEvent(dwLen));
 
 			LOG(pOStream, ELOG_LEVEL_DEBUG4) << (char*)this->m_refUdpConnector.GetSession()->GetSendBuff().GetData() + 4
 				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 		}
 
-		return wLen;
+		return dwLen;
 
 	}
 
@@ -297,7 +297,7 @@ namespace FXNET
 
 	ErrorCode CUdpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << ", error: " << this->m_oError
+		LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->NativeSocket() << ", error: " << this->m_oError
 #ifndef _WIN32
 			<< ", " << this->m_bReadable << ", " << this->m_bWritable
 #endif // !_WIN32
