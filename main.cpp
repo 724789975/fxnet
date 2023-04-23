@@ -12,6 +12,7 @@
 #include <unistd.h>
 #endif
 #include <signal.h>
+#include <vector>
 
 bool g_bProFileState = false;
 void OnSig45(int sig)
