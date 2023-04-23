@@ -88,7 +88,7 @@ namespace FXNET
 		return LogModule::Instance()->GetStream();
 	}
 
-	void PushLog(std::stringstream* pStrstream)
+	void PushLog(std::stringstream*& pStrstream)
 	{
 		LogModule::Instance()->PushLog(pStrstream);
 	}

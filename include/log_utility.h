@@ -15,9 +15,6 @@
 #endif //!_WIN32
 #endif
 
-#include "singleton.h"
-#include "cas_lock.h"
-
 #include <sstream>
 #include <vector>
 

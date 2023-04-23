@@ -2,8 +2,8 @@
 #define __LOG_MODULE_H__
 
 #include "thread.h"
-#include "../include/singleton.h"
-#include "../include/cas_lock.h"
+#include "singleton.h"
+#include "cas_lock.h"
 
 #include <sstream>
 #include <vector>
