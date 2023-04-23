@@ -187,7 +187,7 @@ namespace FXNET
 	};
 
 	std::stringstream* GetStream();
-	void PushLog(std::stringstream*);
+	void PushLog(std::stringstream*& pStrstream);
 };
 
 
