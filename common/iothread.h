@@ -2,7 +2,7 @@
 #define __IOThread_H__
 
 #include "thread.h"
-#include "../include/singleton.h"
+#include "singleton.h"
 #include "../include/socket_base.h"
 #include "../include/cas_lock.h"
 #include "../include/message_event.h"
