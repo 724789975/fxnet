@@ -2,10 +2,10 @@
 #define __IOThread_H__
 
 #include "thread.h"
-#include "singleton.h"
-#include "socket_base.h"
-#include "cas_lock.h"
-#include "message_event.h"
+#include "../include/singleton.h"
+#include "../include/socket_base.h"
+#include "../include/cas_lock.h"
+#include "../include/message_event.h"
 
 #include <vector>
 #include <set>

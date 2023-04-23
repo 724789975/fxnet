@@ -1,5 +1,6 @@
 #include "../include/log_utility.h"
 #include "../utility/time_utility.h"
+#include "log_module.h"
 
 #include <iostream>
 

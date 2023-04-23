@@ -1,7 +1,8 @@
-#include "../include/iothread.h"
+#include "iothread.h"
 #include "../include/error_code.h"
 #include "../include/log_utility.h"
 #include "../include/sliding_window_def.h"
+#include "../include/fxnet_interface.h"
 #include "../utility/time_utility.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -71,7 +72,7 @@ namespace FXNET
 
 	void FxIoModule::ThrdFunc()
 	{
-		std::stringstream* pStrstream = LogModule::Instance()->GetStream();
+		std::stringstream* pStrstream = FXNET::GetStream();
 		pStrstream->flags(std::cout.fixed);
 		LOG(pStrstream, ELOG_LEVEL_INFO) <<  "thread id " << this->m_poThrdHandler->GetThreadId() << " start\n";
 
@@ -79,12 +80,12 @@ namespace FXNET
 		{
 			this->DealFunction(pStrstream);
 
-			LogModule::Instance()->PushLog(pStrstream);
+			FXNET::PushLog(pStrstream);
 			pStrstream->flags(std::cout.fixed);
 		}
 		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
 
-		LogModule::Instance()->PushLog(pStrstream);
+		FXNET::PushLog(pStrstream);
 		pStrstream->flags(std::cout.fixed);
 	}
 

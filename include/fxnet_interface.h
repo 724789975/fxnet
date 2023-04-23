@@ -6,6 +6,7 @@
 
 #include <deque>
 #include <string>
+#include <sstream>
 
 namespace FXNET
 {
@@ -15,6 +16,13 @@ namespace FXNET
 	 * 启动io线程
 	 */
 	void StartIOModule();
+
+	/**
+	 * @brief 
+	 * 
+	 * 启动日志线程
+	 */
+	void StartLogModule();
 
 	/**
 	 * @brief 
@@ -178,6 +186,8 @@ namespace FXNET
 		ISession* m_pSession;
 	};
 
+	std::stringstream* GetStream();
+	void PushLog(std::stringstream*);
 };
 
 
