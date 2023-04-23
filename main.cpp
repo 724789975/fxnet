@@ -64,7 +64,6 @@ int main()
 	signal(46, OnSig46);
 	signal(47, OnSig47);
 	LogModule::CreateInstance();
-	LogModule::Instance()->Init();
 #ifdef _WIN32
 	Sleep(1);
 #else
@@ -93,7 +92,7 @@ int main()
 	// FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 
-	std::stringstream* pStrstream = LogModule::Instance()->GetStream();
+	std::stringstream* pStrstream = FXNET::GetStream();
 	pStrstream->flags(std::cout.fixed);
 	for (int i = 0; ; ++i)
 	{
@@ -123,7 +122,7 @@ int main()
 		{
 			(**it)(pStrstream);
 		}
-		LogModule::Instance()->PushLog(pStrstream);
+		FXNET::PushLog(pStrstream);
 		pStrstream->flags(std::cout.fixed);
 	}
 }
