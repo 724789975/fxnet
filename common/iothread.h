@@ -4,8 +4,8 @@
 #include "thread.h"
 #include "singleton.h"
 #include "../include/socket_base.h"
-#include "../include/cas_lock.h"
 #include "../include/message_event.h"
+#include "cas_lock.h"
 
 #include <vector>
 #include <set>

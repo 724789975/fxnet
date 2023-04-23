@@ -1,4 +1,4 @@
-#include "../include/cas_lock.h"
+#include "cas_lock.h"
 
 #ifdef _WIN32
 #include <windows.h>

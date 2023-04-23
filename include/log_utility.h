@@ -15,8 +15,6 @@
 #endif //!_WIN32
 #endif
 
-#include "cas_lock.h"
-
 #include <sstream>
 #include <vector>
 

@@ -3,7 +3,7 @@
 
 #include "thread.h"
 #include "singleton.h"
-#include "../include/cas_lock.h"
+#include "cas_lock.h"
 
 #include <sstream>
 #include <vector>
