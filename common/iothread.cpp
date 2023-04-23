@@ -73,8 +73,7 @@ namespace FXNET
 	{
 		std::stringstream* pStrstream = LogModule::Instance()->GetStream();
 		pStrstream->flags(std::cout.fixed);
-		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start, "
-			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start\n";
 
 		while (!m_bStop)
 		{
@@ -173,16 +172,14 @@ namespace FXNET
 
 		if (this->m_hCompletionPort == NULL)
 		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "CreateIoCompletionPort error " << WSAGetLastError()
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "CreateIoCompletionPort error " << WSAGetLastError() << "\n";
 			return false;
 		}
 #else
 		this->m_pEvents = new epoll_event[MAX_EVENT_NUM];
 		if (NULL == this->m_pEvents)
 		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error "
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+			LOG(pOStream, ELOG_LEVEL_ERROR) << "start error\n";
 			return false;
 		}
 
@@ -211,7 +208,7 @@ namespace FXNET
 		if (epoll_ctl(this->m_hEpoll, EPOLL_CTL_ADD, this->m_hEvent, &e) < 0)
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "epoll_ctl errno " << errno
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return false;
 		}
 
@@ -327,7 +324,7 @@ namespace FXNET
 		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG) << "hSock : " << hSock << ", event: " << dwEvents
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 		this->m_mapSockets[hSock] = poSock;
 		return 0;
 	}
@@ -366,7 +363,7 @@ namespace FXNET
 	int FxIoModule::DeregisterIO(ISocketBase::NativeSocketType hSock, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << "DeregisterIO : " << hSock
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 #ifdef _WIN32
 		CancelIoEx((ISocketBase::NativeHandleType)hSock, NULL);
 		//CancelIo((ISocketBase::NativeHandleType)hSock);
@@ -511,7 +508,7 @@ namespace FXNET
 			}
 
 			LOG(pOStream, ELOG_LEVEL_INFO) << poSock->NativeSocket() << " GetQueuedCompletionStatus FALSE " << dwError
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 
 			this->DeregisterIO(poSock->NativeSocket(), pOStream);
 			poSock->NewErrorOperation(ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__)))(*poSock, dwByteTransferred, pOStream);
@@ -535,13 +532,13 @@ namespace FXNET
 			}
 
 			LOG(pOStream, ELOG_LEVEL_DEBUG2) << "event:" << pEvent->events
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 
 			ISocketBase* poSock = (ISocketBase*)pEvent->data.ptr;
 			if (NULL == poSock)
 			{
 				LOG(pOStream, ELOG_LEVEL_DEBUG2) << "event:" << pEvent->events
-					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					<< "\n";
 				if (pEvent->events & EPOLLIN)
 				{
 					std::vector<IOEventBase*> vecTmp;

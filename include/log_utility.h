@@ -1,6 +1,9 @@
 #ifndef __LOG_UTILITY_H__
 #define __LOG_UTILITY_H__
 
+#if 1
+#define __FUNCTION_DETAIL__ __FUNCTION__
+#else
 #ifdef _WIN32
 #ifndef __FUNCTION_DETAIL__
 #define __FUNCTION_DETAIL__ __FUNCSIG__
@@ -10,6 +13,7 @@
 #define __FUNCTION_DETAIL__ __PRETTY_FUNCTION__
 #endif
 #endif //!_WIN32
+#endif
 
 #include "thread.h"
 #include "singleton.h"
@@ -42,7 +46,7 @@ double GetNow();
 
 #define LOG(STREAM, LOG_LEVEL)\
 	if (STREAM && (GetLogLevel() & LOG_LEVEL))\
-		*STREAM << "[" << #LOG_LEVEL << "]\t[" << GetNow() << "]\t"
+		*STREAM << "[" << #LOG_LEVEL << "]\t[" << GetNow() << "]\t" << " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\t"
 
 /**
  * @brief

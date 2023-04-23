@@ -126,7 +126,7 @@ namespace FXNET
 	{
 		DELETE_WHEN_DESTRUCT(CTcpListener::IOErrorOperation, this);
 		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
-			<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 		return ErrorCode();
 	}
 
@@ -171,7 +171,7 @@ namespace FXNET
 #endif // _WIN32
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket create failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return dwError;
 		}
 
@@ -191,7 +191,7 @@ namespace FXNET
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set nonblock failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return dwError;
 		}
 
@@ -221,7 +221,7 @@ namespace FXNET
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return dwError;
 		}
 
@@ -237,7 +237,7 @@ namespace FXNET
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 					<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
-					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					<< "\n";
 			return dwError;
 		}
 
@@ -252,13 +252,13 @@ namespace FXNET
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " listen failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return dwError;
 		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(refLocalAddr.sin_addr)
 			<< ", port:" << (int)ntohs(refLocalAddr.sin_port)
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 
 		sockaddr_in addr;
 		socklen_t sock_len = sizeof(addr);
@@ -266,7 +266,7 @@ namespace FXNET
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
 			<< ", port:" << (int)ntohs(addr.sin_port)
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 
 #ifdef _WIN32
 		if (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), this, pOStream))
@@ -275,7 +275,7 @@ namespace FXNET
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return dwError;
 		}
 #else
@@ -286,7 +286,7 @@ namespace FXNET
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return dwError;
 		}
 #endif // _WIN32
@@ -348,7 +348,7 @@ namespace FXNET
 		if (int dwError = pTcpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 
 			//post µ½iomodule ÒÆ³ý
 			return *this;
