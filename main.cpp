@@ -1,5 +1,3 @@
-#include "common/buff_contral.h"
-#include "include/cas_lock.h"
 #include "include/fxnet_interface.h"
 #include "text_session.h"
 
