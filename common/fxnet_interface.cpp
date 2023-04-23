@@ -1,5 +1,6 @@
 #include "../include/fxnet_interface.h"
-#include "../include/iothread.h"
+#include "iothread.h"
+#include "log_module.h"
 #include "udp_listener.h"
 #include "udp_connector.h"
 #include "tcp_listener.h"
@@ -14,6 +15,12 @@ namespace FXNET
 	{
 		FxIoModule::CreateInstance();
 		FxIoModule::Instance()->Init(&std::cout);
+	}
+
+	void StartLogModule()
+	{
+		LogModule::CreateInstance();
+		LogModule::Instance()->Init();	
 	}
 
 	void PostEvent(IOEventBase* pEvent)
@@ -74,6 +81,16 @@ namespace FXNET
 		{
 			pConnector->NewErrorOperation(dwError)(*pConnector, 0, pOStream);
 		}
+	}
+
+	std::stringstream* GetStream()
+	{
+		return LogModule::Instance()->GetStream();
+	}
+
+	void PushLog(std::stringstream* pStrstream)
+	{
+		LogModule::Instance()->PushLog(pStrstream);
 	}
 
 };

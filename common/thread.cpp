@@ -1,4 +1,4 @@
-#include "../include/thread.h"
+#include "thread.h"
 
 #ifdef _WIN32
 #include <Windows.h>
