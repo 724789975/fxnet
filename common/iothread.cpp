@@ -73,7 +73,7 @@ namespace FXNET
 	{
 		std::stringstream* pStrstream = LogModule::Instance()->GetStream();
 		pStrstream->flags(std::cout.fixed);
-		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " start\n";
+		LOG(pStrstream, ELOG_LEVEL_INFO) <<  "thread id " << this->m_poThrdHandler->GetThreadId() << " start\n";
 
 		while (!m_bStop)
 		{
