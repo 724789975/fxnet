@@ -332,7 +332,8 @@ namespace FXNET
 	{
 		CTcpConnector::IOReadOperation* pOperation = new CTcpConnector::IOReadOperation();
 #ifdef _WIN32
-		pOperation->m_stWsaBuff.buf = (char*)this->GetSession()->GetRecvBuff().GetData();
+		pOperation->m_stWsaBuff.buf = (char*)this->GetSession()->GetRecvBuff().GetData()
+			+ this->GetSession()->GetRecvBuff().GetSize();
 		pOperation->m_stWsaBuff.len = this->GetSession()->GetRecvBuff().GetFreeSize();
 #endif // _WIN32
 
