@@ -63,7 +63,7 @@ int main()
 	signal(45, OnSig45);
 	signal(46, OnSig46);
 	signal(47, OnSig47);
-	LogModule::CreateInstance();
+	FXNET::StartLogModule();
 #ifdef _WIN32
 	Sleep(1);
 #else
