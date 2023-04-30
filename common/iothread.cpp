@@ -81,12 +81,12 @@ namespace FXNET
 			this->DealFunction(pStrstream);
 
 			FXNET::PushLog(pStrstream);
+			pStrstream = FXNET::GetStream();
 			pStrstream->flags(std::cout.fixed);
 		}
 		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
 
 		FXNET::PushLog(pStrstream);
-		pStrstream->flags(std::cout.fixed);
 	}
 
 	void FxIoModule::DealFunction(std::ostream* pOStream)

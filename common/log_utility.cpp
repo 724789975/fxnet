@@ -116,7 +116,7 @@ void LogModule::PushLog(std::stringstream*& refpStream)
 {
 	FXNET::CLockImp oImp(this->m_lockEventLock);
 	m_vecLogStream.push_back(refpStream);
-	refpStream = new std::stringstream;
+	// refpStream = new std::stringstream;
 }
 
 std::stringstream* LogModule::GetStream()

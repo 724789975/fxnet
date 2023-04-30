@@ -122,6 +122,7 @@ int main()
 			(**it)(pStrstream);
 		}
 		FXNET::PushLog(pStrstream);
+		pStrstream = FXNET::GetStream();
 		pStrstream->flags(std::cout.fixed);
 	}
 }
