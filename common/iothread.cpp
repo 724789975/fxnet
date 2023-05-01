@@ -25,11 +25,6 @@ namespace FXNET
 {
 #define MAX_EVENT_NUM 256
 
-	double _FxGetCurrentTime()
-	{
-		return FxIoModule::Instance()->FxGetCurrentTime();
-	}
-
 	FxIoModule::FxIoModule()
 		: m_poThrdHandler(NULL)
 		, m_bStop(false)
@@ -163,8 +158,6 @@ namespace FXNET
 
 	bool FxIoModule::Init(std::ostream* pOStream)
 	{
-		SetTimeFunc(_FxGetCurrentTime);
-
 #ifdef _WIN32
 		// 初始化的时候 先获取下 创建完成端口 //
 		WSADATA wsaData;

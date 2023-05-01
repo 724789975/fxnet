@@ -33,11 +33,6 @@ enum ELogLevel
 
 int GetLogLevel();
 
-typedef double (*TimeFunc)();
-
-void SetTimeFunc(TimeFunc f);
-TimeFunc GetTimeFunc();
-
 double GetNow();
 
 #define LOG(STREAM, LOG_LEVEL)\
