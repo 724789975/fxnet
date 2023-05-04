@@ -28,25 +28,7 @@ namespace FXNET
 	class CTcpListener : public CListenSocket
 	{
 	public:
-		class IOAcceptOperation : public IOOperationBase
-		{
-		public:
-			friend class CTcpListener;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-#ifdef _WIN32
-			WSABUF m_stWsaBuff;
-			NativeSocketType m_hSocket;
-#endif // _WIN32
-			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
-		};
-
-		class IOErrorOperation : public IOOperationBase
-		{
-		public:
-			friend class CTcpListener;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		};
-
+		friend class TCPListenIOAcceptOperation;
 		CTcpListener(SessionMaker* pMaker);
 		virtual const char* Name()const { return "CTcpListener"; }
 		virtual ErrorCode Update(double dTimedouble, std::ostream* pOStream);
@@ -55,9 +37,9 @@ namespace FXNET
 
 		virtual void Close(std::ostream* pOStream);
 
-		virtual IOAcceptOperation& NewReadOperation();
+		virtual IOOperationBase& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
-		virtual IOErrorOperation& NewErrorOperation(const ErrorCode& refError);
+		virtual IOOperationBase& NewErrorOperation(const ErrorCode& refError);
 
 		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);
@@ -69,7 +51,7 @@ namespace FXNET
 		CTcpListener& OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 
 #ifdef _WIN32
-		int									PostAccept(std::ostream* pOStream);
+		int								PostAccept(std::ostream* pOStream);
 		int								InitAcceptEx(std::ostream* pOStream);
 
 #else

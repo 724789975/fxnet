@@ -31,107 +31,138 @@ struct tcp_keepalive
 
 namespace FXNET
 {
-	ErrorCode CTcpListener::IOAcceptOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	class TCPListenIOAcceptOperation : public IOOperationBase
 	{
-		DELETE_WHEN_DESTRUCT(CTcpListener::IOAcceptOperation, this);
+	public:
+		friend class CTcpListener;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(TCPListenIOAcceptOperation, this);
 
-		CTcpListener& refListenerSocket = (CTcpListener&) refSocketBase;
+			CTcpListener& refListenerSocket = (CTcpListener&)refSocketBase;
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refListenerSocket.NativeSocket() << ", " << refListenerSocket.Name()
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refListenerSocket.NativeSocket() << ", " << refListenerSocket.Name()
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
 #ifdef _WIN32
-		//SOCKET hSock = m_hSocket;
-		::setsockopt(this->m_hSocket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT
-			, (char*)&(refListenerSocket.NativeSocket()), sizeof(refListenerSocket.NativeSocket()));
+			//SOCKET hSock = m_hSocket;
+			::setsockopt(this->m_hSocket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT
+				, (char*)&(refListenerSocket.NativeSocket()), sizeof(refListenerSocket.NativeSocket()));
 
-		sockaddr_in* pstRemoteAddr = NULL;
-		sockaddr_in* pstLocalAddr = NULL;
-		int nRemoteAddrLen = sizeof(sockaddr_in);
-		int nLocalAddrLen = sizeof(sockaddr_in);
-		int nAddrLen = sizeof(sockaddr_in) + 16;
+			sockaddr_in* pstRemoteAddr = NULL;
+			sockaddr_in* pstLocalAddr = NULL;
+			int nRemoteAddrLen = sizeof(sockaddr_in);
+			int nLocalAddrLen = sizeof(sockaddr_in);
+			int nAddrLen = sizeof(sockaddr_in) + 16;
 
-		refListenerSocket.m_lpfnGetAcceptExSockaddrs(
-			this->m_stWsaBuff.buf,
-			0,
-			nAddrLen,
-			nAddrLen,
-			(SOCKADDR**)&pstLocalAddr,
-			&nLocalAddrLen,
-			(SOCKADDR**)&pstRemoteAddr,
-			&nRemoteAddrLen);
+			refListenerSocket.m_lpfnGetAcceptExSockaddrs(
+				this->m_stWsaBuff.buf,
+				0,
+				nAddrLen,
+				nAddrLen,
+				(SOCKADDR**)&pstLocalAddr,
+				&nLocalAddrLen,
+				(SOCKADDR**)&pstRemoteAddr,
+				&nRemoteAddrLen);
 
-		// keep alive
-		struct tcp_keepalive keepAliveIn;
-		struct tcp_keepalive keepAliveOut;
+			// keep alive
+			struct tcp_keepalive keepAliveIn;
+			struct tcp_keepalive keepAliveOut;
 
-		unsigned long ulBytesReturn = 0;
+			unsigned long ulBytesReturn = 0;
 
-		keepAliveIn.keepaliveinterval = 10000;//
-		keepAliveIn.keepalivetime = 1000 * 30;//
-		keepAliveIn.onoff = 1;
+			keepAliveIn.keepaliveinterval = 10000;//
+			keepAliveIn.keepalivetime = 1000 * 30;//
+			keepAliveIn.onoff = 1;
 
-		if(SOCKET_ERROR == WSAIoctl(m_hSocket
-			, SIO_KEEPALIVE_VALS
-			, &keepAliveIn
-			, sizeof(keepAliveIn)
-			, &keepAliveOut
-			, sizeof(keepAliveOut)
-			, &ulBytesReturn
-			, NULL
-			, NULL ))
-		{
-			int dwError = WSAGetLastError();
-			LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSocket << ", Set keep alive error" 
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			if (SOCKET_ERROR == WSAIoctl(m_hSocket
+				, SIO_KEEPALIVE_VALS
+				, &keepAliveIn
+				, sizeof(keepAliveIn)
+				, &keepAliveOut
+				, sizeof(keepAliveOut)
+				, &ulBytesReturn
+				, NULL
+				, NULL))
+			{
+				int dwError = WSAGetLastError();
+				LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSocket << ", Set keep alive error"
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-			macro_closesocket(this->m_hSocket);
+				macro_closesocket(this->m_hSocket);
+				refListenerSocket.PostAccept(pOStream);
+				return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			}
+
+			// send back
+			refListenerSocket.OnClientConnected(this->m_hSocket, *pstRemoteAddr, pOStream);
+
 			refListenerSocket.PostAccept(pOStream);
-			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
-		}
-
-		// send back
-		refListenerSocket.OnClientConnected(this->m_hSocket, *pstRemoteAddr, pOStream);
-
-		refListenerSocket.PostAccept(pOStream);
 #else
-		sockaddr_in stRemoteAddr;
-		unsigned int dwAddrLen = sizeof(stRemoteAddr);
-		NativeSocketType hAcceptSock = accept(refListenerSocket.NativeSocket(), (sockaddr*)&stRemoteAddr, &dwAddrLen);
-		if (InvalidNativeHandle() == hAcceptSock)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "accept error(" << errno << ")"
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return ErrorCode(errno, __FILE__ ":" __LINE2STR__(__LINE__));
-		}
+			sockaddr_in stRemoteAddr;
+			unsigned int dwAddrLen = sizeof(stRemoteAddr);
+			ISocketBase::NativeSocketType hAcceptSock = accept(refListenerSocket.NativeSocket(), (sockaddr*)&stRemoteAddr, &dwAddrLen);
+			if (ISocketBase::InvalidNativeHandle() == hAcceptSock)
+			{
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "accept error(" << errno << ")"
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				return ErrorCode(errno, __FILE__ ":" __LINE2STR__(__LINE__));
+			}
 
-		// keep alive
-		int keepAlive = 1;
-		setsockopt(hAcceptSock, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));
+			// keep alive
+			int keepAlive = 1;
+			setsockopt(hAcceptSock, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));
 
-		int keepIdle = 30;
-		int keepInterval = 5;
-		int keepCount = 6;
-		setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));
-		setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));
-		setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));
+			int keepIdle = 30;
+			int keepInterval = 5;
+			int keepCount = 6;
+			setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));
+			setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));
+			setsockopt(hAcceptSock, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));
 
-		// send back
-		refListenerSocket.OnClientConnected(hAcceptSock, stRemoteAddr, pOStream);
+			// send back
+			refListenerSocket.OnClientConnected(hAcceptSock, stRemoteAddr, pOStream);
 #endif
-		return ErrorCode();
+			return ErrorCode();
+		}
+#ifdef _WIN32
+		WSABUF m_stWsaBuff;
+		ISocketBase::NativeSocketType m_hSocket;
+#endif // _WIN32
+		char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
+	};
+
+	TCPListenIOAcceptOperation& NewTcpListenReadOperationHelp()
+	{
+		TCPListenIOAcceptOperation& refPeration = *(new TCPListenIOAcceptOperation());
+#ifdef _WIN32
+
+		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
+		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
+		memset(refPeration.m_stWsaBuff.buf, 0, refPeration.m_stWsaBuff.len);
+#endif // _WIN32
+		return refPeration;
 	}
 
-	ErrorCode CTcpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	class TCPListenIOErrorOperation : public IOOperationBase
 	{
-		DELETE_WHEN_DESTRUCT(CTcpListener::IOErrorOperation, this);
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
-			<< "\n";
-		return ErrorCode();
-	}
+	public:
+		friend class CTcpListener;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(TCPListenIOErrorOperation, this);
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
+				<< "\n";
+			return ErrorCode();
+		}
+	};
 
 	CTcpListener::CTcpListener(SessionMaker* pMaker)
 		: m_pSessionMaker(pMaker)
+#ifdef _WIN32
+		, m_lpfnAcceptEx(0)
+		, m_lpfnGetAcceptExSockaddrs(0)
+#endif // _WIN32
 	{
 
 	}
@@ -305,28 +336,21 @@ namespace FXNET
 		//TODO
 	}
 
-	CTcpListener::IOAcceptOperation& CTcpListener::NewReadOperation()
+	IOOperationBase& CTcpListener::NewReadOperation()
 	{
-		IOAcceptOperation& refPeration = *(new IOAcceptOperation());
-#ifdef _WIN32
-
-		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
-		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
-		memset(refPeration.m_stWsaBuff.buf, 0, refPeration.m_stWsaBuff.len);
-#endif // _WIN32
-		return refPeration;
+		return NewTcpListenReadOperationHelp();
 	}
 
 	IOOperationBase& CTcpListener::NewWriteOperation()
 	{
-		static IOAcceptOperation oPeration;
+		static TCPListenIOAcceptOperation oPeration;
 		abort();
 		return oPeration;
 	}
 
-	CTcpListener::IOErrorOperation& CTcpListener::NewErrorOperation(const ErrorCode& refError)
+	IOOperationBase& CTcpListener::NewErrorOperation(const ErrorCode& refError)
 	{
-		IOErrorOperation& refPeration = *(new IOErrorOperation());
+		TCPListenIOErrorOperation& refPeration = *(new TCPListenIOErrorOperation());
 		return refPeration;
 	}
 
@@ -439,7 +463,7 @@ namespace FXNET
 		}
 
 
-		IOAcceptOperation& refOperation = this->NewReadOperation();
+		TCPListenIOAcceptOperation& refOperation = NewTcpListenReadOperationHelp();
 		refOperation.m_hSocket = hNewSock;
 
 		DWORD wLength = 0;

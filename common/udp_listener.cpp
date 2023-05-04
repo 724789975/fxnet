@@ -158,14 +158,26 @@ namespace FXNET
 		return szIp;
 	}
 
-	ErrorCode CUdpListener::IOReadOperation::operator()(ISocketBase &refSocketBase, unsigned int dwLen, std::ostream *pOStream)
+	class UDPListenIOReadOperation : public IOOperationBase
 	{
-		DELETE_WHEN_DESTRUCT(CUdpListener::IOReadOperation, this);
+	public:
+		friend class CUdpListener;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
+#ifdef _WIN32
+		WSABUF m_stWsaBuff;
+		sockaddr_in m_stRemoteAddr;
+#endif // _WIN32
+		char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
+	};
+
+	ErrorCode UDPListenIOReadOperation::operator()(ISocketBase &refSocketBase, unsigned int dwLen, std::ostream *pOStream)
+	{
+		DELETE_WHEN_DESTRUCT(UDPListenIOReadOperation, this);
 
 		CUdpListener &refSock = (CUdpListener &)refSocketBase;
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << ", " << refSock.Name()
-										 << " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 
 #ifdef _WIN32
 		UDPPacketHeader& oUDPPacketHeader = *(UDPPacketHeader*)m_stWsaBuff.buf;
@@ -203,7 +215,7 @@ namespace FXNET
 			<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
 			<< "\n";
 
-		NativeSocketType hSock = WSASocket(AF_INET
+		ISocketBase::NativeSocketType hSock = WSASocket(AF_INET
 			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (hSock == -1)
 		{
@@ -286,7 +298,7 @@ namespace FXNET
 				continue;
 			}
 
-			AcceptReq* req = refSock.GetAcceptReq(stRemoteAddr);
+			CUdpListener::AcceptReq* req = refSock.GetAcceptReq(stRemoteAddr);
 
 			if (req != NULL)
 			{
@@ -370,8 +382,8 @@ namespace FXNET
 		}
 
 		// ÒÆ³ý»º´æµÄreq
-		AcceptReq* pReq;
-		for (unsigned int i = 0; i < UDP_ACCEPT_HASH_SIZE; i++)
+		CUdpListener::AcceptReq* pReq;
+		for (unsigned int i = 0; i < CUdpListener::UDP_ACCEPT_HASH_SIZE; i++)
 		{
 			while ((pReq = refSock.m_arroAcceptQueue[i]) != NULL)
 			{
@@ -385,13 +397,30 @@ namespace FXNET
 		return ErrorCode();
 	}
 
-	ErrorCode CUdpListener::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	UDPListenIOReadOperation& NewUDPListenIOReadOperation()
 	{
-		DELETE_WHEN_DESTRUCT(CUdpListener::IOErrorOperation, this);
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
-			<< "\n";
-		return ErrorCode();
+		UDPListenIOReadOperation& refPeration = *(new UDPListenIOReadOperation());
+#ifdef _WIN32
+
+		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
+		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
+		memset(refPeration.m_stWsaBuff.buf, 0, refPeration.m_stWsaBuff.len);
+#endif // _WIN32
+		return refPeration;
 	}
+
+	class UDPIOErrorOperation : public IOOperationBase
+	{
+	public:
+		friend class CUdpListener;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(UDPIOErrorOperation, this);
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
+				<< "\n";
+			return ErrorCode();
+		}
+	};
 
 	CUdpListener::CUdpListener(SessionMaker* pMaker)
 		: m_pSessionMaker(pMaker)
@@ -559,28 +588,21 @@ namespace FXNET
 		//TODO
 	}
 
-	CUdpListener::IOReadOperation& CUdpListener::NewReadOperation()
+	IOOperationBase& CUdpListener::NewReadOperation()
 	{
-		IOReadOperation& refPeration = *(new IOReadOperation());
-#ifdef _WIN32
-
-		refPeration.m_stWsaBuff.buf = refPeration.m_szRecvBuff;
-		refPeration.m_stWsaBuff.len = sizeof(refPeration.m_szRecvBuff);
-		memset(refPeration.m_stWsaBuff.buf, 0, refPeration.m_stWsaBuff.len);
-#endif // _WIN32
-		return refPeration;
+		return NewUDPListenIOReadOperation();
 	}
 
 	IOOperationBase& CUdpListener::NewWriteOperation()
 	{
-		static IOReadOperation oPeration;
+		static UDPListenIOReadOperation oPeration;
 		abort();
 		return oPeration;
 	}
 
-	CUdpListener::IOErrorOperation& CUdpListener::NewErrorOperation(const ErrorCode& refError)
+	IOOperationBase& CUdpListener::NewErrorOperation(const ErrorCode& refError)
 	{
-		IOErrorOperation& refPeration = *(new IOErrorOperation());
+		UDPIOErrorOperation& refPeration = *(new UDPIOErrorOperation());
 		return refPeration;
 	}
 
@@ -630,7 +652,7 @@ namespace FXNET
 #ifdef _WIN32
 	ErrorCode CUdpListener::PostAccept(std::ostream* pOStream)
 	{
-		IOReadOperation& refOperation = this->NewReadOperation();
+		UDPListenIOReadOperation& refOperation = NewUDPListenIOReadOperation();
 
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;

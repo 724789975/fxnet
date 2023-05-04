@@ -28,25 +28,7 @@ namespace FXNET
 	class CUdpListener : public CListenSocket
 	{
 	public:
-		class IOReadOperation : public IOOperationBase
-		{
-		public:
-			friend class CUdpListener;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		private:
-#ifdef _WIN32
-			WSABUF m_stWsaBuff;
-			sockaddr_in m_stRemoteAddr;
-#endif // _WIN32
-			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
-		};
-
-		class IOErrorOperation : public IOOperationBase
-		{
-		public:
-			friend class CUdpListener;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		};
+		friend class UDPListenIOReadOperation;
 
 		CUdpListener(SessionMaker* pMaker);
 		virtual const char* Name()const { return "CUdpListener"; }
@@ -56,9 +38,9 @@ namespace FXNET
 
 		virtual void Close(std::ostream* pOStream);
 
-		virtual IOReadOperation& NewReadOperation();
+		virtual IOOperationBase& NewReadOperation();
 		virtual IOOperationBase& NewWriteOperation();
-		virtual IOErrorOperation& NewErrorOperation(const ErrorCode& refError);
+		virtual IOOperationBase& NewErrorOperation(const ErrorCode& refError);
 
 		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);
