@@ -23,87 +23,131 @@
 
 namespace FXNET
 {
-	ErrorCode CUdpConnector::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	class UDPConnectorIOReadOperation : public IOOperationBase
 	{
-		DELETE_WHEN_DESTRUCT(CUdpConnector::IOReadOperation, this);
+	public:
+		friend class CUdpConnector;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(UDPConnectorIOReadOperation, this);
 
-		CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
+			CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
 #ifdef _WIN32
-		refConnector.PostRecv(pOStream);
+			refConnector.PostRecv(pOStream);
 
-		m_dwLen = dwLen;
-		refConnector.m_funRecvOperator.SetIOReadOperation(this);
-		bool bReadable = true;
+			m_dwLen = dwLen;
+			refConnector.m_funRecvOperator.SetIOReadOperation(this);
+			bool bReadable = true;
 #else
-		refConnector.m_bReadable = true;
-		bool& bReadable = refConnector.m_bReadable;
+			refConnector.m_bReadable = true;
+			bool& bReadable = refConnector.m_bReadable;
 #endif // _WIN32
 
-		if (ErrorCode oError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
-		{
-			//此处有报错
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOReadOperation failed " << oError.What()
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+			if (ErrorCode oError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
+			{
+				//此处有报错
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOReadOperation failed " << oError.What()
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 
-			return oError;
-		}
+				return oError;
+			}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket() << ", " << bReadable
-			<< " ip:" << inet_ntoa(refConnector.GetLocalAddr().sin_addr)
-			<< ", port:" << (int)ntohs(refConnector.GetLocalAddr().sin_port)
-			<< " remote_ip:" << inet_ntoa(refConnector.GetRemoteAddr().sin_addr)
-			<< ", remote_port:" << (int)ntohs(refConnector.GetRemoteAddr().sin_port)
-			<< "\n";
-
-		return ErrorCode();
-	}
-
-	ErrorCode CUdpConnector::IOWriteOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
-	{
-		DELETE_WHEN_DESTRUCT(CUdpConnector::IOWriteOperation, this);
-		CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
-
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
-			<< "\n";
-#ifdef _WIN32
-#else
-		refConnector.m_bWritable = true;
-#endif // _WIN32
-
-		if (ErrorCode oError = refConnector.m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream))
-		{
-			//此处有报错
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " IOWriteOperation failed " << oError.What()
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
-
-			return oError;
-		}
-		return 0;
-	}
-
-	ErrorCode CUdpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
-	{
-		DELETE_WHEN_DESTRUCT(CUdpConnector::IOErrorOperation, this);
-
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError.What() << ")"
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-		if (NULL == ((CUdpConnector&)refSocketBase).GetSession())
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError.What() << ")"
+			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket() << ", " << bReadable
+				<< " ip:" << inet_ntoa(refConnector.GetLocalAddr().sin_addr)
+				<< ", port:" << (int)ntohs(refConnector.GetLocalAddr().sin_port)
+				<< " remote_ip:" << inet_ntoa(refConnector.GetRemoteAddr().sin_addr)
+				<< ", remote_port:" << (int)ntohs(refConnector.GetRemoteAddr().sin_port)
 				<< "\n";
+
 			return ErrorCode();
 		}
+#ifdef _WIN32
+		WSABUF m_stWsaBuff;
+		sockaddr_in m_stRemoteAddr;
+		unsigned int m_dwLen;
+#endif // _WIN32
+		char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
+	};
 
-		macro_closesocket(refSocketBase.NativeSocket());
+	UDPConnectorIOReadOperation& NewUDPConnectorIOReadOperation()
+	{
+		UDPConnectorIOReadOperation* pOperation = new UDPConnectorIOReadOperation();
+#ifdef _WIN32
+		pOperation->m_stWsaBuff.buf = pOperation->m_szRecvBuff;
+		pOperation->m_stWsaBuff.len = sizeof(pOperation->m_szRecvBuff);
+		memset(pOperation->m_stWsaBuff.buf, 0, pOperation->m_stWsaBuff.len);
+		//m_setIOOperations.insert(pOperation);
+#endif // _WIN32
 
-		//处理错误
-		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
-		FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewCloseEvent());
-
-		((CUdpConnector&)refSocketBase).SetSession(NULL);
-
-		return ErrorCode();
+		return *pOperation;
 	}
+
+	class UDPConnectorIOWriteOperation : public IOOperationBase
+	{
+	public:
+		friend class CUdpConnector;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(UDPConnectorIOWriteOperation, this);
+			CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
+
+			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
+				<< "\n";
+#ifdef _WIN32
+#else
+			refConnector.m_bWritable = true;
+#endif // _WIN32
+
+			if (ErrorCode oError = refConnector.m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream))
+			{
+				//此处有报错
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " IOWriteOperation failed " << oError.What()
+					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+
+				return oError;
+			}
+			return 0;
+		}
+#ifdef _WIN32
+		WSABUF m_stWsaBuff;
+		sockaddr_in m_stRemoteAddr;
+#endif // _WIN32
+	};
+
+	UDPConnectorIOWriteOperation& NewUDPConnectorWriteOperation()
+	{
+		UDPConnectorIOWriteOperation* pOperation = new UDPConnectorIOWriteOperation();
+		return *pOperation;
+	}
+
+	class UDPConnectorIOErrorOperation : public IOOperationBase
+	{
+	public:
+		friend class CUdpConnector;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(UDPConnectorIOErrorOperation, this);
+
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError.What() << ")"
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			if (NULL == ((CUdpConnector&)refSocketBase).GetSession())
+			{
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError.What() << ")"
+					<< "\n";
+				return ErrorCode();
+			}
+
+			macro_closesocket(refSocketBase.NativeSocket());
+
+			//处理错误
+			FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
+			FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewCloseEvent());
+
+			((CUdpConnector&)refSocketBase).SetSession(NULL);
+
+			return ErrorCode();
+		}
+	};
 
 	CUdpConnector::UDPOnRecvOperator::UDPOnRecvOperator(CUdpConnector& refUdpConnector)
 		: m_refUdpConnector(refUdpConnector)
@@ -195,7 +239,7 @@ namespace FXNET
 	}
 
 #ifdef _WIN32
-	CUdpConnector::UDPRecvOperator& CUdpConnector::UDPRecvOperator::SetIOReadOperation(IOReadOperation* pReadOperation)
+	CUdpConnector::UDPRecvOperator& CUdpConnector::UDPRecvOperator::SetIOReadOperation(UDPConnectorIOReadOperation* pReadOperation)
 	{
 		this->m_pReadOperation = pReadOperation;
 		return *this;
@@ -372,32 +416,19 @@ namespace FXNET
 		this->NewErrorOperation(CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
 	}
 
-	CUdpConnector::IOReadOperation& CUdpConnector::NewReadOperation()
+	IOOperationBase& CUdpConnector::NewReadOperation()
 	{
-		CUdpConnector::IOReadOperation* pOperation = new CUdpConnector::IOReadOperation();
-#ifdef _WIN32
-		pOperation->m_stWsaBuff.buf = pOperation->m_szRecvBuff;
-		pOperation->m_stWsaBuff.len = sizeof(pOperation->m_szRecvBuff);
-		memset(pOperation->m_stWsaBuff.buf, 0, pOperation->m_stWsaBuff.len);
-		//m_setIOOperations.insert(pOperation);
-#endif // _WIN32
-
-		return *pOperation;
+		return NewUDPConnectorIOReadOperation();
 	}
 
-	CUdpConnector::IOWriteOperation& CUdpConnector::NewWriteOperation()
+	IOOperationBase& CUdpConnector::NewWriteOperation()
 	{
-		CUdpConnector::IOWriteOperation* pOperation = new CUdpConnector::IOWriteOperation();
-#ifdef _WIN32
-		//m_setIOOperations.insert(pOperation);
-#endif // _WIN32
-
-		return *pOperation;
+		return NewUDPConnectorWriteOperation();
 	}
 
-	CUdpConnector::IOErrorOperation& CUdpConnector::NewErrorOperation(const ErrorCode& refError)
+	IOOperationBase& CUdpConnector::NewErrorOperation(const ErrorCode& refError)
 	{
-		CUdpConnector::IOErrorOperation* pOperation = new CUdpConnector::IOErrorOperation();
+		UDPConnectorIOErrorOperation* pOperation = new UDPConnectorIOErrorOperation();
 		pOperation->m_oError = refError;
 		m_oError = refError;
 		return *pOperation;
@@ -411,7 +442,7 @@ namespace FXNET
 #ifdef _WIN32
 	CUdpConnector& CUdpConnector::PostRecv(std::ostream* pOStream)
 	{
-		IOReadOperation& refIOReadOperation = NewReadOperation();
+		UDPConnectorIOReadOperation& refIOReadOperation = NewUDPConnectorIOReadOperation();
 
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;
@@ -432,7 +463,7 @@ namespace FXNET
 
 	ErrorCode CUdpConnector::PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream)
 	{
-		IOWriteOperation& refIOWriteOperation = this->NewWriteOperation();
+		UDPConnectorIOWriteOperation& refIOWriteOperation = NewUDPConnectorWriteOperation();
 		refIOWriteOperation.m_stWsaBuff.buf = pBuff;
 		refIOWriteOperation.m_stWsaBuff.len = wLen;
 

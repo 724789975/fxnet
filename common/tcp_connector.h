@@ -18,39 +18,9 @@ namespace FXNET
 	class CTcpConnector : public CConnectorSocket
 	{
 	public:
-		class IOReadOperation : public IOOperationBase
-		{
-		public:
-			friend class CTcpConnector;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		private:
-#ifdef _WIN32
-			WSABUF m_stWsaBuff;
-			sockaddr_in m_stRemoteAddr;
-			unsigned int m_dwLen;
-#endif // _WIN32
-		};
-
-		class IOWriteOperation : public IOOperationBase
-		{
-		public:
-			friend class CTcpConnector;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-#ifdef _WIN32
-			WSABUF m_stWsaBuff;
-			std::string m_strData;
-#endif // _WIN32
-		};
-
-		class IOErrorOperation : public IOOperationBase
-		{
-		public:
-			friend class CTcpConnector;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		};
-
-		friend class IOReadOperation;
-		friend class IOErrorOperation;
+		friend class TCPConnectorIOReadOperation;
+		friend class TCPConnectorIOWriteOperation;
+		friend class TCPConnectorIOErrorOperation;
 		friend class CTcpListener;
 
 		CTcpConnector(ISession* pSession);
@@ -69,9 +39,9 @@ namespace FXNET
 
 		void Close(std::ostream* pOStream);
 
-		virtual IOReadOperation& NewReadOperation();
-		virtual IOWriteOperation& NewWriteOperation();
-		virtual IOErrorOperation& NewErrorOperation(const ErrorCode& refError);
+		virtual IOOperationBase& NewReadOperation();
+		virtual IOOperationBase& NewWriteOperation();
+		virtual IOOperationBase& NewErrorOperation(const ErrorCode& refError);
 
 		virtual ErrorCode SendMessage(std::ostream* pOStream);
 #ifdef _WIN32

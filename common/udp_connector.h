@@ -18,38 +18,7 @@ namespace FXNET
 	class CUdpConnector : public CConnectorSocket
 	{
 	public:
-		class IOReadOperation : public IOOperationBase
-		{
-		public:
-			friend class CUdpConnector;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		private:
-#ifdef _WIN32
-			WSABUF m_stWsaBuff;
-			sockaddr_in m_stRemoteAddr;
-			unsigned int m_dwLen;
-#endif // _WIN32
-			char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
-		};
-
-		class IOWriteOperation : public IOOperationBase
-		{
-		public:
-			friend class CUdpConnector;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		private:
-#ifdef _WIN32
-			WSABUF m_stWsaBuff;
-			sockaddr_in m_stRemoteAddr;
-#endif // _WIN32
-		};
-
-		class IOErrorOperation : public IOOperationBase
-		{
-		public:
-			friend class CUdpConnector;
-			virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-		};
+		friend class UDPConnectorIOReadOperation;
 
 		class UDPOnRecvOperator : public OnRecvOperator
 		{
@@ -76,13 +45,12 @@ namespace FXNET
 			virtual ErrorCode operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream);
 
 #ifdef _WIN32
-			UDPRecvOperator& SetIOReadOperation(IOReadOperation* pReadOperation);
+			UDPRecvOperator& SetIOReadOperation(UDPConnectorIOReadOperation* pReadOperation);
 #endif // _WIN32
 
-		private:
 			CUdpConnector& m_refUdpConnector;
 #ifdef _WIN32
-			IOReadOperation* m_pReadOperation;
+			UDPConnectorIOReadOperation* m_pReadOperation;
 #endif // _WIN32
 		};
 
@@ -104,7 +72,10 @@ namespace FXNET
 			CUdpConnector& m_refUdpConnector;
 		};
 
-		friend class IOReadOperation;
+		friend class UDPConnectorIOWriteOperation;
+		friend class UDPConnectorIOErrorOperation;
+		friend class UDPReadStreamOperator;
+		friend class UDPConnectorIOReadOperation;
 		friend class IOErrorOperation;
 		friend class CUdpListener;
 
@@ -124,9 +95,9 @@ namespace FXNET
 
 		void Close(std::ostream* pOStream);
 
-		virtual IOReadOperation& NewReadOperation();
-		virtual IOWriteOperation& NewWriteOperation();
-		virtual IOErrorOperation& NewErrorOperation(const ErrorCode& refError);
+		virtual IOOperationBase& NewReadOperation();
+		virtual IOOperationBase& NewWriteOperation();
+		virtual IOOperationBase& NewErrorOperation(const ErrorCode& refError);
 
 		virtual ErrorCode SendMessage(std::ostream* pOStream);
 #ifdef _WIN32

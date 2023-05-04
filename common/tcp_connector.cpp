@@ -24,9 +24,21 @@
 
 namespace FXNET
 {
-	ErrorCode CTcpConnector::IOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	class TCPConnectorIOReadOperation : public IOOperationBase
 	{
-		DELETE_WHEN_DESTRUCT(CTcpConnector::IOReadOperation, this);
+	public:
+		friend class CTcpConnector;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
+#ifdef _WIN32
+		WSABUF m_stWsaBuff;
+		sockaddr_in m_stRemoteAddr;
+		unsigned int m_dwLen;
+#endif // _WIN32
+	};
+
+	ErrorCode TCPConnectorIOReadOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	{
+		DELETE_WHEN_DESTRUCT(TCPConnectorIOReadOperation, this);
 
 		CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
 #ifdef _WIN32
@@ -99,59 +111,94 @@ namespace FXNET
 		return ErrorCode();
 	}
 
-	ErrorCode CTcpConnector::IOWriteOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	TCPConnectorIOReadOperation& NewTCPConnectorIOReadOperation(CTcpConnector* pConnector)
 	{
-		DELETE_WHEN_DESTRUCT(CTcpConnector::IOWriteOperation, this);
-		CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
-
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
-			<< "\n";
-
+		TCPConnectorIOReadOperation* pOperation = new TCPConnectorIOReadOperation();
 #ifdef _WIN32
-		FxIoModule::Instance()->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
-#else
-		if (!refConnector.m_bConnecting)
-		{
-			int dwConnectError = 0;
-			socklen_t dwLen = sizeof(dwConnectError);
-			if (0 > getsockopt(refConnector.NativeSocket(), SOL_SOCKET, SO_ERROR, (void*)(&dwConnectError), &dwLen))
-			{
-				int dwError = errno;
-				return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
-			}
-			if (dwConnectError) return dwConnectError;
-			refConnector.m_bConnecting = true;
-			refConnector.OnConnected(pOStream);
-		}
-		refConnector.m_bWritable = true;
+		pOperation->m_stWsaBuff.buf = (char*)pConnector->GetSession()->GetRecvBuff().GetData()
+			+ pConnector->GetSession()->GetRecvBuff().GetSize();
+		pOperation->m_stWsaBuff.len = pConnector->GetSession()->GetRecvBuff().GetFreeSize();
 #endif // _WIN32
 
-		return refConnector.SendMessage(pOStream);
+		return *pOperation;
+	}
+	class TCPConnectorIOWriteOperation : public IOOperationBase
+	{
+	public:
+		friend class CTcpConnector;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(TCPConnectorIOWriteOperation, this);
+			CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
+
+			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
+				<< "\n";
+
+#ifdef _WIN32
+			FxIoModule::Instance()->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
+#else
+			if (!refConnector.m_bConnecting)
+			{
+				int dwConnectError = 0;
+				socklen_t dwLen = sizeof(dwConnectError);
+				if (0 > getsockopt(refConnector.NativeSocket(), SOL_SOCKET, SO_ERROR, (void*)(&dwConnectError), &dwLen))
+				{
+					int dwError = errno;
+					return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+				}
+				if (dwConnectError) return dwConnectError;
+				refConnector.m_bConnecting = true;
+				refConnector.OnConnected(pOStream);
+			}
+			refConnector.m_bWritable = true;
+#endif // _WIN32
+
+			return refConnector.SendMessage(pOStream);
+		}
+#ifdef _WIN32
+		WSABUF m_stWsaBuff;
+		std::string m_strData;
+#endif // _WIN32
+	};
+
+	TCPConnectorIOWriteOperation& NewTCPConnectorIOWriteOperation()
+	{
+		TCPConnectorIOWriteOperation* pOperation = new TCPConnectorIOWriteOperation();
+#ifdef _WIN32
+		//m_setIOOperations.insert(pOperation);
+#endif // _WIN32
+
+		return *pOperation;
 	}
 
-	ErrorCode CTcpConnector::IOErrorOperation::operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+	class TCPConnectorIOErrorOperation : public IOOperationBase
 	{
-		DELETE_WHEN_DESTRUCT(CTcpConnector::IOErrorOperation, this);
-
-		LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError.What() << ")"
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-		if (NULL == ((CTcpConnector&)refSocketBase).GetSession())
+	public:
+		friend class CTcpConnector;
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError.What() << ")"
-				<< "\n";
+			DELETE_WHEN_DESTRUCT(TCPConnectorIOErrorOperation, this);
+
+			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError.What() << ")"
+				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			if (NULL == ((CTcpConnector&)refSocketBase).GetSession())
+			{
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError.What() << ")"
+					<< "\n";
+				return ErrorCode();
+			}
+
+			macro_closesocket(refSocketBase.NativeSocket());
+
+			//处理错误
+			FxIoModule::Instance()->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
+			FxIoModule::Instance()->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewCloseEvent());
+
+			((CTcpConnector&)refSocketBase).SetSession(NULL);
+
 			return ErrorCode();
 		}
-
-		macro_closesocket(refSocketBase.NativeSocket());
-
-		//处理错误
-		FxIoModule::Instance()->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
-		FxIoModule::Instance()->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewCloseEvent());
-
-		((CTcpConnector&)refSocketBase).SetSession(NULL);
-
-		return ErrorCode();
-	}
+	};
 
 	CTcpConnector::CTcpConnector(ISession* pSession)
 		: CConnectorSocket(pSession)
@@ -328,31 +375,19 @@ namespace FXNET
 		this->NewErrorOperation(CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
 	}
 
-	CTcpConnector::IOReadOperation& CTcpConnector::NewReadOperation()
+	IOOperationBase& CTcpConnector::NewReadOperation()
 	{
-		CTcpConnector::IOReadOperation* pOperation = new CTcpConnector::IOReadOperation();
-#ifdef _WIN32
-		pOperation->m_stWsaBuff.buf = (char*)this->GetSession()->GetRecvBuff().GetData()
-			+ this->GetSession()->GetRecvBuff().GetSize();
-		pOperation->m_stWsaBuff.len = this->GetSession()->GetRecvBuff().GetFreeSize();
-#endif // _WIN32
-
-		return *pOperation;
+		return NewTCPConnectorIOReadOperation(this);
 	}
 
-	CTcpConnector::IOWriteOperation& CTcpConnector::NewWriteOperation()
+	IOOperationBase& CTcpConnector::NewWriteOperation()
 	{
-		CTcpConnector::IOWriteOperation* pOperation = new CTcpConnector::IOWriteOperation();
-#ifdef _WIN32
-		//m_setIOOperations.insert(pOperation);
-#endif // _WIN32
-
-		return *pOperation;
+		return NewTCPConnectorIOWriteOperation();
 	}
 
-	CTcpConnector::IOErrorOperation& CTcpConnector::NewErrorOperation(const ErrorCode& refError)
+	IOOperationBase& CTcpConnector::NewErrorOperation(const ErrorCode& refError)
 	{
-		CTcpConnector::IOErrorOperation* pOperation = new CTcpConnector::IOErrorOperation();
+		TCPConnectorIOErrorOperation* pOperation = new TCPConnectorIOErrorOperation();
 		pOperation->m_oError = refError;
 		m_oError = refError;
 		return *pOperation;
@@ -399,7 +434,7 @@ namespace FXNET
 #ifdef _WIN32
 	CTcpConnector& CTcpConnector::PostRecv(std::ostream* pOStream)
 	{
-		IOReadOperation& refIOReadOperation = this->NewReadOperation();
+		TCPConnectorIOReadOperation& refIOReadOperation = NewTCPConnectorIOReadOperation(this);
 
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;
@@ -424,7 +459,7 @@ namespace FXNET
 		{
 			return ErrorCode();
 		}
-		IOWriteOperation& refIOWriteOperation = this->NewWriteOperation();
+		TCPConnectorIOWriteOperation& refIOWriteOperation = NewTCPConnectorIOWriteOperation();
 		refIOWriteOperation.m_strData.resize(this->GetSession()->GetSendBuff().GetSize());
 		memcpy(&( * refIOWriteOperation.m_strData.begin())
 			, this->GetSession()->GetSendBuff().GetData()
