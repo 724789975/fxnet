@@ -14,7 +14,6 @@
 #include<arpa/inet.h>
 #endif //_WIN32
 
-
 namespace FXNET
 {
 	/**

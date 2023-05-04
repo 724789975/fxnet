@@ -162,240 +162,238 @@ namespace FXNET
 	{
 	public:
 		friend class CUdpListener;
-		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream);
-#ifdef _WIN32
-		WSABUF m_stWsaBuff;
-		sockaddr_in m_stRemoteAddr;
-#endif // _WIN32
-		char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
-	};
+		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		{
+			DELETE_WHEN_DESTRUCT(UDPListenIOReadOperation, this);
 
-	ErrorCode UDPListenIOReadOperation::operator()(ISocketBase &refSocketBase, unsigned int dwLen, std::ostream *pOStream)
-	{
-		DELETE_WHEN_DESTRUCT(UDPListenIOReadOperation, this);
+			CUdpListener& refSock = (CUdpListener&)refSocketBase;
 
-		CUdpListener &refSock = (CUdpListener &)refSocketBase;
-
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << ", " << refSock.Name()
-			<< "\n";
+			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << ", " << refSock.Name()
+				<< "\n";
 
 #ifdef _WIN32
-		UDPPacketHeader& oUDPPacketHeader = *(UDPPacketHeader*)m_stWsaBuff.buf;
+			UDPPacketHeader& oUDPPacketHeader = *(UDPPacketHeader*)m_stWsaBuff.buf;
 
-		sockaddr_in& stRemoteAddr = this->m_stRemoteAddr;
-
-		if (dwLen != sizeof(oUDPPacketHeader))
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
-				<< "\n";
-			return ErrorCode();
-		}
-
-		if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
-				<< "\n";
-			return ErrorCode();
-		}
-
-		if (oUDPPacketHeader.m_btAck != 0)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
-				<< "\n";
-			return ErrorCode();
-		}
-		if (oUDPPacketHeader.m_btSyn != 1)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
-				<< "\n";
-			return ErrorCode();
-		}
-
-		LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
-			<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
-			<< "\n";
-
-		ISocketBase::NativeSocketType hSock = WSASocket(AF_INET
-			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
-		if (hSock == -1)
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
-				<< "\n";;
-			return ErrorCode();
-		}
-
-		// set reuseaddr
-		int yes = 1;
-		if (setsockopt(hSock, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes)))
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
-				<< "\n";;
-			macro_closesocket(hSock);
-			return ErrorCode();
-		}
-
-		// bind
-		if (bind(hSock, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
-				<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
-				<< "\n";
-			macro_closesocket(hSock);
-			return ErrorCode();
-		}
-
-		// send back
-		refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
-
-		refSock.PostAccept(pOStream);
-#else
-		for (;;)
-		{
-			UDPPacketHeader oUDPPacketHeader;
-
-			sockaddr_in stRemoteAddr = { 0 };
-			memset(&stRemoteAddr, 0, sizeof(stRemoteAddr));
-			unsigned int nRemoteAddrLen = sizeof(stRemoteAddr);
-
-			int dwLen = recvfrom(refSocketBase.NativeSocket(), (char*)(&oUDPPacketHeader), sizeof(oUDPPacketHeader), 0, (sockaddr*)&stRemoteAddr, &nRemoteAddrLen);
-			if (0 > dwLen)
-			{
-				if (errno == EINTR) { continue; }
-
-				if (errno != EAGAIN && errno != EWOULDBLOCK)
-				{
-					LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " error accept : " << errno
-						<< "\n";
-				}
-
-				break;
-			}
+			sockaddr_in& stRemoteAddr = this->m_stRemoteAddr;
 
 			if (dwLen != sizeof(oUDPPacketHeader))
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 					<< "\n";
-				continue;
+				return ErrorCode();
 			}
 
 			if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 					<< "\n";
-				continue;
+				return ErrorCode();
 			}
 
 			if (oUDPPacketHeader.m_btAck != 0)
 			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck <<  ", " << refSocketBase.NativeSocket()
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
 					<< "\n";
-				continue;
+				return ErrorCode();
 			}
 			if (oUDPPacketHeader.m_btSyn != 1)
 			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn <<  ", " << refSocketBase.NativeSocket()
+				LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
 					<< "\n";
-				continue;
+				return ErrorCode();
 			}
-
-			CUdpListener::AcceptReq* req = refSock.GetAcceptReq(stRemoteAddr);
-
-			if (req != NULL)
-			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) <<  refSocketBase.NativeSocket() << ", req not null"
-					<< "\n";
-				continue;
-			}
-
-			req = refSock.m_oAcceptPool.Allocate();
-
-			if (req == NULL)
-			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " can't allocate more udp accept request.\n";
-				break;
-			}
-
-			req->m_pNext = NULL;
-			req->addr = stRemoteAddr;
-
-			sockaddr_in addr;
-			socklen_t sock_len = sizeof(addr);
-			getsockname(refSock.NativeSocket(), (sockaddr*)&addr, &sock_len);
-
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr) << ", port:" << (int)ntohs(addr.sin_port)
-				<< "\n";
-
-			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " ip:" << inet_ntoa(refSock.GetLocalAddr().sin_addr)
-				<< ", port:" << (int)ntohs(refSock.GetLocalAddr().sin_port)
-				<< "\n";
 
 			LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
 				<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
 				<< "\n";
 
-			req->m_oAcceptSocket = socket(AF_INET, SOCK_DGRAM, 0);
-			//req->m_oAcceptSocket = refSock.NativeSocket();
-			if (req->m_oAcceptSocket == -1)
+			ISocketBase::NativeSocketType hSock = WSASocket(AF_INET
+				, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
+			if (hSock == -1)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
 					<< "\n";;
-				refSock.m_oAcceptPool.Free(req);
-				continue;
+				return ErrorCode();
 			}
-
-			// cloexec
-			fcntl(req->m_oAcceptSocket, F_SETFD, FD_CLOEXEC);
 
 			// set reuseaddr
 			int yes = 1;
-			if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)& yes, sizeof(yes)))
+			if (setsockopt(hSock, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes)))
 			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << req->m_oAcceptSocket << ", errno(" << errno << ")"
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
 					<< "\n";;
-				macro_closesocket(req->m_oAcceptSocket);
-				refSock.m_oAcceptPool.Free(req);
-				continue;
+				macro_closesocket(hSock);
+				return ErrorCode();
 			}
 
 			// bind
-			if (bind(req->m_oAcceptSocket, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
+			if (bind(hSock, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
 			{
-				LOG(pOStream, ELOG_LEVEL_ERROR) << req->m_oAcceptSocket << ", errno(" << errno << ") " << "bind failed on "
+				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ") " << "bind failed on "
 					<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 					<< "\n";
-				macro_closesocket(req->m_oAcceptSocket);
-				refSock.m_oAcceptPool.Free(req);
-				continue;
+				macro_closesocket(hSock);
+				return ErrorCode();
 			}
-
-			refSock.AddAcceptReq(req);
-
-			//FxIoModule::Instance()->DeregisterIO(refSock.NativeSocket(), pOStream);
-			//macro_closesocket(refSock.NativeSocket());
 
 			// send back
-			refSock.OnClientConnected(req->m_oAcceptSocket, req->addr, pOStream);
+			refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
 
-			//refSock.Listen(pOStream);
-			//TODO 是否需要break
-			break;
-		}
-
-		// 移除缓存的req
-		CUdpListener::AcceptReq* pReq;
-		for (unsigned int i = 0; i < CUdpListener::UDP_ACCEPT_HASH_SIZE; i++)
-		{
-			while ((pReq = refSock.m_arroAcceptQueue[i]) != NULL)
+			refSock.PostAccept(pOStream);
+#else
+			for (;;)
 			{
-				refSock.m_arroAcceptQueue[i] = pReq->m_pNext;
+				UDPPacketHeader oUDPPacketHeader;
 
-				refSock.m_oAcceptPool.Free(pReq);
+				sockaddr_in stRemoteAddr = { 0 };
+				memset(&stRemoteAddr, 0, sizeof(stRemoteAddr));
+				unsigned int nRemoteAddrLen = sizeof(stRemoteAddr);
+
+				int dwLen = recvfrom(refSocketBase.NativeSocket(), (char*)(&oUDPPacketHeader), sizeof(oUDPPacketHeader), 0, (sockaddr*)&stRemoteAddr, &nRemoteAddrLen);
+				if (0 > dwLen)
+				{
+					if (errno == EINTR) { continue; }
+
+					if (errno != EAGAIN && errno != EWOULDBLOCK)
+					{
+						LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " error accept : " << errno
+							<< "\n";
+					}
+
+					break;
+				}
+
+				if (dwLen != sizeof(oUDPPacketHeader))
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
+						<< "\n";
+					continue;
+				}
+
+				if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
+						<< "\n";
+					continue;
+				}
+
+				if (oUDPPacketHeader.m_btAck != 0)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
+						<< "\n";
+					continue;
+				}
+				if (oUDPPacketHeader.m_btSyn != 1)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 0, recv : " << oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
+						<< "\n";
+					continue;
+				}
+
+				CUdpListener::AcceptReq* req = refSock.GetAcceptReq(stRemoteAddr);
+
+				if (req != NULL)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << ", req not null"
+						<< "\n";
+					continue;
+				}
+
+				req = refSock.m_oAcceptPool.Allocate();
+
+				if (req == NULL)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " can't allocate more udp accept request.\n";
+					break;
+				}
+
+				req->m_pNext = NULL;
+				req->addr = stRemoteAddr;
+
+				sockaddr_in addr;
+				socklen_t sock_len = sizeof(addr);
+				getsockname(refSock.NativeSocket(), (sockaddr*)&addr, &sock_len);
+
+				LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr) << ", port:" << (int)ntohs(addr.sin_port)
+					<< "\n";
+
+				LOG(pOStream, ELOG_LEVEL_DEBUG2) << refSock.NativeSocket() << " ip:" << inet_ntoa(refSock.GetLocalAddr().sin_addr)
+					<< ", port:" << (int)ntohs(refSock.GetLocalAddr().sin_port)
+					<< "\n";
+
+				LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
+					<< inet_ntoa(stRemoteAddr.sin_addr) << ":" << (int)ntohs(stRemoteAddr.sin_port)
+					<< "\n";
+
+				req->m_oAcceptSocket = socket(AF_INET, SOCK_DGRAM, 0);
+				//req->m_oAcceptSocket = refSock.NativeSocket();
+				if (req->m_oAcceptSocket == -1)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
+						<< "\n";;
+					refSock.m_oAcceptPool.Free(req);
+					continue;
+				}
+
+				// cloexec
+				fcntl(req->m_oAcceptSocket, F_SETFD, FD_CLOEXEC);
+
+				// set reuseaddr
+				int yes = 1;
+				if (setsockopt(req->m_oAcceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes)))
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << req->m_oAcceptSocket << ", errno(" << errno << ")"
+						<< "\n";;
+					macro_closesocket(req->m_oAcceptSocket);
+					refSock.m_oAcceptPool.Free(req);
+					continue;
+				}
+
+				// bind
+				if (bind(req->m_oAcceptSocket, (sockaddr*)&refSock.GetLocalAddr(), sizeof(refSock.GetLocalAddr())))
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << req->m_oAcceptSocket << ", errno(" << errno << ") " << "bind failed on "
+						<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
+						<< "\n";
+					macro_closesocket(req->m_oAcceptSocket);
+					refSock.m_oAcceptPool.Free(req);
+					continue;
+				}
+
+				refSock.AddAcceptReq(req);
+
+				//FxIoModule::Instance()->DeregisterIO(refSock.NativeSocket(), pOStream);
+				//macro_closesocket(refSock.NativeSocket());
+
+				// send back
+				refSock.OnClientConnected(req->m_oAcceptSocket, req->addr, pOStream);
+
+				//refSock.Listen(pOStream);
+				//TODO 是否需要break
+				break;
 			}
-		}
-	
+
+			// 移除缓存的req
+			CUdpListener::AcceptReq* pReq;
+			for (unsigned int i = 0; i < CUdpListener::UDP_ACCEPT_HASH_SIZE; i++)
+			{
+				while ((pReq = refSock.m_arroAcceptQueue[i]) != NULL)
+				{
+					refSock.m_arroAcceptQueue[i] = pReq->m_pNext;
+
+					refSock.m_oAcceptPool.Free(pReq);
+				}
+			}
+
 #endif
-		return ErrorCode();
-	}
+			return ErrorCode();
+		}
+#ifdef _WIN32
+		WSABUF m_stWsaBuff;
+		sockaddr_in m_stRemoteAddr;
+#endif // _WIN32
+		char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
+	};
 
 	UDPListenIOReadOperation& NewUDPListenIOReadOperation()
 	{
