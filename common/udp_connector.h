@@ -76,7 +76,6 @@ namespace FXNET
 		friend class UDPConnectorIOErrorOperation;
 		friend class UDPReadStreamOperator;
 		friend class UDPConnectorIOReadOperation;
-		friend class IOErrorOperation;
 		friend class CUdpListener;
 
 		CUdpConnector(ISession* pSession);
