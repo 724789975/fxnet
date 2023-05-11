@@ -256,6 +256,23 @@ namespace FXNET
 			return dwError;
 		}
 
+#ifndef _WIN32
+		if (setsockopt(this->NativeSocket(), SOL_SOCKET, SO_REUSEPORT, (char*)&nReuse, sizeof(nReuse)))
+		{
+#ifdef _WIN32
+			dwError = WSAGetLastError();
+#else // _WIN32
+			dwError = errno;
+#endif // _WIN32
+			macro_closesocket(this->NativeSocket());
+			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
+				<< "\n";
+			return dwError;
+		}
+#endif
+
 		// bind
 		if (bind(this->NativeSocket(), (sockaddr*)&refLocalAddr, sizeof(refLocalAddr)))
 		{
