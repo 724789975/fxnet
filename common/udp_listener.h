@@ -5,7 +5,7 @@
 #include "../include/i_session.h"
 #include "../include/error_code.h"
 #include "listen_socket.h"
-#include "cas_lock_queue.h"
+#include "pool.h"
 
 #include <sstream>
 
@@ -67,7 +67,12 @@ namespace FXNET
 
 		//防止同一连接 同一时间请求多次
 		AcceptReq* m_arroAcceptQueue[UDP_ACCEPT_HASH_SIZE];
-		CCasLockQueue<AcceptReq, UDP_ACCEPT_MAX_SIZE> m_oAcceptPool;
+		/**
+		 * @brief 
+		 * 
+		 * 目前不做多个listen 所以接收这里就不用加锁了
+		 */
+		CQueue<AcceptReq, UDP_ACCEPT_MAX_SIZE> m_oAcceptPool;
 #endif // _WIN32
 
 		SessionMaker* m_pSessionMaker;
