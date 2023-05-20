@@ -10,12 +10,7 @@ namespace FXNET
 		CCasLock& Lock();
 		CCasLock& Unlock();
 	private:
-#ifdef _WIN32
-		long
-#else // _WIN32
-		unsigned int
-#endif // _WIN32
-			m_lLock;
+		unsigned long m_lLock;
 	};
 
 	class CLockImp
