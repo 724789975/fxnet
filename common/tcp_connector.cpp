@@ -372,6 +372,7 @@ namespace FXNET
 
 	void CTcpConnector::Close(std::ostream* pOStream)
 	{
+		FxIoModule::Instance()->DeregisterIO(this->NativeSocket(), pOStream);
 		this->NewErrorOperation(CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
 	}
 
