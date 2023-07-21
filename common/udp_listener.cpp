@@ -130,7 +130,7 @@ namespace FXNET
 				ifc1 = ifc;
 				for (; NULL != ifc; ifc = (*ifc).ifa_next)
 				{
-					if ((*ifc).ifa_addr)
+					if (AF_INET == (*ifc).ifa_addr->sa_family)
 					{
 						inet_ntop(AF_INET, &(((struct sockaddr_in *)((*ifc).ifa_addr))->sin_addr), ip, 64);
 						if (strcmp(ip, "127.0.0.1") && strcmp(ip, ""))
@@ -152,6 +152,8 @@ namespace FXNET
 
 				freeifaddrs(ifc1);
 			}
+
+            return szRetIp.c_str();
 
 #endif //!_WIN32
 		}
@@ -438,7 +440,9 @@ namespace FXNET
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
 		refLocalAddr.sin_family = AF_INET;
 
-		if (szIp) { refLocalAddr.sin_addr.s_addr = inet_addr(GetIp(szIp)); }
+        szIp = GetIp(szIp);
+        LOG(pOStream, ELOG_LEVEL_INFO) << "Listen at " << szIp << "\n";
+		refLocalAddr.sin_addr.s_addr = inet_addr(szIp);
 
 		refLocalAddr.sin_port = htons(wPort);
 
