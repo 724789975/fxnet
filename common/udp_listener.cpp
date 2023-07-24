@@ -546,7 +546,7 @@ namespace FXNET
 		socklen_t sock_len = sizeof(addr);
 		getsockname(this->NativeSocket(), (sockaddr*)&addr, &sock_len);
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
+		LOG(pOStream, ELOG_LEVEL_INFO) << this->NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
 			<< ", port:" << (int)ntohs(addr.sin_port)
 			<< "\n";
 
@@ -635,7 +635,7 @@ namespace FXNET
 		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_RECV))
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "\n";
 
 			//post µ½iomodule ÒÆ³ý
 			return *this;

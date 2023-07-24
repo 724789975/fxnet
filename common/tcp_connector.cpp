@@ -180,7 +180,7 @@ namespace FXNET
 			DELETE_WHEN_DESTRUCT(TCPConnectorIOErrorOperation, this);
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError.What() << ")"
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			if (NULL == ((CTcpConnector&)refSocketBase).GetSession())
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError.What() << ")"
@@ -222,7 +222,7 @@ namespace FXNET
 	ErrorCode CTcpConnector::Update(double dTimedouble, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_DEBUG4) << NativeSocket() << ", error: " << m_oError.What()
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 
 		return ErrorCode();
 	}
@@ -255,7 +255,7 @@ namespace FXNET
 		if (ErrorCode oError = this->SetRemoteAddr(address).Connect(hSock, address, pOStream))
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "client connect failed(" << oError.What() << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "\n";
 			return oError;
 		}
 
@@ -268,7 +268,7 @@ namespace FXNET
 		if (int dwError = ::bind(NativeSocket(), (sockaddr*)(&stLocalAddr), sizeof(sockaddr_in)))
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "\n";
 			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 #else
@@ -279,7 +279,7 @@ namespace FXNET
 			{ 
 				macro_closesocket(this->NativeSocket());
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
-					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "\n";
 				return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 			}
 		}
@@ -301,7 +301,7 @@ namespace FXNET
 				<< ", port:" << (int)ntohs(this->GetLocalAddr().sin_port)
 				<< " remote_ip:" << inet_ntoa(this->GetRemoteAddr().sin_addr)
 				<< ", remote_port:" << (int)ntohs(this->GetRemoteAddr().sin_port)
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 
 			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
@@ -318,7 +318,7 @@ namespace FXNET
 			int dwError = WSAGetLastError();
 			macro_closesocket(this->NativeSocket());
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "\n";
 			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 
@@ -354,7 +354,7 @@ namespace FXNET
 			{
 				macro_closesocket(this->NativeSocket());
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "failed(" << dwError << ")"
-					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "\n";
 				return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 			}
 		}
@@ -495,13 +495,13 @@ namespace FXNET
 	void CTcpConnector::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << ", " << refError.What()
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			<< "\n";
 	}
 
 	void CTcpConnector::OnClose(std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_INFO) << this->NativeSocket()
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			<< "\n";
 		delete this;
 	}
 
@@ -576,7 +576,7 @@ namespace FXNET
 		setsockopt(this->NativeSocket(), SOL_SOCKET, SO_LINGER, (const char*)&l, sizeof(l));
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket()
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 		return ErrorCode();
 	}
 

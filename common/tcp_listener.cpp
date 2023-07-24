@@ -42,7 +42,7 @@ namespace FXNET
 			CTcpListener& refListenerSocket = (CTcpListener&)refSocketBase;
 
 			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refListenerSocket.NativeSocket() << ", " << refListenerSocket.Name()
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 
 #ifdef _WIN32
 			//SOCKET hSock = m_hSocket;
@@ -87,7 +87,7 @@ namespace FXNET
 			{
 				int dwError = WSAGetLastError();
 				LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSocket << ", Set keep alive error"
-					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					<< "\n";
 
 				macro_closesocket(this->m_hSocket);
 				refListenerSocket.PostAccept(pOStream);
@@ -105,7 +105,7 @@ namespace FXNET
 			if (ISocketBase::InvalidNativeHandle() == hAcceptSock)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "accept error(" << errno << ")"
-					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					<< "\n";
 				return ErrorCode(errno, __FILE__ ":" __LINE2STR__(__LINE__));
 			}
 
@@ -398,7 +398,7 @@ namespace FXNET
 		if (int dwError = pTcpSock->Init(pOStream, ST_SYN_RECV))
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "\n";
 
 			//post µ½iomodule ÒÆ³ý
 			return *this;
@@ -420,7 +420,7 @@ namespace FXNET
 				<< ", port:" << (int)ntohs(pTcpSock->GetLocalAddr().sin_port)
 				<< " remote_ip:" << inet_ntoa(pTcpSock->GetRemoteAddr().sin_addr)
 				<< ", remote_port:" << (int)ntohs(pTcpSock->GetRemoteAddr().sin_port)
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 
 			return *this;
 		}
@@ -450,7 +450,7 @@ namespace FXNET
 		{
 			int dwError = WSAGetLastError();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " WSASocket failed, errno(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "\n";
 
 			return dwError;
 		}
@@ -460,7 +460,7 @@ namespace FXNET
 		{
 			int dwError = WSAGetLastError();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " ioctlsocket, errno(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "\n";
 
 			macro_closesocket(hNewSock);
 			return dwError;
@@ -473,7 +473,7 @@ namespace FXNET
 		{
 			int dwError = WSAGetLastError();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " setsockopt, errno(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "\n";
 
 			macro_closesocket(hNewSock);
 			return dwError;
@@ -497,7 +497,7 @@ namespace FXNET
 			if (WSA_IO_PENDING != dwError)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << hNewSock << " setsockopt, errno(" << dwError << ")"
-					<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+					<< "\n";
 				macro_closesocket(hNewSock);
 				return dwError;
 			}
@@ -523,7 +523,7 @@ namespace FXNET
 		{
 			int dwError = WSAGetLastError();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "\n";
 			macro_closesocket(this->NativeSocket());
 			return dwError;
 		}
@@ -544,7 +544,7 @@ namespace FXNET
 		{
 			int dwError = WSAGetLastError();
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " WSAIoctl, errno(" << dwError << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+				<< "\n";
 			macro_closesocket(this->NativeSocket());
 			return dwError;
 		}

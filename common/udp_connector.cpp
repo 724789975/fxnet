@@ -47,7 +47,7 @@ namespace FXNET
 			{
 				//此处有报错
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOReadOperation failed " << oError.What()
-					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					<< "\n";
 
 				return oError;
 			}
@@ -102,7 +102,7 @@ namespace FXNET
 			{
 				//此处有报错
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " IOWriteOperation failed " << oError.What()
-					<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+					<< "\n";
 
 				return oError;
 			}
@@ -129,7 +129,7 @@ namespace FXNET
 			DELETE_WHEN_DESTRUCT(UDPConnectorIOErrorOperation, this);
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << "(" << m_oError.What() << ")"
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			if (NULL == ((CUdpConnector&)refSocketBase).GetSession())
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " already wait delete (" << m_oError.What() << ")"
@@ -254,7 +254,7 @@ namespace FXNET
 	ErrorCode CUdpConnector::UDPSendOperator::operator()(char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->m_refUdpConnector.NativeSocket()
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 #ifdef _WIN32
 		dwSendLen = wBufferSize;
 		return this->m_refUdpConnector.PostSend(szBuff, wBufferSize, pOStream);
@@ -264,7 +264,7 @@ namespace FXNET
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "UDPSendOperator failed " << errno
 				<< ", BufferSize : " << wBufferSize << ", " << this->m_refUdpConnector.NativeSocket()
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return ErrorCode(errno, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 #endif // _WIN32
@@ -332,7 +332,7 @@ namespace FXNET
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "init failed:" << dwError
-				<< " [" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 
@@ -345,7 +345,7 @@ namespace FXNET
 #ifndef _WIN32
 			<< ", " << this->m_bReadable << ", " << this->m_bWritable
 #endif // !_WIN32
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 
 		if (this->GetError())
 		{
@@ -385,17 +385,16 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "client connect failed(" << oError.What() << ")"
 				<<"[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION_DETAIL__ << "]\n";
 
-			//post 到iomodule 移除
 			return oError;
 		}
 
 		if (ErrorCode oError = this->SetRemoteAddr(address).Connect(hSock, address, pOStream))
 		{
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "client connect failed(" << oError.What() << ")"
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "\n";
 		}
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:"
+		LOG(pOStream, ELOG_LEVEL_INFO) << this->NativeSocket() << " ip:"
 			<< inet_ntoa(this->GetLocalAddr().sin_addr) << ", port:" << (int)ntohs(this->GetLocalAddr().sin_port)
 			<< " remote_ip:" << inet_ntoa(this->GetRemoteAddr().sin_addr)
 			<< ", remote_port:" << (int)ntohs(this->GetRemoteAddr().sin_port)
@@ -493,13 +492,13 @@ namespace FXNET
 	void CUdpConnector::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << ", " << refError.What()
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			<< "\n";
 	}
 
 	void CUdpConnector::OnClose(std::ostream* pOStream)
 	{
 		LOG(pOStream, ELOG_LEVEL_INFO) << this->NativeSocket()
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+			<< "\n";
 		delete this;
 	}
 
@@ -597,7 +596,7 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "connect failed(" << dwError << ")"
 				<< " remote_ip:" << inet_ntoa(this->GetRemoteAddr().sin_addr)
 				<< ", remote_port:" << (int)ntohs(this->GetRemoteAddr().sin_port)
-				<< "[" << __FILE__ << ":" << __LINE__ <<", " << __FUNCTION__ << "]\n";
+				<< "\n";
 			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 
@@ -617,13 +616,13 @@ namespace FXNET
 				<< ", port:" << (int)ntohs(this->GetLocalAddr().sin_port)
 				<< " remote_ip:" << inet_ntoa(this->GetRemoteAddr().sin_addr)
 				<< ", remote_port:" << (int)ntohs(this->GetRemoteAddr().sin_port)
-				<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 
 			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
 		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << ", " << m_oBuffContral.GetState()
-			<< " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 		return 0;
 	}
 
