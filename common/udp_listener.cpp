@@ -15,6 +15,7 @@
 #else
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <net/if.h>
 #include <unistd.h>
 #include <ifaddrs.h>
 #ifndef macro_closesocket
@@ -130,7 +131,7 @@ namespace FXNET
 				ifc1 = ifc;
 				for (; NULL != ifc; ifc = (*ifc).ifa_next)
 				{
-					if (AF_INET == (*ifc).ifa_addr->sa_family)
+					if (AF_INET == (*ifc).ifa_addr->sa_family && IFF_UP & (*ifc).ifa_flags)
 					{
 						inet_ntop(AF_INET, &(((struct sockaddr_in *)((*ifc).ifa_addr))->sin_addr), ip, 64);
 						if (strcmp(ip, "127.0.0.1") && strcmp(ip, ""))
