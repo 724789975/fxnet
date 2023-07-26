@@ -95,13 +95,13 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 
 			LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
 				<< ", " << this->m_opSock->NativeSocket()
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 			
 			poConnector->GetSession()->GetSendBuff().PushData(m_oPackage);
 			poConnector->SendMessage(pOStream);
 			LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
 				<< ", " << this->m_opSock->NativeSocket()
-				<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+				<< "\n";
 		}
 		FXNET::CConnectorSocket* m_opSock;
 		FXNET::CNetStreamPackage m_oPackage;
@@ -185,7 +185,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 		LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
 			<< ", " << this->m_opSock->NativeSocket()
 			<< ", " << szSend
-			<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+			<< "\n";
 	}
 	
 	return *this;
@@ -194,7 +194,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 void CTextSession::OnConnected(std::ostream* pOStream)
 {
 	LOG(pOStream, ELOG_LEVEL_INFO) << GetSocket()->NativeSocket() << ", connected!!!"
-		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
+		<< "\n";
 
 	long long qwSend = (long long)(this->GetSocket()->GetLocalAddr().sin_addr.s_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
 	char szBuff[512] = {0};
@@ -213,7 +213,7 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 void CTextSession::OnError(const ErrorCode& refError, std::ostream* pOStream)
 {
 	LOG(pOStream, ELOG_LEVEL_ERROR) << this->GetSocket()->NativeSocket() << ", error: " << refError.What()
-		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+		<< "\n";
 
 	class ErrorOperator : public IOEventBase
 	{
@@ -242,7 +242,7 @@ void CTextSession::OnError(const ErrorCode& refError, std::ostream* pOStream)
 void CTextSession::OnClose(std::ostream* pOStream)
 {
 	LOG(pOStream, ELOG_LEVEL_INFO) << this->GetSocket()->NativeSocket()
-		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+		<< "\n";
 
 	class OnCloseOperator : public IOEventBase
 	{
@@ -267,7 +267,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 	FXNET::PostEvent(pOperator);
 
 	LOG(pOStream, ELOG_LEVEL_INFO) << "session close, " << this
-		<< "[" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION__ << "]\n";
+		<< "\n";
 
 	this->SetSock(NULL);
 
