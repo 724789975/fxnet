@@ -147,12 +147,6 @@ namespace FXNET
 		/**
 		 * @brief 
 		 * 
-		 * 存放连接指针 每0.05秒更新一次
-		 */
-		std::set<ISocketBase*>	m_setConnectSockets;
-		/**
-		 * @brief 
-		 * 
 		 * 当前事件
 		 */
 		double					m_dCurrentTime;
@@ -163,6 +157,11 @@ namespace FXNET
 		 */
 		double					m_dLoatUpdateTime;
 
+		/**
+		 * @brief 
+		 * 
+		 * 存放连接指针 建议每0.05秒更新一次(UDP使用 其他看情况)
+		 */
 		std::map<ISocketBase::NativeSocketType, ISocketBase*> m_mapSockets;
 
 		/**
