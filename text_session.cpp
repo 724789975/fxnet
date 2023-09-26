@@ -112,7 +112,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 	SendOperator* pOperator = new SendOperator(this->m_opSock);
 	pOperator->m_oPackage.WriteInt('T' << 24 | 'E' << 16 | 'S' << 8 | 'T');
 	pOperator->m_oPackage.WriteString(szData, dwLen);
-	FXNET::PostEvent(0,pOperator);
+	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 	return *this;
 }
 
@@ -236,7 +236,7 @@ void CTextSession::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	};
 
 	ErrorOperator* pOperator = new ErrorOperator(m_opSock, refError);
-	FXNET::PostEvent(0,pOperator);
+	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 }
 
 void CTextSession::OnClose(std::ostream* pOStream)
@@ -264,7 +264,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 	};
 
 	OnCloseOperator* pOperator = new OnCloseOperator(m_opSock);
-	FXNET::PostEvent(0,pOperator);
+	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 
 	LOG(pOStream, ELOG_LEVEL_INFO) << "session close, " << this
 		<< "\n";
@@ -296,7 +296,7 @@ void CTextSession::Close(std::ostream* pOStream)
 	};
 
 	CloseOperator* pOperator = new CloseOperator(m_opSock);
-	FXNET::PostEvent(0,pOperator);
+	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 }
 
 CTextSession::TextMessageEvent* CTextSession::NewRecvMessageEvent()
