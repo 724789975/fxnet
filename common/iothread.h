@@ -5,7 +5,8 @@
 #include "singleton.h"
 #include "../include/socket_base.h"
 #include "../include/message_event.h"
-#include "cas_lock.h"
+#include "../include/cas_lock.h"
+#include "../include/message_queue.h"
 
 #include <vector>
 #include <set>
@@ -22,7 +23,7 @@ namespace FXNET
 	 * @brief 
 	 * io线程 只用一个就够了 10000个连接问题不大
 	 */
-	class FxIoModule : public IFxThread, public TSingleton<FxIoModule>
+	class FxIoModule : public IFxThread
 	{
 	public:
 		FxIoModule();
@@ -50,10 +51,13 @@ namespace FXNET
 		bool					Start();
 		unsigned int			GetThreadId();
 
-		bool					Init(std::ostream* pOStream);
+		bool					Init(unsigned int dwIndex, MessageEventQueue* pQueue, std::ostream* pOStream);
 		void					Uninit();
 
 		double					FxGetCurrentTime();
+
+		void					SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex; }
+		unsigned int			GetIOModuleIndex() { return this->m_dwIOModuleIndex; }
 		/**
 		 * @brief 
 		 * 
@@ -61,13 +65,6 @@ namespace FXNET
 		 * @param pMessageEvent 
 		 */
 		void					PushMessageEvent(MessageEventBase* pMessageEvent);
-		/**
-		 * @brief 
-		 * 
-		 * 交换事件 在主线程执行 事件在io线程创建 放入队列 在主线程消费
-		 * @param refDeque 
-		 */
-		void					SwapEvent(std::deque<MessageEventBase*>& refDeque);
 
 #ifdef _WIN32
 		/**
@@ -164,17 +161,18 @@ namespace FXNET
 		 */
 		std::map<ISocketBase::NativeSocketType, ISocketBase*> m_mapSockets;
 
-		/**
-		 * @brief 
-		 * 
-		 * 待消费消息事件
-		 */
-		std::deque<MessageEventBase*> m_dequeEvent;
 #ifndef _WIN32
+		CCasLock				m_lockEventLock;
 		std::vector<IOEventBase*> m_vecIOEvent;
 #endif // _WIN32
-		CCasLock				m_lockEventLock;
+
+		MessageEventQueue*		m_pEventQueue;
+
+		unsigned int			m_dwIOModuleIndex;
 	};
+
+	unsigned int GetFxIoModuleNum();
+	FxIoModule * GetFxIoModule(unsigned int dwIndex);
 
 };
 

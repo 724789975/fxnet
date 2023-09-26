@@ -34,7 +34,10 @@ namespace FXNET
 		, m_hEpoll(-1)
 		, m_pEvents(NULL)
 #endif // _WIN32
+		, m_dCurrentTime(0.)
 		, m_dLoatUpdateTime(0.)
+		, m_pEventQueue(NULL)
+		, m_dwIOModuleIndex(-1)
 	{
 // #ifdef _WIN32
 // 		SYSTEMTIME st;
@@ -86,21 +89,7 @@ namespace FXNET
 
 	void FxIoModule::DealFunction(std::ostream* pOStream)
 	{
-// #ifdef _WIN32
-// 		SYSTEMTIME st;
-// 		GetSystemTime(&st);
-// 		this->m_dCurrentTime = double(time(NULL)) + double(st.wMilliseconds) / 1000.0f;
-// #else
-// 		static struct timeval tv;
-// 		gettimeofday(&tv, NULL);
-// 		this->m_dCurrentTime = tv.tv_sec / 1.0 + tv.tv_usec / 1000000.0;
-// #endif
-
 		this->m_dCurrentTime = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
-
-		//pOStream = NULL;
-
-		//LOG(pOStream, ELOG_LEVEL_INFO) << m_dCurrentTime << "\n";
 
 		if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= UDP_SEND_FREQUENCY)
 		{
@@ -156,8 +145,10 @@ namespace FXNET
 		return 0;
 	}
 
-	bool FxIoModule::Init(std::ostream* pOStream)
+	bool FxIoModule::Init(unsigned int dwIndex, MessageEventQueue* pQueue, std::ostream* pOStream)
 	{
+		this->m_dwIOModuleIndex = dwIndex;
+		m_pEventQueue = pQueue;
 #ifdef _WIN32
 		// 初始化的时候 先获取下 创建完成端口 //
 		WSADATA wsaData;
@@ -246,14 +237,7 @@ namespace FXNET
 
 	void FxIoModule::PushMessageEvent(MessageEventBase* pMessageEvent)
 	{
-		CLockImp oImp(this->m_lockEventLock);
-		this->m_dequeEvent.push_back(pMessageEvent);
-	}
-
-	void FxIoModule::SwapEvent(std::deque<MessageEventBase*>& refDeque)
-	{
-		CLockImp oImp(this->m_lockEventLock);
-		refDeque.swap(this->m_dequeEvent);
+		this->m_pEventQueue->PushMessageEvent(pMessageEvent);
 	}
 
 #ifdef _WIN32
@@ -583,6 +567,22 @@ namespace FXNET
 		return true;
 	}
 
+#ifdef __SINGLE_THREAD__
+#define FXNET_AOI_THREAD_NUM 1
+#else
+#define FXNET_AOI_THREAD_NUM 4
+#endif
+
+	FxIoModule g_arrFxIoModule[FXNET_AOI_THREAD_NUM];
+
+	unsigned int GetFxIoModuleNum()
+	{
+		return FXNET_AOI_THREAD_NUM;
+	}
+
+	FxIoModule *GetFxIoModule(unsigned int dwIndex)
+	{
+		return &g_arrFxIoModule[dwIndex % FXNET_AOI_THREAD_NUM];
+	}
+
 };
-
-

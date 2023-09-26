@@ -54,6 +54,8 @@ namespace FXNET
 		static NativeHandleType InvalidNativeHandle() { return (NativeHandleType)-1; };
 		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
 		NativeSocketType& NativeSocket() { return (NativeSocketType&)m_hNativeHandle; }
+		void SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex; }
+		unsigned int GetIOModuleIndex() { return this->m_dwIOModuleIndex; }
 
 		/**
 		 * @brief Get the Local Addr object
@@ -116,6 +118,7 @@ namespace FXNET
 		NativeHandleType m_hNativeHandle;
 		sockaddr_in m_stLocalAddr;
 		ErrorCode m_oError;
+		unsigned int m_dwIOModuleIndex;
 
 #ifdef _WIN32
 #else

@@ -112,7 +112,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 	SendOperator* pOperator = new SendOperator(this->m_opSock);
 	pOperator->m_oPackage.WriteInt('T' << 24 | 'E' << 16 | 'S' << 8 | 'T');
 	pOperator->m_oPackage.WriteString(szData, dwLen);
-	FXNET::PostEvent(pOperator);
+	FXNET::PostEvent(0,pOperator);
 	return *this;
 }
 
@@ -130,7 +130,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 	this->m_dwPacketLength += refPackage.GetDataLength();
 	// LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
 	// 	<< ", total: " << m_dwPacketLength << ", average: "
-	// 	<< m_dwPacketLength / (FXNET::FxIoModule::Instance()->FxGetCurrentTime() - m_dConnectedTime)
+	// 	<< m_dwPacketLength / (FXNET::GetFxIoModule(0)->FxGetCurrentTime() - m_dConnectedTime)
 	// 	<< "\n";
 	
 	int dwMagicNum = 0;
@@ -236,7 +236,7 @@ void CTextSession::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	};
 
 	ErrorOperator* pOperator = new ErrorOperator(m_opSock, refError);
-	FXNET::PostEvent(pOperator);
+	FXNET::PostEvent(0,pOperator);
 }
 
 void CTextSession::OnClose(std::ostream* pOStream)
@@ -264,7 +264,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 	};
 
 	OnCloseOperator* pOperator = new OnCloseOperator(m_opSock);
-	FXNET::PostEvent(pOperator);
+	FXNET::PostEvent(0,pOperator);
 
 	LOG(pOStream, ELOG_LEVEL_INFO) << "session close, " << this
 		<< "\n";
@@ -296,7 +296,7 @@ void CTextSession::Close(std::ostream* pOStream)
 	};
 
 	CloseOperator* pOperator = new CloseOperator(m_opSock);
-	FXNET::PostEvent(pOperator);
+	FXNET::PostEvent(0,pOperator);
 }
 
 CTextSession::TextMessageEvent* CTextSession::NewRecvMessageEvent()

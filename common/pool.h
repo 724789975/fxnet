@@ -1,8 +1,6 @@
 #ifndef __QUEUE_H__
 #define __QUEUE_H__
 
-#include "cas_lock.h"
-
 namespace FXNET
 {
 	template<typename T, unsigned int Size>
@@ -32,8 +30,6 @@ namespace FXNET
 		Element m_oElements[size];
 
 		Element* m_pFreeNode;
-
-		CCasLock m_oLock;
 	};
 
 	template<typename T, unsigned int Size>

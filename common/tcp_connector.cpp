@@ -55,7 +55,7 @@ namespace FXNET
 				return ErrorCode(CODE_ERROR_NET_PARSE_MESSAGE, __FILE__ ":" __LINE2STR__(__LINE__));
 			}
 
-			FxIoModule::Instance()->PushMessageEvent(pOperator);
+			GetFxIoModule(refConnector.GetIOModuleIndex())->PushMessageEvent(pOperator);
 		}
 		
 		refConnector.PostRecv(pOStream);
@@ -93,7 +93,7 @@ namespace FXNET
 						return ErrorCode(CODE_ERROR_NET_PARSE_MESSAGE, __FILE__ ":" __LINE2STR__(__LINE__));
 					}
 
-					FxIoModule::Instance()->PushMessageEvent(pOperator);
+					GetFxIoModule(refConnector.GetIOModuleIndex())->PushMessageEvent(pOperator);
 				}
 
 				continue;
@@ -135,7 +135,7 @@ namespace FXNET
 				<< "\n";
 
 #ifdef _WIN32
-			FxIoModule::Instance()->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
+			GetFxIoModule(refConnector.GetIOModuleIndex())->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
 #else
 			if (!refConnector.m_bConnecting)
 			{
@@ -191,8 +191,8 @@ namespace FXNET
 			macro_closesocket(refSocketBase.NativeSocket());
 
 			//´¦Àí´íÎó
-			FxIoModule::Instance()->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
-			FxIoModule::Instance()->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewCloseEvent());
+			GetFxIoModule(refSocketBase.GetIOModuleIndex())->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
+			GetFxIoModule(refSocketBase.GetIOModuleIndex())->PushMessageEvent(((CTcpConnector&)refSocketBase).GetSession()->NewCloseEvent());
 
 			((CTcpConnector&)refSocketBase).SetSession(NULL);
 
@@ -287,9 +287,9 @@ namespace FXNET
 
 		if (int dwError =
 #ifdef _WIN32
-			FxIoModule::Instance()->RegisterIO(this->NativeSocket(), this, pOStream)
+			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), this, pOStream)
 #else
-			FxIoModule::Instance()->RegisterIO(this->NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
+			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
 #endif // _WIN32
 			)
 		{
@@ -372,7 +372,7 @@ namespace FXNET
 
 	void CTcpConnector::Close(std::ostream* pOStream)
 	{
-		FxIoModule::Instance()->DeregisterIO(this->NativeSocket(), pOStream);
+		GetFxIoModule(this->GetIOModuleIndex())->DeregisterIO(this->NativeSocket(), pOStream);
 		this->NewErrorOperation(CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
 	}
 
@@ -424,7 +424,7 @@ namespace FXNET
 			if (0 == dwLen) break;
 			this->GetSession()->GetSendBuff().PopData(dwLen);
 
-			FxIoModule::Instance()->PushMessageEvent(GetSession()->NewOnSendEvent(dwLen));
+			GetFxIoModule(this->GetIOModuleIndex())->PushMessageEvent(GetSession()->NewOnSendEvent(dwLen));
 			if (0 == this->GetSession()->GetSendBuff().GetSize()) break;
 		}
 #endif // _WIN32
@@ -516,7 +516,7 @@ namespace FXNET
 			<< ", remote_port:" << (int)ntohs(this->GetRemoteAddr().sin_port)
 			<< "\n";
 
-		FxIoModule::Instance()->PushMessageEvent(this->GetSession()->NewConnectedEvent());
+		GetFxIoModule(this->GetIOModuleIndex())->PushMessageEvent(this->GetSession()->NewConnectedEvent());
 
 #ifdef _WIN32
 		this->PostRecv(pOStream);

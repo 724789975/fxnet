@@ -2,6 +2,7 @@
 #define __FXNET_INTERFACE_H__
 
 #include "message_event.h"
+#include "message_queue.h"
 #include "i_session.h"
 
 #include <deque>
@@ -15,7 +16,7 @@ namespace FXNET
 	 * 
 	 * 启动io线程
 	 */
-	void StartIOModule();
+	void StartIOModule(MessageEventQueue* pQueue);
 
 	/**
 	 * @brief 
@@ -24,20 +25,15 @@ namespace FXNET
 	 */
 	void StartLogModule();
 
+	unsigned int GetFxIoModuleIndex();
+
 	/**
 	 * @brief 
 	 * 
 	 * 向io线程投递事件
 	 * @param pEvent 
 	 */
-	void PostEvent(IOEventBase* pEvent);
-	/**
-	 * @brief 
-	 * 
-	 * swap io 线程产生的事件
-	 * @param refDeque 
-	 */
-	void SwapEvent(std::deque<MessageEventBase*>& refDeque);
+	void PostEvent(unsigned int dwIoModuleIndex, IOEventBase* pEvent);
 
 	/**
 	 * @brief 
@@ -50,7 +46,7 @@ namespace FXNET
 	 * @param pSessionMaker session的maker
 	 * @param pOStream 
 	 */
-	void UdpListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream);
+	void UdpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream);
 	/**
 	 * @brief 
 	 * 
@@ -61,7 +57,7 @@ namespace FXNET
 	 * @param pSession 绑定的session
 	 * @param pOStream 
 	 */
-	void UdpConnect(const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
+	void UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
 
 	/**
 	 * @brief 
@@ -73,7 +69,7 @@ namespace FXNET
 	 * @param pSessionMaker session的maker
 	 * @param pOStream 
 	 */
-	void TcpListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream);
+	void TcpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream);
 	/**
 	 * @brief 
 	 * 
@@ -84,7 +80,7 @@ namespace FXNET
 	 * @param pSession 绑定的session
 	 * @param pOStream 
 	 */
-	void TcpConnect(const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
+	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
 
 	/**
 	 * @brief 
@@ -98,17 +94,19 @@ namespace FXNET
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSessionMaker(pSessionMaker)
+			, m_dwIOModuleIndex(GetFxIoModuleIndex())
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(UDPListen, this);
-			UdpListen(m_szIp.c_str(), m_wPort, m_pSessionMaker, pOStream);
+			UdpListen(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSessionMaker, pOStream);
 		}
 	protected:
 	private:
 		std::string m_szIp;
 		unsigned short m_wPort;
 		SessionMaker* m_pSessionMaker;
+		unsigned int m_dwIOModuleIndex;
 	};
 
 	/**
@@ -123,17 +121,19 @@ namespace FXNET
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSession(pSession)
+			, m_dwIOModuleIndex(GetFxIoModuleIndex())
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(UDPConnect, this);
-			UdpConnect(m_szIp.c_str(), m_wPort, m_pSession, pOStream);
+			UdpConnect(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSession, pOStream);
 		}
 	protected:
 	private:
 		std::string m_szIp;
 		unsigned short m_wPort;
 		ISession* m_pSession;
+		unsigned int m_dwIOModuleIndex;
 	};
 
 	/**
@@ -148,17 +148,19 @@ namespace FXNET
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSessionMaker(pSessionMaker)
+			, m_dwIOModuleIndex(GetFxIoModuleIndex())
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(TCPListen, this);
-			TcpListen(m_szIp.c_str(), m_wPort, m_pSessionMaker, pOStream);
+			TcpListen(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSessionMaker, pOStream);
 		}
 	protected:
 	private:
 		std::string m_szIp;
 		unsigned short m_wPort;
 		SessionMaker* m_pSessionMaker;
+		unsigned int m_dwIOModuleIndex;
 	};
 
 	/**
@@ -173,17 +175,19 @@ namespace FXNET
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSession(pSession)
+			, m_dwIOModuleIndex(GetFxIoModuleIndex())
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(TCPConnect, this);
-			TcpConnect(m_szIp.c_str(), m_wPort, m_pSession, pOStream);
+			TcpConnect(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSession, pOStream);
 		}
 	protected:
 	private:
 		std::string m_szIp;
 		unsigned short m_wPort;
 		ISession* m_pSession;
+		unsigned int m_dwIOModuleIndex;
 	};
 
 	std::stringstream* GetStream();

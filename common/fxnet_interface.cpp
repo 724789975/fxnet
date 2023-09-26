@@ -11,10 +11,12 @@
 namespace FXNET
 {
 
-	void StartIOModule()
+	void StartIOModule(MessageEventQueue* pQueue)
 	{
-		FxIoModule::CreateInstance();
-		FxIoModule::Instance()->Init(&std::cout);
+		for (unsigned int i = 0; i < GetFxIoModuleNum(); ++i)
+		{
+			GetFxIoModule(i)->Init(i, pQueue, &std::cout);
+		}
 	}
 
 	void StartLogModule()
@@ -23,25 +25,28 @@ namespace FXNET
 		LogModule::Instance()->Init();	
 	}
 
-	void PostEvent(IOEventBase* pEvent)
+	unsigned int GetFxIoModuleIndex()
 	{
-		FxIoModule::Instance()->PostEvent(pEvent);
+		static unsigned int dwIndex = 0;
+		return dwIndex++;
 	}
 
-	void SwapEvent(std::deque<MessageEventBase*>& refDeque)
+	void PostEvent(unsigned int dwIoModuleIndex, IOEventBase* pEvent)
 	{
-		FxIoModule::Instance()->SwapEvent(refDeque);
+		GetFxIoModule(dwIoModuleIndex)->PostEvent(pEvent);
 	}
 
-	void UdpListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream)
+	void UdpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream)
 	{
 		CUdpListener* pListener = new CUdpListener(pSessionMaker);
+		pListener->SetIOModuleIndex(dwIOModuleIndex);
 		pListener->Listen(szIp, wPort, pOStream);
 	}
 
-	void UdpConnect(const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream)
+	void UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream)
 	{
 		CUdpConnector* pConnector = new CUdpConnector(pSession);
+		pConnector->SetIOModuleIndex(dwIOModuleIndex);
 
 		pSession->SetSock(pConnector);
 
@@ -58,15 +63,17 @@ namespace FXNET
 		}
 	}
 
-	void TcpListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream)
+	void TcpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker, std::ostream* pOStream)
 	{
 		CTcpListener* pListener = new CTcpListener(pSessionMaker);
+		pListener->SetIOModuleIndex(dwIOModuleIndex);
 		pListener->Listen(szIp, wPort, pOStream);
 	}
 
-	void TcpConnect(const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream)
+	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream)
 	{
 		CTcpConnector* pConnector = new CTcpConnector(pSession);
+		pConnector->SetIOModuleIndex(dwIOModuleIndex);
 
 		pSession->SetSock(pConnector);
 

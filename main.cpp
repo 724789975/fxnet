@@ -1,4 +1,5 @@
 #include "include/fxnet_interface.h"
+#include "include/message_queue.h"
 #include "text_session.h"
 
 #ifdef GPERF
@@ -69,7 +70,8 @@ int main()
 	usleep(1000);
 #endif // _WIN32
 
-	FXNET::StartIOModule();
+	FXNET::MessageEventQueue oQueue;
+	FXNET::StartIOModule(&oQueue);
 	for (int i = 0; i < 100; ++i)
 	{
 #ifdef _WIN32
@@ -83,7 +85,7 @@ int main()
 	//FXNET::PostEvent(new FXNET::UDPListen("192.168.10.104", 10085, new TextSessionMaker));
 	vecSession.push_back(new CTextSession);
 	//CTextSession t1;
-	FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10086, vecSession.back()));
+	FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPConnect("81.70.54.105", 10086, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
 	//CTextSession t2;
@@ -102,10 +104,10 @@ int main()
 			//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 		}
 #ifdef __SINGLE_THREAD__
-		FXNET::FxIoModule::Instance()->DealFunction(pStrstream);
+		FXNET::GetFxIoModule(0)->DealFunction(pStrstream);
 #endif	//!__SINGLE_THREAD__
 		std::deque<MessageEventBase*> dequeMessage;
-		FXNET::SwapEvent(dequeMessage);
+		oQueue.SwapEvent(dequeMessage);
 
 		if(0 == dequeMessage.size())
 		{

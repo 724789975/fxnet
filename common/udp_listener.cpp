@@ -1,5 +1,6 @@
 #include "udp_listener.h"
 #include "../include/log_utility.h"
+#include "../include/fxnet_interface.h"
 #include "iothread.h"
 #include "udp_connector.h"
 #include <cstdlib>
@@ -365,7 +366,7 @@ namespace FXNET
 
 				refSock.AddAcceptReq(req);
 
-				//FxIoModule::Instance()->DeregisterIO(refSock.NativeSocket(), pOStream);
+				//GetFxIoModule(0)->DeregisterIO(refSock.NativeSocket(), pOStream);
 				//macro_closesocket(refSock.NativeSocket());
 
 				// send back
@@ -552,7 +553,7 @@ namespace FXNET
 			<< "\n";
 
 #ifdef _WIN32
-		if (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), this, pOStream))
+		if (dwError = GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), this, pOStream))
 		{
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
@@ -565,7 +566,7 @@ namespace FXNET
 		this->m_oAcceptPool.Init();
 		memset(this->m_arroAcceptQueue, 0, sizeof(this->m_arroAcceptQueue));
 
-		if (0 != (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), EPOLLIN, this, pOStream)))
+		if (0 != (dwError = GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), EPOLLIN, this, pOStream)))
 		{
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
@@ -622,32 +623,55 @@ namespace FXNET
 	CUdpListener& CUdpListener::OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
 		CUdpConnector* pUdpSock = new CUdpConnector((*this->m_pSessionMaker)());
+		pUdpSock->SetIOModuleIndex(GetFxIoModuleIndex());
 
 		pUdpSock->GetSession()->SetSock(pUdpSock);
-		if (int dwError = pUdpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
+		pUdpSock->SetRemoteAddr(address);
+
+		class UdpConnect : public IOEventBase
 		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
-				<< "\n";
+		public:
+			UdpConnect(CUdpConnector* pTcpSock, NativeSocketType hSock)
+				: m_pUdpSock(pTcpSock)
+				, m_hSock(hSock)
+			{}
+			virtual void operator ()(std::ostream* pOStream)
+			{
+				DELETE_WHEN_DESTRUCT(UdpConnect, this);
 
-			//post µ½iomodule ÒÆ³ý
-			return *this;
-		}
+				if (int dwError = m_pUdpSock->Connect(m_hSock, m_pUdpSock->GetRemoteAddr(), pOStream))
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
+						<< "\n";
 
-		if (int dwError = pUdpSock->Init(pOStream, ST_SYN_RECV))
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
-				<< "\n";
+					m_pUdpSock->NewErrorOperation(dwError)(*m_pUdpSock, 0, pOStream);
+					return;
+				}
 
-			//post µ½iomodule ÒÆ³ý
-			return *this;
-		}
+				if (int dwError = m_pUdpSock->Init(pOStream, ST_SYN_RECV))
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
+						<< "\n";
+
+					m_pUdpSock->NewErrorOperation(dwError)(*m_pUdpSock, 0, pOStream);
+					return;
+				}
 
 #ifdef _WIN32
-		for (int i = 0; i < 16; ++i)
-		{
-			pUdpSock->PostRecv(pOStream);
-		}
+				for (int i = 0; i < 16; ++i)
+				{
+					m_pUdpSock->PostRecv(pOStream);
+				}
 #endif // _WIN32
+
+			}
+		protected:
+		private:
+			CUdpConnector* m_pUdpSock;
+			NativeSocketType m_hSock;
+		};
+
+		PostEvent(pUdpSock->GetIOModuleIndex(), new UdpConnect(pUdpSock, hSock));
 
 		return *this;
 	}

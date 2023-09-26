@@ -1,5 +1,6 @@
 #include "tcp_listener.h"
 #include "../include/log_utility.h"
+#include "../include/fxnet_interface.h"
 #include "tcp_connector.h"
 #include "iothread.h"
 #include <cstdlib>
@@ -317,7 +318,7 @@ namespace FXNET
 			<< "\n";
 
 #ifdef _WIN32
-		if (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), this, pOStream))
+		if (dwError = GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), this, pOStream))
 		{
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
@@ -328,7 +329,7 @@ namespace FXNET
 		}
 #else
 
-		if (0 != (dwError = FxIoModule::Instance()->RegisterIO(this->NativeSocket(), EPOLLIN, this, pOStream)))
+		if (0 != (dwError = GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), EPOLLIN, this, pOStream)))
 		{
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
@@ -384,54 +385,75 @@ namespace FXNET
 	CTcpListener& CTcpListener::OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
 	{
 		CTcpConnector* pTcpSock = new CTcpConnector((*m_pSessionMaker)());
+		pTcpSock->SetIOModuleIndex(GetFxIoModuleIndex());
 
 		pTcpSock->GetSession()->SetSock(pTcpSock);
-		if (int dwError = pTcpSock->SetRemoteAddr(address).Connect(hSock, address, pOStream))
+		pTcpSock->SetRemoteAddr(address);
+
+		class TcpConnect : public IOEventBase
 		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
-				<< "\n";
+		public:
+			TcpConnect(CTcpConnector* pTcpSock, NativeSocketType hSock)
+				: m_pTcpSock(pTcpSock)
+				, m_hSock(hSock)
+			{}
+			virtual void operator ()(std::ostream* pOStream)
+			{
+				DELETE_WHEN_DESTRUCT(TcpConnect, this);
 
-			//post µ½iomodule ÒÆ³ý
-			return *this;
-		}
+				if (int dwError = m_pTcpSock->Connect(m_hSock, m_pTcpSock->GetRemoteAddr(), pOStream))
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
+						<< "\n";
 
-		if (int dwError = pTcpSock->Init(pOStream, ST_SYN_RECV))
-		{
-			LOG(pOStream, ELOG_LEVEL_ERROR) << hSock << " client connect failed(" << dwError << ")"
-				<< "\n";
+					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, pOStream);
+					return;
+				}
 
-			//post µ½iomodule ÒÆ³ý
-			return *this;
-		}
+				if (int dwError = m_pTcpSock->Init(pOStream, ST_SYN_RECV))
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
+						<< "\n";
 
-		if (int dwError =
+					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, pOStream);
+					return;
+				}
+
+				if (int dwError =
 #ifdef _WIN32
-			FxIoModule::Instance()->RegisterIO(hSock, pTcpSock, pOStream)
+					GetFxIoModule(m_pTcpSock->GetIOModuleIndex())->RegisterIO(m_hSock,m_pTcpSock, pOStream)
 #else
-			FxIoModule::Instance()->RegisterIO(hSock, EPOLLET | EPOLLIN | EPOLLOUT, pTcpSock, pOStream)
+					GetFxIoModule(m_pTcpSock->GetIOModuleIndex())->RegisterIO(hSock, EPOLLET | EPOLLIN | EPOLLOUT, pTcpSock, pOStream)
 #endif // _WIN32
-			)
-		{
-			macro_closesocket(hSock);
-			pTcpSock->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
+					)
+				{
+					LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed(" << dwError << ")"
+						<< " ip:" << inet_ntoa(m_pTcpSock->GetLocalAddr().sin_addr)
+						<< ", port:" << (int)ntohs(m_pTcpSock->GetLocalAddr().sin_port)
+						<< " remote_ip:" << inet_ntoa(m_pTcpSock->GetRemoteAddr().sin_addr)
+						<< ", remote_port:" << (int)ntohs(m_pTcpSock->GetRemoteAddr().sin_port)
+						<< "\n";
 
-			LOG(pOStream, ELOG_LEVEL_ERROR) << "register io failed(" << dwError << ")"
-				<< " ip:" << inet_ntoa(pTcpSock->GetLocalAddr().sin_addr)
-				<< ", port:" << (int)ntohs(pTcpSock->GetLocalAddr().sin_port)
-				<< " remote_ip:" << inet_ntoa(pTcpSock->GetRemoteAddr().sin_addr)
-				<< ", remote_port:" << (int)ntohs(pTcpSock->GetRemoteAddr().sin_port)
-				<< "\n";
+					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, pOStream);
 
-			return *this;
-		}
+					return;
+				}
 
 #ifdef _WIN32
 #else
-		pTcpSock->m_bConnecting = true;
+				pTcpSock->m_bConnecting = true;
 #endif // _WIN32
 
-		pTcpSock->OnConnected(pOStream);
+				m_pTcpSock->OnConnected(pOStream);
 
+			}
+		protected:
+		private:
+			CTcpConnector* m_pTcpSock;
+			NativeSocketType m_hSock;
+		};
+
+		PostEvent(pTcpSock->GetIOModuleIndex(), new TcpConnect(pTcpSock, hSock));
 		return *this;
 	}
 

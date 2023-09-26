@@ -43,7 +43,7 @@ namespace FXNET
 			bool& bReadable = refConnector.m_bReadable;
 #endif // _WIN32
 
-			if (ErrorCode oError = refConnector.m_oBuffContral.ReceiveMessages(FxIoModule::Instance()->FxGetCurrentTime(), bReadable, pOStream))
+			if (ErrorCode oError = refConnector.m_oBuffContral.ReceiveMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), bReadable, pOStream))
 			{
 				//此处有报错
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOReadOperation failed " << oError.What()
@@ -98,7 +98,7 @@ namespace FXNET
 			refConnector.m_bWritable = true;
 #endif // _WIN32
 
-			if (ErrorCode oError = refConnector.m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream))
+			if (ErrorCode oError = refConnector.m_oBuffContral.SendMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), pOStream))
 			{
 				//此处有报错
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refConnector.NativeSocket() << " IOWriteOperation failed " << oError.What()
@@ -140,8 +140,8 @@ namespace FXNET
 			macro_closesocket(refSocketBase.NativeSocket());
 
 			//处理错误
-			FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
-			FxIoModule::Instance()->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewCloseEvent());
+			GetFxIoModule(refSocketBase.GetIOModuleIndex())->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewErrorEvent(m_oError));
+			GetFxIoModule(refSocketBase.GetIOModuleIndex())->PushMessageEvent(((CUdpConnector&)refSocketBase).GetSession()->NewCloseEvent());
 
 			((CUdpConnector&)refSocketBase).SetSession(NULL);
 
@@ -175,7 +175,7 @@ namespace FXNET
 				return ErrorCode(CODE_ERROR_NET_PARSE_MESSAGE, __FILE__ ":" __LINE2STR__(__LINE__));
 			}
 
-			FxIoModule::Instance()->PushMessageEvent(pOperator);
+			GetFxIoModule(this->m_refUdpConnector.GetIOModuleIndex())->PushMessageEvent(pOperator);
 		}
 
 		return ErrorCode();
@@ -293,7 +293,7 @@ namespace FXNET
 		{
 			this->m_refUdpConnector.GetSession()->GetSendBuff().PopData(dwLen);
 
-			FxIoModule::Instance()->PushMessageEvent(this->m_refUdpConnector.GetSession()->NewOnSendEvent(dwLen));
+			GetFxIoModule(this->m_refUdpConnector.GetIOModuleIndex())->PushMessageEvent(this->m_refUdpConnector.GetSession()->NewOnSendEvent(dwLen));
 
 			LOG(pOStream, ELOG_LEVEL_DEBUG4) << (char*)this->m_refUdpConnector.GetSession()->GetSendBuff().GetData() + 4
 				<< "\n";
@@ -412,7 +412,7 @@ namespace FXNET
 
 	void CUdpConnector::Close(std::ostream* pOStream)
 	{
-		FxIoModule::Instance()->DeregisterIO(this->NativeSocket(), pOStream);
+		GetFxIoModule(this->GetIOModuleIndex())->DeregisterIO(this->NativeSocket(), pOStream);
 		this->NewErrorOperation(CODE_SUCCESS_NET_EOF)(*this, 0, pOStream);
 	}
 
@@ -436,7 +436,7 @@ namespace FXNET
 
 	ErrorCode CUdpConnector::SendMessage(std::ostream* pOStream)
 	{
-		return m_oBuffContral.SendMessages(FxIoModule::Instance()->FxGetCurrentTime(), pOStream);
+		return m_oBuffContral.SendMessages(GetFxIoModule(this->GetIOModuleIndex())->FxGetCurrentTime(), pOStream);
 	}
 
 #ifdef _WIN32
@@ -514,7 +514,7 @@ namespace FXNET
 			<< ", remote_port:" << (int)ntohs(this->GetRemoteAddr().sin_port)
 			<< "\n";
 
-		FxIoModule::Instance()->PushMessageEvent(this->GetSession()->NewConnectedEvent());
+		GetFxIoModule(this->GetIOModuleIndex())->PushMessageEvent(this->GetSession()->NewConnectedEvent());
 	}
 
 	ErrorCode CUdpConnector::Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream)
@@ -602,9 +602,9 @@ namespace FXNET
 
 		if (int dwError =
 #ifdef _WIN32
-			FxIoModule::Instance()->RegisterIO(this->NativeSocket(), this, pOStream)
+			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), this, pOStream)
 #else
-			FxIoModule::Instance()->RegisterIO(this->NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
+			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
 #endif // _WIN32
 			)
 		{

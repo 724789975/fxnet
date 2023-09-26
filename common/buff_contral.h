@@ -370,7 +370,7 @@ namespace FXNET
 		this->m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
 		this->m_dSendTime = 0;
 
-		this->m_dAckRecvTime = FxIoModule::Instance()->FxGetCurrentTime();
+		this->m_dAckRecvTime = 0.;
 		this->m_dwAckTimeoutRetry = 1;
 		this->m_dwAckSameCount = 0;
 		this->m_bQuickRetry = false;
@@ -495,7 +495,7 @@ namespace FXNET
 
 			// 添加到发送窗口
 			this->m_oSendWindow.Add2SendWindow(btId, btBufferId, dwCopySize + dwCopyOffset
-				, FxIoModule::Instance()->FxGetCurrentTime(), m_dRetryTime);
+				, GetFxIoModule(0)->FxGetCurrentTime(), m_dRetryTime);
 		}
 
 		return dwSendSize;
