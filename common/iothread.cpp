@@ -570,7 +570,7 @@ namespace FXNET
 #ifdef __SINGLE_THREAD__
 #define FXNET_AOI_THREAD_NUM 1
 #else
-#define FXNET_AOI_THREAD_NUM 4
+#define FXNET_AOI_THREAD_NUM 3
 #endif
 
 	FxIoModule g_arrFxIoModule[FXNET_AOI_THREAD_NUM];

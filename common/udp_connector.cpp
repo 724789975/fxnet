@@ -33,6 +33,7 @@ namespace FXNET
 
 			CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
 #ifdef _WIN32
+			refConnector.m_setOperation.erase(this);
 			refConnector.PostRecv(pOStream);
 
 			m_dwLen = dwLen;
@@ -94,6 +95,7 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
 				<< "\n";
 #ifdef _WIN32
+			refConnector.m_setOperation.erase(this);
 #else
 			refConnector.m_bWritable = true;
 #endif // _WIN32
@@ -322,6 +324,13 @@ namespace FXNET
 
 	CUdpConnector::~CUdpConnector()
 	{
+#ifdef _WIN32
+		for (std::set<IOOperationBase*>::iterator it = m_setOperation.begin();
+			it != m_setOperation.end(); ++it)
+		{
+			delete* it;
+		}
+#endif // _WIN32
 	}
 
 	ErrorCode CUdpConnector::Init(std::ostream* pOStream, int dwState)
@@ -447,6 +456,7 @@ namespace FXNET
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;
 
+		m_setOperation.insert(&refIOReadOperation);
 		if (SOCKET_ERROR == WSARecv(NativeSocket(), &refIOReadOperation.m_stWsaBuff
 			, 1, &dwReadLen, &dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOReadOperation, NULL))
 		{
@@ -470,6 +480,7 @@ namespace FXNET
 		DWORD dwWriteLen = 0;
 		DWORD dwFlags = 0;
 
+		m_setOperation.insert(&refIOWriteOperation);
 		if (SOCKET_ERROR == WSASend(this->NativeSocket(), &refIOWriteOperation.m_stWsaBuff
 			, 1, &dwWriteLen, dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOWriteOperation, NULL))
 		{

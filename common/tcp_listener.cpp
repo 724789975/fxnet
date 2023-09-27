@@ -421,9 +421,9 @@ namespace FXNET
 
 				if (int dwError =
 #ifdef _WIN32
-					GetFxIoModule(m_pTcpSock->GetIOModuleIndex())->RegisterIO(m_hSock,m_pTcpSock, pOStream)
+					GetFxIoModule(m_pTcpSock->GetIOModuleIndex())->RegisterIO(m_hSock, m_pTcpSock, pOStream)
 #else
-					GetFxIoModule(m_pTcpSock->GetIOModuleIndex())->RegisterIO(hSock, EPOLLET | EPOLLIN | EPOLLOUT, pTcpSock, pOStream)
+					GetFxIoModule(m_pTcpSock->GetIOModuleIndex())->RegisterIO(m_hSock, EPOLLET | EPOLLIN | EPOLLOUT, m_pTcpSock, pOStream)
 #endif // _WIN32
 					)
 				{
@@ -441,7 +441,7 @@ namespace FXNET
 
 #ifdef _WIN32
 #else
-				pTcpSock->m_bConnecting = true;
+				m_pTcpSock->m_bConnecting = true;
 #endif // _WIN32
 
 				m_pTcpSock->OnConnected(pOStream);

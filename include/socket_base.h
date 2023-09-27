@@ -52,9 +52,9 @@ namespace FXNET
 		virtual ErrorCode Update(double dTime, std::ostream* POStream) = 0;
 
 		static NativeHandleType InvalidNativeHandle() { return (NativeHandleType)-1; };
-		NativeHandleType& NativeHandle() { return m_hNativeHandle; }
-		NativeSocketType& NativeSocket() { return (NativeSocketType&)m_hNativeHandle; }
-		void SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex; }
+		NativeHandleType& NativeHandle() { return this->m_hNativeHandle; }
+		NativeSocketType& NativeSocket() { return (NativeSocketType&)this->m_hNativeHandle; }
+		void SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex = dwIndex; }
 		unsigned int GetIOModuleIndex() { return this->m_dwIOModuleIndex; }
 
 		/**

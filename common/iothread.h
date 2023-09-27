@@ -56,7 +56,7 @@ namespace FXNET
 
 		double					FxGetCurrentTime();
 
-		void					SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex; }
+		void					SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex = dwIndex; }
 		unsigned int			GetIOModuleIndex() { return this->m_dwIOModuleIndex; }
 		/**
 		 * @brief 

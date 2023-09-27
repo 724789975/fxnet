@@ -42,6 +42,7 @@ namespace FXNET
 
 		CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
 #ifdef _WIN32
+		refConnector.m_setOperation.erase(this);
 		refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
 		while (refConnector.GetSession()->GetRecvBuff().CheckPackage())
 		{
@@ -135,6 +136,7 @@ namespace FXNET
 				<< "\n";
 
 #ifdef _WIN32
+			refConnector.m_setOperation.erase(this);
 			GetFxIoModule(refConnector.GetIOModuleIndex())->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
 #else
 			if (!refConnector.m_bConnecting)
@@ -211,6 +213,13 @@ namespace FXNET
 
 	CTcpConnector::~CTcpConnector()
 	{
+#ifdef _WIN32
+		for (std::set<IOOperationBase*>::iterator it = m_setOperation.begin();
+			it != m_setOperation.end(); ++it)
+		{
+			delete* it;
+		}
+#endif // _WIN32
 	}
 
 	int CTcpConnector::Init(std::ostream* pOStream, int dwState)
@@ -440,6 +449,8 @@ namespace FXNET
 		DWORD dwReadLen = 0;
 		DWORD dwFlags = 0;
 
+		m_setOperation.insert(&refIOReadOperation);
+
 		if (SOCKET_ERROR == WSARecv(NativeSocket(), &refIOReadOperation.m_stWsaBuff
 			, 1, &dwReadLen, &dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOReadOperation, NULL))
 		{
@@ -461,6 +472,7 @@ namespace FXNET
 			return ErrorCode();
 		}
 		TCPConnectorIOWriteOperation& refIOWriteOperation = NewTCPConnectorIOWriteOperation();
+		m_setOperation.insert(&refIOWriteOperation);
 		refIOWriteOperation.m_strData.resize(this->GetSession()->GetSendBuff().GetSize());
 		memcpy(&( * refIOWriteOperation.m_strData.begin())
 			, this->GetSession()->GetSendBuff().GetData()

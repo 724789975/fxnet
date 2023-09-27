@@ -125,6 +125,11 @@ namespace FXNET
 		UDPSendOperator m_funSendOperator;
 		UDPReadStreamOperator m_funReadStreamOperator;
 		BufferContral<UDP_WINDOW_BUFF_SIZE, UDP_WINDOW_SIZE> m_oBuffContral;
+
+#ifdef _WIN32
+		std::set<IOOperationBase*>		m_setOperation;
+#endif // _WIN32
+
 	};
 };
 

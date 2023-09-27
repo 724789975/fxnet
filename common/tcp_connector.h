@@ -66,6 +66,8 @@ namespace FXNET
 
 #ifndef _WIN32
 		bool m_bConnecting;
+#else
+		std::set<IOOperationBase*>		m_setOperation;
 #endif // _WIN32
 
 	};
