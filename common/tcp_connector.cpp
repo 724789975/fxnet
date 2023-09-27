@@ -43,6 +43,18 @@ namespace FXNET
 		CTcpConnector& refConnector = (CTcpConnector&)refSocketBase;
 #ifdef _WIN32
 		refConnector.m_setOperation.erase(this);
+#endif
+
+		if (refSocketBase.GetError())
+		{
+			return refSocketBase.GetError();
+		}
+
+#ifdef _WIN32
+		if (0 == dwLen)
+		{
+			return ErrorCode(CODE_SUCCESS_NET_EOF, __FILE__ ":" __LINE2STR__(__LINE__));
+		}
 		refConnector.GetSession()->GetRecvBuff().PushData(dwLen);
 		while (refConnector.GetSession()->GetRecvBuff().CheckPackage())
 		{
@@ -127,6 +139,13 @@ namespace FXNET
 	{
 	public:
 		friend class CTcpConnector;
+		TCPConnectorIOWriteOperation()
+			: m_bDeleted(false)
+		{}
+		~TCPConnectorIOWriteOperation()
+		{
+			m_bDeleted = true;
+		}
 		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(TCPConnectorIOWriteOperation, this);
@@ -137,6 +156,14 @@ namespace FXNET
 
 #ifdef _WIN32
 			refConnector.m_setOperation.erase(this);
+#endif // _WIN32
+
+			if (refSocketBase.GetError())
+			{
+				return refSocketBase.GetError();
+			}
+
+#ifdef _WIN32
 			GetFxIoModule(refConnector.GetIOModuleIndex())->PushMessageEvent(refConnector.GetSession()->NewOnSendEvent(dwLen));
 #else
 			if (!refConnector.m_bConnecting)
@@ -161,6 +188,7 @@ namespace FXNET
 		WSABUF m_stWsaBuff;
 		std::string m_strData;
 #endif // _WIN32
+		bool m_bDeleted;
 	};
 
 	TCPConnectorIOWriteOperation& NewTCPConnectorIOWriteOperation()

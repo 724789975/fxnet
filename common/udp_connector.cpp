@@ -32,6 +32,15 @@ namespace FXNET
 			DELETE_WHEN_DESTRUCT(UDPConnectorIOReadOperation, this);
 
 			CUdpConnector& refConnector = (CUdpConnector&)refSocketBase;
+
+#ifdef _WIN32
+			refConnector.m_setOperation.erase(this);
+#endif
+			if (refSocketBase.GetError())
+			{
+				return refSocketBase.GetError();
+			}
+
 #ifdef _WIN32
 			refConnector.m_setOperation.erase(this);
 			refConnector.PostRecv(pOStream);
@@ -99,6 +108,11 @@ namespace FXNET
 #else
 			refConnector.m_bWritable = true;
 #endif // _WIN32
+
+			if (refSocketBase.GetError())
+			{
+				return refSocketBase.GetError();
+			}
 
 			if (ErrorCode oError = refConnector.m_oBuffContral.SendMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), pOStream))
 			{
