@@ -25,7 +25,19 @@ namespace FXNET
 	 */
 	void StartLogModule();
 
+	/**
+	 * @brief Get the Fx Io Module Index object
+	 * 
+	 * @return unsigned int 
+	 */
 	unsigned int GetFxIoModuleIndex();
+
+	/**
+	 * @brief 
+	 * 单线程执行
+	 * @param pStrstream 
+	 */
+	void ProcSignelThread(std::stringstream*& pStrstream);
 
 	/**
 	 * @brief 

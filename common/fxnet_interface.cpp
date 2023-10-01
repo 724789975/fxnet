@@ -31,7 +31,12 @@ namespace FXNET
 		return dwIndex++;
 	}
 
-	void PostEvent(unsigned int dwIoModuleIndex, IOEventBase* pEvent)
+	void ProcSignelThread(std::stringstream*& pStrstream)
+	{
+		FXNET::GetFxIoModule(0)->DealFunction(pStrstream);
+	}
+
+	void PostEvent(unsigned int dwIoModuleIndex, IOEventBase *pEvent)
 	{
 		GetFxIoModule(dwIoModuleIndex)->PostEvent(pEvent);
 	}

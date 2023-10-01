@@ -104,7 +104,7 @@ int main()
 			//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 		}
 #ifdef __SINGLE_THREAD__
-		FXNET::GetFxIoModule(0)->DealFunction(pStrstream);
+		FXNET::ProcSignelThread(pStrstream);
 #endif	//!__SINGLE_THREAD__
 		std::deque<MessageEventBase*> dequeMessage;
 		oQueue.SwapEvent(dequeMessage);
