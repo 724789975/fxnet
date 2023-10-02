@@ -271,7 +271,7 @@ void CTextSession::OnClose(std::ostream* pOStream)
 
 	this->SetSock(NULL);
 
-	//TODO 鍏堝湪杩欓噷澶勭悊
+	//TODO 先在这里处理
 	delete this;
 }
 
