@@ -313,10 +313,6 @@ namespace FXNET
 		socklen_t sock_len = sizeof(addr);
 		getsockname(this->NativeSocket(), (sockaddr*)&addr, &sock_len);
 
-		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
-			<< ", port:" << (int)ntohs(addr.sin_port)
-			<< "\n";
-
 #ifdef _WIN32
 		if (dwError = GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), this, pOStream))
 		{
@@ -345,6 +341,10 @@ namespace FXNET
 
 		dwError = this->PostAccept(pOStream);
 #endif // _WIN32
+
+		LOG(pOStream, ELOG_LEVEL_INFO) << this->NativeSocket() << " ip:" << inet_ntoa(addr.sin_addr)
+			<< ", port:" << (int)ntohs(addr.sin_port)
+			<< "\n";
 
 		return dwError;
 	}
