@@ -29,7 +29,6 @@ namespace FXNET
 	class ISocketBase
 	{
 	public:
-        static int s_dwSocketId;
 #ifdef _WIN32
 		typedef HANDLE NativeHandleType;
 		typedef SOCKET NativeSocketType;
@@ -47,9 +46,6 @@ namespace FXNET
 #endif
 		{
 			memset(&m_stLocalAddr, 0, sizeof(m_stLocalAddr));
-
-            //这个不要求必须唯一 仅用于分配到不同线程使用 所以不用加锁
-            m_dwSocketId = ++s_dwSocketId;
 		}
 		virtual ~ISocketBase() {}
 		virtual const char* Name()const { return "CSocketBase"; }
@@ -123,8 +119,6 @@ namespace FXNET
 		sockaddr_in m_stLocalAddr;
 		ErrorCode m_oError;
 		unsigned int m_dwIOModuleIndex;
-
-        int m_dwSocketId;
 
 #ifdef _WIN32
 #else
