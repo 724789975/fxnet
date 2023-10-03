@@ -81,13 +81,17 @@ int main()
 #endif // _WIN32
 	}
 
-	//std::vector<CTextSession> vecSession;
-	FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPListen("0.0.0.0", 10086, new TextSessionMaker));
-	FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::TCPListen("0.0.0.0", 10085, new TextSessionMaker));
+	std::vector<CTextSession*> vecSession;
+	// FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPListen("0.0.0.0", 10086, new TextSessionMaker));
+	// FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::TCPListen("0.0.0.0", 10085, new TextSessionMaker));
 	//FXNET::PostEvent(new FXNET::UDPListen("192.168.10.104", 10085, new TextSessionMaker));
-	//vecSession.push_back(CTextSession());
 	//CTextSession t1;
-	//FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPConnect("81.70.54.105", 10086, vecSession.back()));
+	vecSession.push_back(new CTextSession());
+	int dwIndex1 = FXNET::GetFxIoModuleIndex();
+	FXNET::PostEvent(dwIndex1, new FXNET::UDPConnect("81.70.54.105", 10086, dwIndex1, vecSession.back()));
+	vecSession.push_back(new CTextSession());
+	int dwIndex2 = FXNET::GetFxIoModuleIndex();
+	FXNET::PostEvent(dwIndex2, new FXNET::TCPConnect("81.70.54.105", 10085, dwIndex2, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &t1));
@@ -99,11 +103,15 @@ int main()
 	pStrstream->flags(std::cout.fixed);
 	for (int i = 0; ; ++i)
 	{
-		//if (i >= 10 && i < 30)
-		//{
-		//	vecSession.push_back(CTextSession());
-		//	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
-		//}
+		if (i >= 10 && i < 30)
+		{
+			vecSession.push_back(new CTextSession());
+			int dwIndex1 = FXNET::GetFxIoModuleIndex();
+			FXNET::PostEvent(dwIndex1, new FXNET::UDPConnect("81.70.54.105", 10086, dwIndex1, vecSession.back()));
+			vecSession.push_back(new CTextSession());
+			int dwIndex2 = FXNET::GetFxIoModuleIndex();
+			FXNET::PostEvent(dwIndex2, new FXNET::TCPConnect("81.70.54.105", 10085, dwIndex2, vecSession.back()));
+		}
 #ifdef __SINGLE_THREAD__
 		FXNET::ProcSignelThread(pStrstream);
 #endif	//!__SINGLE_THREAD__
