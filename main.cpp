@@ -81,28 +81,29 @@ int main()
 #endif // _WIN32
 	}
 
-	std::vector<CTextSession*> vecSession;
+	//std::vector<CTextSession> vecSession;
+	FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPListen("0.0.0.0", 10086, new TextSessionMaker));
+	FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::TCPListen("0.0.0.0", 10085, new TextSessionMaker));
 	//FXNET::PostEvent(new FXNET::UDPListen("192.168.10.104", 10085, new TextSessionMaker));
-	vecSession.push_back(new CTextSession);
+	//vecSession.push_back(CTextSession());
 	//CTextSession t1;
-	FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPConnect("81.70.54.105", 10086, vecSession.back()));
+	//FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPConnect("81.70.54.105", 10086, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
 	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
+	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &t1));
+	////FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
 	//CTextSession t2;
-	// vecSession.push_back(new CTextSession);
-	// FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
-	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
+	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &t2));
 
 	std::stringstream* pStrstream = FXNET::GetStream();
 	pStrstream->flags(std::cout.fixed);
 	for (int i = 0; ; ++i)
 	{
-		if (i >= 10 && i < 100)
-		{
-			//vecSession.push_back(new CTextSession);
-			//FXNET::PostEvent(new FXNET::UDPConnect("192.168.30.1", 10085, vecSession.back()));
-			//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
-		}
+		//if (i >= 10 && i < 30)
+		//{
+		//	vecSession.push_back(CTextSession());
+		//	FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
+		//}
 #ifdef __SINGLE_THREAD__
 		FXNET::ProcSignelThread(pStrstream);
 #endif	//!__SINGLE_THREAD__
