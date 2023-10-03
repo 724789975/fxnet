@@ -102,11 +102,11 @@ namespace FXNET
 	class UDPListen : public IOEventBase
 	{
 	public:
-		UDPListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker)
+		UDPListen(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, SessionMaker* pSessionMaker)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSessionMaker(pSessionMaker)
-			, m_dwIOModuleIndex(GetFxIoModuleIndex())
+			, m_dwIOModuleIndex(dwIoModuleIndex)
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{
@@ -129,11 +129,11 @@ namespace FXNET
 	class UDPConnect : public IOEventBase
 	{
 	public:
-		UDPConnect(const char* szIp, unsigned short wPort, ISession* pSession)
+		UDPConnect(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, ISession* pSession)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSession(pSession)
-			, m_dwIOModuleIndex(GetFxIoModuleIndex())
+			, m_dwIOModuleIndex(dwIoModuleIndex)
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{
@@ -156,11 +156,11 @@ namespace FXNET
 	class TCPListen : public IOEventBase
 	{
 	public:
-		TCPListen(const char* szIp, unsigned short wPort, SessionMaker* pSessionMaker)
+		TCPListen(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, SessionMaker* pSessionMaker)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSessionMaker(pSessionMaker)
-			, m_dwIOModuleIndex(GetFxIoModuleIndex())
+			, m_dwIOModuleIndex(dwIoModuleIndex)
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{
@@ -183,11 +183,11 @@ namespace FXNET
 	class TCPConnect : public IOEventBase
 	{
 	public:
-		TCPConnect(const char* szIp, unsigned short wPort, ISession* pSession)
+		TCPConnect(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, ISession* pSession)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
 			, m_pSession(pSession)
-			, m_dwIOModuleIndex(GetFxIoModuleIndex())
+			, m_dwIOModuleIndex(dwIoModuleIndex)
 		{}
 		virtual void operator ()(std::ostream* pOStream)
 		{

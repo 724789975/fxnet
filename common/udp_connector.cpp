@@ -349,7 +349,7 @@ namespace FXNET
 
 	ErrorCode CUdpConnector::Init(std::ostream* pOStream, int dwState)
 	{
-		if (int dwError = this->m_oBuffContral.SetAckOutTime(5.).Init(dwState))
+		if (int dwError = this->m_oBuffContral.SetAckOutTime(5.).Init(dwState, GetFxIoModule(this->GetIOModuleIndex())->FxGetCurrentTime()))
 		{
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();

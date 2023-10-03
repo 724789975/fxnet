@@ -112,7 +112,7 @@ namespace FXNET
 		BufferContral();
 		~BufferContral();
 
-		int Init(int dwState);
+		int Init(int dwState, double dAckRecvTime);
 
 		int GetState()const;
 
@@ -361,7 +361,7 @@ namespace FXNET
 	{ }
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::Init(int dwState)
+	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::Init(int dwState, double dAckRecvTime)
 	{
 		this->m_dwStatus = dwState;
 		this->m_dDelayTime = 0;
@@ -370,7 +370,7 @@ namespace FXNET
 		this->m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
 		this->m_dSendTime = 0;
 
-		this->m_dAckRecvTime = 0.;
+		this->m_dAckRecvTime = dAckRecvTime;
 		this->m_dwAckTimeoutRetry = 1;
 		this->m_dwAckSameCount = 0;
 		this->m_bQuickRetry = false;
