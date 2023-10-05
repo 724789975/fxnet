@@ -81,23 +81,53 @@ int main()
 #endif // _WIN32
 	}
 
+	const char* szTargetIp = "81.70.54.105";
+	// const char* szTargetIp = "192.168.10.104";
+
 	std::vector<CTextSession*> vecSession;
-	// FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::UDPListen("0.0.0.0", 10086, new TextSessionMaker));
-	// FXNET::PostEvent(FXNET::GetFxIoModuleIndex(), new FXNET::TCPListen("0.0.0.0", 10085, new TextSessionMaker));
-	//FXNET::PostEvent(new FXNET::UDPListen("192.168.10.104", 10085, new TextSessionMaker));
-	//CTextSession t1;
-	vecSession.push_back(new CTextSession());
-	int dwIndex1 = FXNET::GetFxIoModuleIndex();
-	FXNET::PostEvent(dwIndex1, new FXNET::UDPConnect("81.70.54.105", 10086, dwIndex1, vecSession.back()));
-	vecSession.push_back(new CTextSession());
-	int dwIndex2 = FXNET::GetFxIoModuleIndex();
-	FXNET::PostEvent(dwIndex2, new FXNET::TCPConnect("81.70.54.105", 10085, dwIndex2, vecSession.back()));
-	//FXNET::PostEvent(new FXNET::UDPConnect("81.70.54.105", 10085, vecSession.back()));
-	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
-	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &t1));
-	////FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &vecSession.back()));
-	//CTextSession t2;
-	//FXNET::PostEvent(new FXNET::UDPConnect("192.168.10.104", 10085, &t2));
+
+#define SERVER_TEST 1
+
+#if SERVER_TEST
+#define TCP_CONNECT(ip, tcp_port) {}
+#define UDP_CONNECT(ip, udp_port) {}
+#else
+#define TCP_CONNECT(ip, tcp_port) \
+{\
+	vecSession.push_back(new CTextSession());\
+	int dwIndex1 = FXNET::GetFxIoModuleIndex();\
+	FXNET::PostEvent(dwIndex1, new FXNET::TCPConnect(ip, tcp_port, dwIndex1, vecSession.back()));\
+}\
+
+#define UDP_CONNECT(ip, udp_port) \
+{\
+	vecSession.push_back(new CTextSession());\
+	int dwIndex1 = FXNET::GetFxIoModuleIndex();\
+	FXNET::PostEvent(dwIndex1, new FXNET::UDPConnect(ip, udp_port, dwIndex1, vecSession.back()));\
+}\
+
+#endif
+
+#if SERVER_TEST
+#define TCP_LISTEN(tcp_port) \
+{\
+	int dwIndex1 = FXNET::GetFxIoModuleIndex();\
+	FXNET::PostEvent(dwIndex1, new FXNET::TCPListen("0.0.0.0", tcp_port, dwIndex1, new TextSessionMaker));\
+}\
+
+#define UDP_LISTEN(udp_port) \
+{\
+	int dwIndex1 = FXNET::GetFxIoModuleIndex();\
+	FXNET::PostEvent(dwIndex1, new FXNET::UDPListen("0.0.0.0", udp_port, dwIndex1, new TextSessionMaker));\
+}\
+
+#else
+#define TCP_LISTEN(tcp_port){}
+#define UDP_LISTEN(udp_port){}
+#endif
+
+	TCP_LISTEN(10085);
+	UDP_LISTEN(10086);
 
 	std::stringstream* pStrstream = FXNET::GetStream();
 	pStrstream->flags(std::cout.fixed);
@@ -105,12 +135,8 @@ int main()
 	{
 		if (i >= 10 && i < 30)
 		{
-			vecSession.push_back(new CTextSession());
-			int dwIndex1 = FXNET::GetFxIoModuleIndex();
-			FXNET::PostEvent(dwIndex1, new FXNET::UDPConnect("81.70.54.105", 10086, dwIndex1, vecSession.back()));
-			vecSession.push_back(new CTextSession());
-			int dwIndex2 = FXNET::GetFxIoModuleIndex();
-			FXNET::PostEvent(dwIndex2, new FXNET::TCPConnect("81.70.54.105", 10085, dwIndex2, vecSession.back()));
+			TCP_CONNECT(szTargetIp, 10085);
+			UDP_CONNECT(szTargetIp, 10086);
 		}
 #ifdef __SINGLE_THREAD__
 		FXNET::ProcSignelThread(pStrstream);
