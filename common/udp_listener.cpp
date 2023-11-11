@@ -166,7 +166,7 @@ namespace FXNET
 	{
 	public:
 		friend class CUdpListener;
-		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		virtual UDPListenIOReadOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(UDPListenIOReadOperation, this);
 
@@ -184,27 +184,27 @@ namespace FXNET
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 					<< "\n";
-				return ErrorCode();
+				return *this;
 			}
 
 			if (oUDPPacketHeader.m_btStatus != ST_SYN_SEND)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket()
 					<< "\n";
-				return ErrorCode();
+				return *this;
 			}
 
 			if (oUDPPacketHeader.m_btAck != 0)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "ack error want : 0, recv : " << (int)oUDPPacketHeader.m_btAck << ", " << refSocketBase.NativeSocket()
 					<< "\n";
-				return ErrorCode();
+				return *this;
 			}
 			if (oUDPPacketHeader.m_btSyn != 1)
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "syn error want : 1, recv : " << (int)oUDPPacketHeader.m_btSyn << ", " << refSocketBase.NativeSocket()
 					<< "\n";
-				return ErrorCode();
+				return *this;
 			}
 
 			LOG(pOStream, ELOG_LEVEL_INFO) << refSock.NativeSocket() << " recvfrom "
@@ -217,7 +217,7 @@ namespace FXNET
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << " create socket failed."
 					<< "\n";;
-				return ErrorCode();
+				return *this;
 			}
 
 			// set reuseaddr
@@ -227,7 +227,7 @@ namespace FXNET
 				LOG(pOStream, ELOG_LEVEL_ERROR) << refSock.NativeSocket() << ", errno(" << WSAGetLastError() << ")"
 					<< "\n";;
 				macro_closesocket(hSock);
-				return ErrorCode();
+				return *this;
 			}
 
 			// bind
@@ -237,13 +237,13 @@ namespace FXNET
 					<< inet_ntoa(refSock.GetLocalAddr().sin_addr) << ":" << (int)ntohs(refSock.GetLocalAddr().sin_port)
 					<< "\n";
 				macro_closesocket(hSock);
-				return ErrorCode();
+				return *this;
 			}
 
 			// send back
 			refSock.OnClientConnected(hSock, m_stRemoteAddr, pOStream);
 
-			refSock.PostAccept(pOStream);
+			refSock.PostAccept(refError, pOStream);
 #else
 			for (;;)
 			{
@@ -390,7 +390,7 @@ namespace FXNET
 			}
 
 #endif
-			return ErrorCode();
+			return *this;
 		}
 #ifdef _WIN32
 		WSABUF m_stWsaBuff;
@@ -415,12 +415,12 @@ namespace FXNET
 	{
 	public:
 		friend class CUdpListener;
-		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		virtual UDPIOErrorOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(UDPIOErrorOperation, this);
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
 				<< "\n";
-			return ErrorCode();
+			return *this;
 		}
 	};
 
@@ -430,13 +430,13 @@ namespace FXNET
 
 	}
 
-	ErrorCode CUdpListener::Update(double dTimedouble, std::ostream* pOStream)
+	CUdpListener& CUdpListener::Update(double dTimedouble, ErrorCode& refError, std::ostream* pOStream)
 	{
 		//TODO
-		return ErrorCode();
+		return *this;
 	}
 
-	ErrorCode CUdpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
+	CUdpListener& CUdpListener::Listen(const char* szIp, unsigned short wPort, ErrorCode& refError, std::ostream* pOStream)
 	{
 		sockaddr_in& refLocalAddr = this->GetLocalAddr();
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
@@ -470,7 +470,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket create failed(" << dwError << ")"
 				<< "\n";
-			return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 #ifdef _WIN32
@@ -490,7 +491,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set nonblock failed(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 #ifndef _WIN32
@@ -502,7 +504,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
 				<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 #endif // _WIN32
 
@@ -520,7 +523,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 		// bind
@@ -533,11 +537,12 @@ namespace FXNET
 #endif // _WIN32
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket()
-					<< " bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
-					<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
-					<< "\n";
-			return dwError;
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket()
+				<< " bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
+				<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
+				<< "\n";
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(oLocalAddr.sin_addr)
@@ -560,7 +565,8 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 #else
 		this->m_oAcceptPool.Init();
@@ -573,18 +579,23 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed on (" << inet_ntoa(oLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(oLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 #endif // _WIN32
 
 #ifdef _WIN32
 		for (int i = 0; i < 16; i++)
 		{
-			dwError = this->PostAccept(pOStream);
+			this->PostAccept(refError, pOStream);
+			if (refError)
+			{
+				break;
+			}
 		}
 #endif // _WIN32
 
-		return dwError;
+		return *this;
 	}
 
 	void CUdpListener::Close(std::ostream* pOStream)
@@ -639,12 +650,14 @@ namespace FXNET
 			{
 				DELETE_WHEN_DESTRUCT(UdpConnect, this);
 
-				if (int dwError = m_pUdpSock->Connect(m_hSock, m_pUdpSock->GetRemoteAddr(), pOStream))
+				ErrorCode oError;
+				m_pUdpSock->Connect(m_hSock, m_pUdpSock->GetRemoteAddr(), oError, pOStream);
+				if (oError)
 				{
-					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
+					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << oError.What() << ")"
 						<< "\n";
 
-					m_pUdpSock->NewErrorOperation(dwError)(*m_pUdpSock, 0, pOStream);
+					m_pUdpSock->NewErrorOperation(oError)(*m_pUdpSock, 0, oError, pOStream);
 					return;
 				}
 
@@ -653,7 +666,7 @@ namespace FXNET
 					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
 						<< "\n";
 
-					m_pUdpSock->NewErrorOperation(dwError)(*m_pUdpSock, 0, pOStream);
+					m_pUdpSock->NewErrorOperation(dwError)(*m_pUdpSock, 0, oError, pOStream);
 					return;
 				}
 
@@ -677,7 +690,7 @@ namespace FXNET
 	}
 
 #ifdef _WIN32
-	ErrorCode CUdpListener::PostAccept(std::ostream* pOStream)
+	CUdpListener& CUdpListener::PostAccept(ErrorCode& refError, std::ostream* pOStream)
 	{
 		UDPListenIOReadOperation& refOperation = NewUDPListenIOReadOperation();
 
@@ -694,10 +707,10 @@ namespace FXNET
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " WSARecvFrom errno : " << dwError
 					<< "\n";
-				return ErrorCode(dwError, __FILE__ __LINE2STR__(__LINE__));
+				refError(dwError, __FILE__ __LINE2STR__(__LINE__));
 			}
 		}
-		return ErrorCode();
+		return *this;
 	}
 #else
 	unsigned int CUdpListener::GenerateAcceptHash(const sockaddr_in& addr)

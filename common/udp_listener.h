@@ -31,9 +31,9 @@ namespace FXNET
 
 		CUdpListener(SessionMaker* pMaker);
 		virtual const char* Name()const { return "CUdpListener"; }
-		virtual ErrorCode Update(double dTimedouble, std::ostream* pOStream);
+		virtual CUdpListener& Update(double dTimedouble, ErrorCode& refError, std::ostream* pOStream);
 
-		ErrorCode Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream);
+		CUdpListener& Listen(const char* szIp, unsigned short wPort, ErrorCode& refError, std::ostream* pOStream);
 
 		virtual void Close(std::ostream* pOStream);
 
@@ -51,7 +51,7 @@ namespace FXNET
 		CUdpListener& OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 
 #ifdef _WIN32
-		ErrorCode PostAccept(std::ostream* pOStream);
+		CUdpListener& PostAccept(ErrorCode& refError, std::ostream* pOStream);
 #else
 		struct AcceptReq
 		{

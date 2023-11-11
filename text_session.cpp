@@ -98,7 +98,8 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 				<< "\n";
 			
 			poConnector->GetSession()->GetSendBuff().PushData(m_oPackage);
-			poConnector->SendMessage(pOStream);
+			ErrorCode oError;
+			poConnector->SendMessage(oError, pOStream);
 			LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
 				<< ", " << this->m_opSock->NativeSocket()
 				<< "\n";

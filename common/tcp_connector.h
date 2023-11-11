@@ -30,12 +30,12 @@ namespace FXNET
 
 		int Init(std::ostream* pOStream, int dwState);
 
-		virtual ErrorCode Update(double dTimedouble, std::ostream* pOStream);
+		virtual CTcpConnector& Update(double dTimedouble, ErrorCode& refError, std::ostream* pOStream);
 
 		const sockaddr_in& GetRemoteAddr()const { return m_stRemoteAddr; }
 		CTcpConnector& SetRemoteAddr(const sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
 
-		ErrorCode Connect(sockaddr_in address, std::ostream* pOStream);
+		CTcpConnector& Connect(sockaddr_in address, ErrorCode& refError, std::ostream* pOStream);
 
 		void Close(std::ostream* pOStream);
 
@@ -43,7 +43,7 @@ namespace FXNET
 		virtual IOOperationBase& NewWriteOperation();
 		virtual IOOperationBase& NewErrorOperation(const ErrorCode& refError);
 
-		virtual ErrorCode SendMessage(std::ostream* pOStream);
+		virtual CTcpConnector& SendMessage(ErrorCode& refError, std::ostream* pOStream);
 #ifdef _WIN32
 		/**
 		 * @brief 提交一个recv的OVERLAPPED
@@ -53,7 +53,7 @@ namespace FXNET
 		 * @return CTcpConnector& 
 		 */
 		CTcpConnector& PostRecv(std::ostream* pOStream);
-		ErrorCode PostSend(std::ostream* pOStream);
+		CTcpConnector& PostSend(ErrorCode& refError, std::ostream* pOStream);
 #endif // _WIN32
 
 		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
@@ -61,7 +61,7 @@ namespace FXNET
 		void OnConnected(std::ostream* pOStream);
 	protected:
 	private:
-		ErrorCode Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
+		CTcpConnector& Connect(NativeSocketType hSock, const sockaddr_in& address, ErrorCode& refError, std::ostream* pOStream);
 		sockaddr_in m_stRemoteAddr;
 
 #ifndef _WIN32

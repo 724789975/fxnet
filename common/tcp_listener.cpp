@@ -36,7 +36,7 @@ namespace FXNET
 	{
 	public:
 		friend class CTcpListener;
-		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		virtual TCPListenIOAcceptOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(TCPListenIOAcceptOperation, this);
 
@@ -92,7 +92,8 @@ namespace FXNET
 
 				macro_closesocket(this->m_hSocket);
 				refListenerSocket.PostAccept(pOStream);
-				return ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+				refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+				return *this;
 			}
 
 			// send back
@@ -107,7 +108,8 @@ namespace FXNET
 			{
 				LOG(pOStream, ELOG_LEVEL_ERROR) << "accept error(" << errno << ")"
 					<< "\n";
-				return ErrorCode(errno, __FILE__ ":" __LINE2STR__(__LINE__));
+				refError(errno, __FILE__ ":" __LINE2STR__(__LINE__));
+				return *this;
 			}
 
 			// keep alive
@@ -124,7 +126,7 @@ namespace FXNET
 			// send back
 			refListenerSocket.OnClientConnected(hAcceptSock, stRemoteAddr, pOStream);
 #endif
-			return ErrorCode();
+			return *this;
 		}
 #ifdef _WIN32
 		WSABUF m_stWsaBuff;
@@ -149,12 +151,12 @@ namespace FXNET
 	{
 	public:
 		friend class CTcpListener;
-		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream)
+		virtual TCPListenIOErrorOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(TCPListenIOErrorOperation, this);
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
 				<< "\n";
-			return ErrorCode();
+			return *this;
 		}
 	};
 
@@ -168,13 +170,13 @@ namespace FXNET
 
 	}
 
-	ErrorCode CTcpListener::Update(double dTimedouble, std::ostream* pOStream)
+	CTcpListener& CTcpListener::Update(double dTimedouble, ErrorCode& refError, std::ostream* pOStream)
 	{
 		//TODO
-		return ErrorCode();
+		return *this;
 	}
 
-	ErrorCode CTcpListener::Listen(const char* szIp, unsigned short wPort, std::ostream* pOStream)
+	CTcpListener& CTcpListener::Listen(const char* szIp, unsigned short wPort, ErrorCode& refError, std::ostream* pOStream)
 	{
 		sockaddr_in& refLocalAddr = this->GetLocalAddr();
 		memset(&refLocalAddr, 0, sizeof(refLocalAddr));
@@ -204,7 +206,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket create failed(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 #ifdef _WIN32
@@ -224,7 +227,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set nonblock failed(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 #ifndef _WIN32
@@ -236,7 +240,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "socket set FD_CLOEXEC failed(" << dwError << ") ["
 				<< __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 #endif // _WIN32
 
@@ -254,7 +259,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 #ifndef _WIN32
@@ -270,7 +276,8 @@ namespace FXNET
 
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " socket set SO_REUSEADDR failed(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 #endif
 
@@ -284,10 +291,11 @@ namespace FXNET
 #endif // _WIN32
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
-				LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
-					<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
-					<< "\n";
-			return dwError;
+			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
+				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
+				<< "\n";
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 		if (listen(this->NativeSocket(), 128) < 0)
@@ -302,7 +310,8 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << " listen failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(refLocalAddr.sin_addr)
@@ -321,7 +330,8 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << this->NativeSocket() << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 #else
 
@@ -332,7 +342,8 @@ namespace FXNET
 			LOG(pOStream, ELOG_LEVEL_ERROR) << "bind failed on (" << inet_ntoa(refLocalAddr.sin_addr)
 				<< ", " << (int)ntohs(refLocalAddr.sin_port) << ")(" << dwError << ")"
 				<< "\n";
-			return dwError;
+			refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			return *this;
 		}
 #endif // _WIN32
 
@@ -346,7 +357,8 @@ namespace FXNET
 			<< ", port:" << (int)ntohs(addr.sin_port)
 			<< "\n";
 
-		return dwError;
+		refError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+		return *this;
 	}
 
 	void CTcpListener::Close(std::ostream* pOStream)
@@ -401,12 +413,14 @@ namespace FXNET
 			{
 				DELETE_WHEN_DESTRUCT(TcpConnect, this);
 
-				if (int dwError = m_pTcpSock->Connect(m_hSock, m_pTcpSock->GetRemoteAddr(), pOStream))
+				ErrorCode oError;
+				m_pTcpSock->Connect(m_hSock, m_pTcpSock->GetRemoteAddr(), oError, pOStream);
+				if (oError)
 				{
-					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
+					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << oError.What() << ")"
 						<< "\n";
 
-					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, pOStream);
+					m_pTcpSock->NewErrorOperation(oError)(*m_pTcpSock, 0, oError, pOStream);
 					return;
 				}
 
@@ -415,7 +429,7 @@ namespace FXNET
 					LOG(pOStream, ELOG_LEVEL_ERROR) << m_hSock << " client connect failed(" << dwError << ")"
 						<< "\n";
 
-					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, pOStream);
+					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, oError, pOStream);
 					return;
 				}
 
@@ -434,7 +448,7 @@ namespace FXNET
 						<< ", remote_port:" << (int)ntohs(m_pTcpSock->GetRemoteAddr().sin_port)
 						<< "\n";
 
-					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, pOStream);
+					m_pTcpSock->NewErrorOperation(dwError)(*m_pTcpSock, 0, oError, pOStream);
 
 					return;
 				}

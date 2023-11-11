@@ -93,16 +93,19 @@ namespace FXNET
 
 		if (this->m_dCurrentTime - this->m_dLoatUpdateTime >= UDP_SEND_FREQUENCY)
 		{
+			ErrorCode oError;
 			this->m_dLoatUpdateTime = this->m_dCurrentTime;
 			for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = this->m_mapSockets.begin();
 				it != this->m_mapSockets.end();)
 			{
 				std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
 				ISocketBase* pISock = it_tmp->second;
-				if (ErrorCode oError = pISock->Update(this->m_dCurrentTime, pOStream))
+				pISock->Update(this->m_dCurrentTime, oError, pOStream);
+				if (oError)
 				{
 					this->DeregisterIO(pISock->NativeSocket(), pOStream);
-					pISock->NewErrorOperation(oError)(*pISock, 0, pOStream);
+					pISock->NewErrorOperation(oError)(*pISock, 0, oError, pOStream);
+					oError(0, "");
 				}
 			}
 		}
@@ -432,6 +435,7 @@ namespace FXNET
 	bool FxIoModule::DealData(std::ostream* pOStream)
 	{
 		const int dwTimeOut = 1;
+		ErrorCode oError;
 #ifdef _WIN32
 		void* pstPerIoData = NULL;
 		ISocketBase* poSock = NULL;
@@ -444,10 +448,12 @@ namespace FXNET
 			if (poSock)
 			{
 				IOOperationBase* pOp = (IOOperationBase*)(OVERLAPPED*)(pstPerIoData);
-				if (ErrorCode oError = (*pOp)(*poSock, dwByteTransferred, pOStream))
+				(*pOp)(*poSock, dwByteTransferred, oError, pOStream);
+				if (oError)
 				{
 					this->DeregisterIO(poSock->NativeSocket(), pOStream);
-					poSock->NewErrorOperation(oError)(*poSock, dwByteTransferred, pOStream);
+					poSock->NewErrorOperation(oError)(*poSock, dwByteTransferred, oError, pOStream);
+					oError(0, "");
 				}
 			}
 			else
@@ -489,7 +495,8 @@ namespace FXNET
 				<< "\n";
 
 			this->DeregisterIO(poSock->NativeSocket(), pOStream);
-			poSock->NewErrorOperation(ErrorCode(dwError, __FILE__ ":" __LINE2STR__(__LINE__)))(*poSock, dwByteTransferred, pOStream);
+			oError(dwError, __FILE__ ":" __LINE2STR__(__LINE__));
+			poSock->NewErrorOperation(oError)(*poSock, dwByteTransferred, oError, pOStream);
 		}
 #else
 
@@ -545,19 +552,23 @@ namespace FXNET
 			// 	<< ", [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\n";
 			if (pEvent->events & (EPOLLOUT | EPOLLERR | EPOLLHUP))
 			{
-				if (ErrorCode oError = poSock->NewWriteOperation()(*poSock, 0, pOStream))
+				poSock->NewWriteOperation()(*poSock, 0, oError, pOStream);
+				if (oError)
 				{
 					this->DeregisterIO(poSock->NativeSocket(), pOStream);
-					poSock->NewErrorOperation(oError)(*poSock, 0, pOStream);
+					poSock->NewErrorOperation(oError)(*poSock, 0, oError, pOStream);
+					oError(0, "");
 					continue;
 				}
 			}
 			if (pEvent->events & (EPOLLIN | EPOLLERR | EPOLLHUP))
 			{
-				if (ErrorCode oError = poSock->NewReadOperation()(*poSock, 0, pOStream))
+				poSock->NewReadOperation()(*poSock, 0, oError, pOStream);
+				if (oError)
 				{
 					this->DeregisterIO(poSock->NativeSocket(), pOStream);
-					poSock->NewErrorOperation(oError)(*poSock, 0, pOStream);
+					poSock->NewErrorOperation(oError)(*poSock, 0, oError, pOStream);
+					oError(0, "");
 					continue;
 				}
 			}

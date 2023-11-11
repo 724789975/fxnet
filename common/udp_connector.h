@@ -24,7 +24,7 @@ namespace FXNET
 		{
 		public:
 			UDPOnRecvOperator(CUdpConnector& refUdpConnector);
-			virtual ErrorCode operator() (char* szBuff, unsigned short wSize, std::ostream* pOStream);
+			virtual UDPOnRecvOperator& operator() (char* szBuff, unsigned short wSize, ErrorCode& refError, std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -33,7 +33,7 @@ namespace FXNET
 		{
 		public:
 			UDPOnConnectedOperator(CUdpConnector& refUdpConnector);
-			virtual ErrorCode operator() (std::ostream* pOStream);
+			virtual UDPOnConnectedOperator& operator() (ErrorCode& refError, std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -42,7 +42,7 @@ namespace FXNET
 		{
 		public:
 			UDPRecvOperator(CUdpConnector& refUdpConnector);
-			virtual ErrorCode operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream);
+			virtual UDPRecvOperator& operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, ErrorCode& refError, std::ostream* pOStream);
 
 #ifdef _WIN32
 			UDPRecvOperator& SetIOReadOperation(UDPConnectorIOReadOperation* pReadOperation);
@@ -58,7 +58,7 @@ namespace FXNET
 		{
 		public:
 			UDPSendOperator(CUdpConnector& refUdpConnector);
-			virtual ErrorCode operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream);
+			virtual UDPSendOperator& operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, ErrorCode& refError, std::ostream* pOStream);
 		private:
 			CUdpConnector& m_refUdpConnector;
 		};
@@ -85,12 +85,12 @@ namespace FXNET
 
 		ErrorCode Init(std::ostream* pOStream, int dwState);
 
-		virtual ErrorCode Update(double dTimedouble, std::ostream* pOStream);
+		virtual CUdpConnector& Update(double dTimedouble, ErrorCode& refError, std::ostream* pOStream);
 
 		const sockaddr_in& GetRemoteAddr()const { return m_stRemoteAddr; }
 		CUdpConnector& SetRemoteAddr(const sockaddr_in& refAddr) { m_stRemoteAddr = refAddr; return *this; }
 
-		ErrorCode Connect(sockaddr_in address, std::ostream* pOStream);
+		CUdpConnector& Connect(sockaddr_in address, ErrorCode& refError, std::ostream* pOStream);
 
 		void Close(std::ostream* pOStream);
 
@@ -98,7 +98,7 @@ namespace FXNET
 		virtual IOOperationBase& NewWriteOperation();
 		virtual IOOperationBase& NewErrorOperation(const ErrorCode& refError);
 
-		virtual ErrorCode SendMessage(std::ostream* pOStream);
+		virtual CUdpConnector& SendMessage(ErrorCode& refError, std::ostream* pOStream);
 #ifdef _WIN32
 		/**
 		 * @brief 提交一个recv的OVERLAPPED
@@ -108,7 +108,7 @@ namespace FXNET
 		 * @return CUdpConnector& 
 		 */
 		CUdpConnector& PostRecv(std::ostream* pOStream);
-		ErrorCode PostSend(char* pBuff, unsigned short wLen, std::ostream* pOStream);
+		CUdpConnector& PostSend(char* pBuff, unsigned short wLen, ErrorCode& refError, std::ostream* pOStream);
 #endif // _WIN32
 
 		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
@@ -116,7 +116,7 @@ namespace FXNET
 		void OnConnected(std::ostream* pOStream);
 	protected:
 	private:
-		ErrorCode Connect(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
+		CUdpConnector& Connect(NativeSocketType hSock, const sockaddr_in& address, ErrorCode& refError, std::ostream* pOStream);
 		sockaddr_in m_stRemoteAddr;
 
 		UDPOnRecvOperator m_funOnRecvOperator;

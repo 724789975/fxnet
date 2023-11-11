@@ -45,10 +45,11 @@ namespace FXNET
 	{
 		CUdpListener* pListener = new CUdpListener(pSessionMaker);
 		pListener->SetIOModuleIndex(dwIOModuleIndex);
-		pListener->Listen(szIp, wPort, pOStream);
+		ErrorCode oError;
+		pListener->Listen(szIp, wPort, oError, pOStream);
 	}
 
-	void UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream)
+	void UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, ErrorCode& refError, std::ostream* pOStream)
 	{
 		CUdpConnector* pConnector = new CUdpConnector(pSession);
 		pConnector->SetIOModuleIndex(dwIOModuleIndex);
@@ -62,9 +63,10 @@ namespace FXNET
 		if (szIp) { stRemoteAddr.sin_addr.s_addr = inet_addr(szIp); }
 
 		stRemoteAddr.sin_port = htons(wPort);
-		if (int dwError = pConnector->SetRemoteAddr(stRemoteAddr).Connect(stRemoteAddr, pOStream))
+		pConnector->SetRemoteAddr(stRemoteAddr).Connect(stRemoteAddr, refError, pOStream);
+		if (refError)
 		{
-			pConnector->NewErrorOperation(dwError)(*pConnector, 0, pOStream);
+			pConnector->NewErrorOperation(refError)(*pConnector, 0, refError, pOStream);
 		}
 	}
 
@@ -72,10 +74,11 @@ namespace FXNET
 	{
 		CTcpListener* pListener = new CTcpListener(pSessionMaker);
 		pListener->SetIOModuleIndex(dwIOModuleIndex);
-		pListener->Listen(szIp, wPort, pOStream);
+		ErrorCode oError;
+		pListener->Listen(szIp, wPort, oError, pOStream);
 	}
 
-	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream)
+	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, ErrorCode& refError, std::ostream* pOStream)
 	{
 		CTcpConnector* pConnector = new CTcpConnector(pSession);
 		pConnector->SetIOModuleIndex(dwIOModuleIndex);
@@ -89,9 +92,10 @@ namespace FXNET
 		if (szIp) { stRemoteAddr.sin_addr.s_addr = inet_addr(szIp); }
 
 		stRemoteAddr.sin_port = htons(wPort);
-		if (int dwError = pConnector->SetRemoteAddr(stRemoteAddr).Connect(stRemoteAddr, pOStream))
+		pConnector->SetRemoteAddr(stRemoteAddr).Connect(stRemoteAddr, refError, pOStream);
+		if (refError)
 		{
-			pConnector->NewErrorOperation(dwError)(*pConnector, 0, pOStream);
+			pConnector->NewErrorOperation(refError)(*pConnector, 0, refError, pOStream);
 		}
 	}
 

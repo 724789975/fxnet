@@ -71,6 +71,20 @@ public:
 		: m_dwError(0)
 	{}
 
+	ErrorCode& operator()(int dwError, const char* szWhat)
+	{
+		m_dwError = dwError;
+		m_strWhat = szWhat;
+		return *this;
+	}
+
+	ErrorCode& operator()(const ErrorCode& ref)
+	{
+		m_dwError = ref.m_dwError;
+		m_strWhat = ref.m_strWhat;
+		return *this;
+	}
+
 	operator const int&() const { return m_dwError; }
 	std::string What() const
 	{

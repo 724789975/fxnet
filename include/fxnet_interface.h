@@ -69,7 +69,7 @@ namespace FXNET
 	 * @param pSession 绑定的session
 	 * @param pOStream 
 	 */
-	void UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
+	void UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, ErrorCode& refError, std::ostream* pOStream);
 
 	/**
 	 * @brief 
@@ -92,7 +92,7 @@ namespace FXNET
 	 * @param pSession 绑定的session
 	 * @param pOStream 
 	 */
-	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, std::ostream* pOStream);
+	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, ErrorCode& refError, std::ostream* pOStream);
 
 	/**
 	 * @brief 
@@ -138,7 +138,8 @@ namespace FXNET
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(UDPConnect, this);
-			UdpConnect(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSession, pOStream);
+			ErrorCode oError;
+			UdpConnect(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSession, oError, pOStream);
 		}
 	protected:
 	private:
@@ -192,7 +193,8 @@ namespace FXNET
 		virtual void operator ()(std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(TCPConnect, this);
-			TcpConnect(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSession, pOStream);
+			ErrorCode oError;
+			TcpConnect(m_dwIOModuleIndex, m_szIp.c_str(), m_wPort, m_pSession, oError, pOStream);
 		}
 	protected:
 	private:

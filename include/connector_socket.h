@@ -21,7 +21,7 @@ namespace FXNET
 		 * @param pOStream 
 		 * @return int 
 		 */
-		virtual ErrorCode SendMessage(std::ostream* pOStream) = 0;
+		virtual CConnectorSocket& SendMessage(ErrorCode& refError, std::ostream* pOStream) = 0;
 		/**
 		 * @brief Get the Session object
 		 * 

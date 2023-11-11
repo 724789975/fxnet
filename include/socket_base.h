@@ -49,7 +49,7 @@ namespace FXNET
 		}
 		virtual ~ISocketBase() {}
 		virtual const char* Name()const { return "CSocketBase"; }
-		virtual ErrorCode Update(double dTime, std::ostream* POStream) = 0;
+		virtual ISocketBase& Update(double dTime, ErrorCode& refError, std::ostream* POStream) = 0;
 
 		static NativeHandleType InvalidNativeHandle() { return (NativeHandleType)-1; };
 		NativeHandleType& NativeHandle() { return this->m_hNativeHandle; }
@@ -143,7 +143,7 @@ namespace FXNET
 #endif // _WIN32
 		}
 		virtual ~IOOperationBase() {}
-		virtual ErrorCode operator()(ISocketBase& refSocketBase, unsigned int dwLen, std::ostream* pOStream) = 0;
+		virtual IOOperationBase& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream) = 0;
 
 		ErrorCode m_oError;
 	protected:

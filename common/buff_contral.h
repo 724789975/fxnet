@@ -34,7 +34,7 @@ namespace FXNET
 		 * @param dwSize 接收的长度
 		 * @return ErrorCode 错误码
 		 */
-		virtual ErrorCode operator() (char* szBuff, unsigned short wSize, std::ostream* pOStream) = 0;
+		virtual OnRecvOperator& operator() (char* szBuff, unsigned short wSize, ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
 	class OnConnectedOperator
@@ -45,7 +45,7 @@ namespace FXNET
 		 * @brief 连接处理
 		 *
 		 */
-		virtual ErrorCode operator() (std::ostream* pOStream) = 0;
+		virtual OnConnectedOperator& operator() (ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
 	class RecvOperator
@@ -60,7 +60,7 @@ namespace FXNET
 		 * @param wRecvSize 接收的长度
 		 * @return ErrorCode 错误码
 		 */
-		virtual ErrorCode operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, std::ostream* pOStream) = 0;
+		virtual RecvOperator& operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
 	class SendOperator
@@ -75,7 +75,7 @@ namespace FXNET
 		 * @param wSendLen 发送长度
 		 * @return ErrorCode 错误码
 		 */
-		virtual ErrorCode operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, std::ostream* pOStream) = 0;
+		virtual SendOperator& operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
 	class ReadStreamOperator
@@ -171,7 +171,8 @@ namespace FXNET
 		 * @param pOStream 
 		 * @return int 
 		 */
-		ErrorCode SendMessages(double dTime, std::ostream* pOStream);
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>& SendMessages
+			(double dTime, std::ostream* pOStream, ErrorCode& refErrorCode);
 		/**
 		 * @brief 
 		 * 
@@ -181,7 +182,8 @@ namespace FXNET
 		 * @param pOStream 
 		 * @return int 
 		 */
-		ErrorCode ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream);
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>& ReceiveMessages
+			(double dTime, bool& refbReadable, std::ostream* pOStream, ErrorCode& refError);
 		
 	private:
 		_SendWindow m_oSendWindow;
@@ -502,7 +504,9 @@ namespace FXNET
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline ErrorCode BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages(double dTime, std::ostream* pOStream)
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages
+		(double dTime, std::ostream* pOStream, ErrorCode& refErrorCode)
 	{
 		// 检查是否超时
 		if (dTime - this->m_dAckRecvTime > m_dAckOutTime)
@@ -511,11 +515,12 @@ namespace FXNET
 
 			if (--this->m_dwAckTimeoutRetry <= 0)
 			{
-				return ErrorCode(CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY, __FILE__ ":" __LINE2STR__(__LINE__));
+				refErrorCode(CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY, __FILE__ ":" __LINE2STR__(__LINE__));
+				return *this;
 			}
 		}
 
-		if (dTime < this->m_dSendTime) { return ErrorCode(); }
+		if (dTime < this->m_dSendTime) { return *this; }
 
 		//if (m_dwStatus == ST_SYN_RECV) {return 0;}
 
@@ -653,15 +658,15 @@ namespace FXNET
 				oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
 
 				int dwLen = 0;
-				ErrorCode oErrorCode = (*this->m_pSendOperator)((char*)pBuffer, wSize, dwLen, pOStream);
-				if (oErrorCode)
+				(*this->m_pSendOperator)((char*)pBuffer, wSize, dwLen, refErrorCode, pOStream);
+				if (refErrorCode)
 				{
-					if (EAGAIN == oErrorCode || EINTR == oErrorCode)
+					if (EAGAIN == refErrorCode || EINTR == refErrorCode)
 					{
 						break;
 					}
 					//发送出错 断开连接
-					return oErrorCode;
+					return *this;
 				}
 				else
 				{
@@ -695,21 +700,24 @@ namespace FXNET
 			oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
 
 			int dwLen = 0;
-			if (ErrorCode oErrorCode = (*this->m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, pOStream))
+			(*this->m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, refErrorCode, pOStream);
+			if (refErrorCode)
 			{
 				//发送出错 断开连接
-				return oErrorCode;
+				return *this;
 			}
 
 			this->m_dSendTime = dTime + this->m_dSendFrequency;
 			this->m_bSendAck = false;
 		}
 
-		return ErrorCode();
+		return *this;
 	}
 
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
-	inline ErrorCode BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages(double dTime, bool& refbReadable, std::ostream* pOStream)
+	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
+		BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages
+		(double dTime, bool& refbReadable, std::ostream* pOStream, ErrorCode& refError)
 	{
 		// packet received
 		bool bPacketReceived = false;
@@ -725,22 +733,23 @@ namespace FXNET
 			// 没有buffer了 断开连接
 			if (btBufferId >= this->m_oRecvWindow.window_size)
 			{
-				return ErrorCode(CODE_ERROR_NET_UDP_ALLOC_BUFF, __FILE__ ":" __LINE2STR__(__LINE__));
+				refError(CODE_ERROR_NET_UDP_ALLOC_BUFF, __FILE__ ":" __LINE2STR__(__LINE__));
+				return *this;
 			}
 
 			int dwLen = 0;
-			ErrorCode oErrorCode = (*this->m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, dwLen, pOStream);
+			(*this->m_pRecvOperator)((char*)pBuffer, _RecvWindow::buff_size, dwLen, refError, pOStream);
 
-			if (oErrorCode)
+			if (refError)
 			{
-				if (EINTR == oErrorCode)
+				if (EINTR == refError)
 				{
 					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
 					this->m_oRecvWindow.m_btFreeBufferId = btBufferId;
 					continue;
 				}
 
-				if (EAGAIN == oErrorCode)
+				if (EAGAIN == refError)
 				{
 					refbReadable = false;
 					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
@@ -749,9 +758,9 @@ namespace FXNET
 				}
 
 #ifdef _WIN32
-				if (WSA_IO_PENDING == oErrorCode || CODE_SUCCESS_NO_BUFF_READ == oErrorCode)
+				if (WSA_IO_PENDING == refError || CODE_SUCCESS_NO_BUFF_READ == refError)
 #else
-				if (EAGAIN == oErrorCode || EWOULDBLOCK == oErrorCode)
+				if (EAGAIN == refError || EWOULDBLOCK == refError)
 #endif	//_WIN32
 				{
 					refbReadable = false;
@@ -760,7 +769,7 @@ namespace FXNET
 					break;
 				}
 
-				return oErrorCode;
+				return *this;
 			}
 
 			if (dwLen < (unsigned short)sizeof(UDPPacketHeader))
@@ -775,7 +784,7 @@ namespace FXNET
 				this->m_dwStatus = ST_ESTABLISHED;
 				if (ST_ESTABLISHED == packet.m_btStatus)
 				{
-					(*this->m_pOnConnectedOperator)(pOStream);
+					(*this->m_pOnConnectedOperator)(refError, pOStream);
 					this->m_bConnected = true;
 					
 					for (unsigned char i = this->m_oRecvWindow.m_btBegin; i != this->m_oRecvWindow.m_btEnd; ++i)
@@ -939,9 +948,10 @@ namespace FXNET
 					unsigned char* pBuffer = this->m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
 					unsigned short wSize = this->m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
 
-					if (int dwError = (*this->m_pOnRecvOperator)((char*)pBuffer, wSize, pOStream))
+					(*this->m_pOnRecvOperator)((char*)pBuffer, wSize, refError, pOStream);
+					if (refError)
 					{
-						return dwError;
+						return *this;
 					}
 
 					// 接收成功 释放缓存
@@ -966,7 +976,7 @@ namespace FXNET
 			this->m_btSynLast = this->m_oRecvWindow.m_btBegin - 1;
 		}
 
-		return ErrorCode();
+		return *this;
 	}
 
 } // namespace FXNET
