@@ -54,7 +54,7 @@ namespace FXNET
 			bool& bReadable = refConnector.m_bReadable;
 #endif // _WIN32
 
-			refConnector.m_oBuffContral.ReceiveMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), bReadable, pOStream, refError);
+			refConnector.m_oBuffContral.ReceiveMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), bReadable, refError, pOStream);
 			if (refError)
 			{
 				//此处有报错
@@ -117,7 +117,7 @@ namespace FXNET
 				return *this;
 			}
 
-			refConnector.m_oBuffContral.SendMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), pOStream, refError);
+			refConnector.m_oBuffContral.SendMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), refError, pOStream);
 			if (refError)
 			{
 				//此处有报错
@@ -389,7 +389,7 @@ namespace FXNET
 			return *this;
 		}
 
-		m_oBuffContral.SendMessages(dTimedouble, pOStream, refError);
+		m_oBuffContral.SendMessages(dTimedouble, refError, pOStream);
 		if (refError)
 		{
 			//此处有报错
@@ -478,7 +478,7 @@ namespace FXNET
 
 	CUdpConnector& CUdpConnector::SendMessage(ErrorCode& refEror, std::ostream* pOStream)
 	{
-		m_oBuffContral.SendMessages(GetFxIoModule(this->GetIOModuleIndex())->FxGetCurrentTime(), pOStream, refEror);
+		m_oBuffContral.SendMessages(GetFxIoModule(this->GetIOModuleIndex())->FxGetCurrentTime(), refEror, pOStream);
 		return *this;
 	}
 

@@ -172,7 +172,7 @@ namespace FXNET
 		 * @return int 
 		 */
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>& SendMessages
-			(double dTime, std::ostream* pOStream, ErrorCode& refErrorCode);
+			(double dTime, ErrorCode& refErrorCode, std::ostream* pOStream);
 		/**
 		 * @brief 
 		 * 
@@ -183,7 +183,7 @@ namespace FXNET
 		 * @return int 
 		 */
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>& ReceiveMessages
-			(double dTime, bool& refbReadable, std::ostream* pOStream, ErrorCode& refError);
+			(double dTime, bool& refbReadable, ErrorCode& refError, std::ostream* pOStream);
 		
 	private:
 		_SendWindow m_oSendWindow;
@@ -506,7 +506,7 @@ namespace FXNET
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>::SendMessages
-		(double dTime, std::ostream* pOStream, ErrorCode& refErrorCode)
+		(double dTime, ErrorCode& refError, std::ostream* pOStream)
 	{
 		// 检查是否超时
 		if (dTime - this->m_dAckRecvTime > m_dAckOutTime)
@@ -515,7 +515,7 @@ namespace FXNET
 
 			if (--this->m_dwAckTimeoutRetry <= 0)
 			{
-				refErrorCode(CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY, __FILE__ ":" __LINE2STR__(__LINE__));
+				refError(CODE_ERROR_NET_UDP_ACK_TIME_OUT_RETRY, __FILE__ ":" __LINE2STR__(__LINE__));
 				return *this;
 			}
 		}
@@ -658,11 +658,12 @@ namespace FXNET
 				oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
 
 				int dwLen = 0;
-				(*this->m_pSendOperator)((char*)pBuffer, wSize, dwLen, refErrorCode, pOStream);
-				if (refErrorCode)
+				(*this->m_pSendOperator)((char*)pBuffer, wSize, dwLen, refError, pOStream);
+				if (refError)
 				{
-					if (EAGAIN == refErrorCode || EINTR == refErrorCode)
+					if (EAGAIN == refError || EINTR == refError)
 					{
+						refError(0, "");
 						break;
 					}
 					//发送出错 断开连接
@@ -700,8 +701,8 @@ namespace FXNET
 			oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
 
 			int dwLen = 0;
-			(*this->m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, refErrorCode, pOStream);
-			if (refErrorCode)
+			(*this->m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, refError, pOStream);
+			if (refError)
 			{
 				//发送出错 断开连接
 				return *this;
@@ -717,7 +718,7 @@ namespace FXNET
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>&
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>::ReceiveMessages
-		(double dTime, bool& refbReadable, std::ostream* pOStream, ErrorCode& refError)
+		(double dTime, bool& refbReadable, ErrorCode& refError, std::ostream* pOStream)
 	{
 		// packet received
 		bool bPacketReceived = false;
@@ -746,6 +747,7 @@ namespace FXNET
 				{
 					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
 					this->m_oRecvWindow.m_btFreeBufferId = btBufferId;
+					refError(0, "");
 					continue;
 				}
 
@@ -754,6 +756,7 @@ namespace FXNET
 					refbReadable = false;
 					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
 					this->m_oRecvWindow.m_btFreeBufferId = btBufferId;
+					refError(0, "");
 					break;
 				}
 
@@ -766,6 +769,7 @@ namespace FXNET
 					refbReadable = false;
 					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
 					this->m_oRecvWindow.m_btFreeBufferId = btBufferId;
+					refError(0, "");
 					break;
 				}
 
