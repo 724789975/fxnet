@@ -67,15 +67,15 @@ all:$(OUTPUT)
 
 $(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(OUTPUT_DIR) COMMON
 	@echo Build...$@
-	$(CPP) $(CXX_FLAGS) -o $(OUTPUT_DIR)/$(OUTPUT) $(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(LIB_FILE)
+	$(CPP) $(CXX_FLAGS) -o $(OUTPUT_DIR)/$(OUTPUT) $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o)) $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o)) $(LIB_FILE)
 
 %.o: %.cpp
 	@echo Compile...$@
-	$(CPP) $(CXX_FLAGS) $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d) 
+	$(CPP) $(CXX_FLAGS) $(INCLUDE_FLAG) -c $< -o $(OUTPUT_DIR)/$@ -MMD -MP -MF $(OUTPUT_DIR)/$(@:%.o=%.d) 
 
 %.o: %.cc
 	@echo Compile...$@
-	$(CC) $(C_FLAGS) $(INCLUDE_FLAG) -c $< -o $@ -MMD -MP -MF$(@:%.o=%.d)
+	$(CC) $(C_FLAGS) $(INCLUDE_FLAG) -c $< -o $(OUTPUT_DIR)/$@ -MMD -MP -MF $(OUTPUT_DIR)/$(@:%.o=%.d)
 
 $(OUTPUT_DIR):
 	-mkdir -p $(OUTPUT_DIR)
@@ -90,9 +90,9 @@ $(COMMON):
 clean:
 	$(MAKE) -C common clean
 	rm -f $(OUTPUT_DIR)/$(OUTPUT)
-	rm -f $(OBJS:.cpp=.o)
-	rm -f $(OBJS:.cpp=.d)
-	rm -f $(COBJS:.cc=.o)
-	rm -f $(COBJS:.cc=.d)
+	rm -f $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o))
+	rm -f $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.d))
+	rm -f $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o))
+	rm -f $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.d))
 	
 	@echo Clean ...done!
