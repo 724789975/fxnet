@@ -9,15 +9,24 @@ CPP		= g++
 AR		= ar
 RANLIB	= ranlib
 
+OUTPUT = fxnet
+ifeq ($(shell uname -m), x86_64)
+MOUTPUT_DIR = ./x64
+else
+MOUTPUT_DIR = ./
+endif
+
 #  Flags
 ifeq ($(BUILD),DEBUG)
 D = d
 C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -fpic -ldl
 CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -fpic -ldl
+OUTPUT_DIR      = $(MOUTPUT_DIR)/DEBUG
 else
 D = 
 C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX -fpic -ldl
 CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX -fpic -ldl
+OUTPUT_DIR      = $(MOUTPUT_DIR)/RELEASE
 endif
 
 ifeq ($(SINGLE_THREAD),1)
@@ -37,12 +46,10 @@ ARFLAGS			= -rc
 #  Commands
 CODE_DIR = ./ 
 INCLUDE_DIR =./ 
-LIB_FILE = -L./Debug -Lcrypto -lpthread
+LIB_FILE = -L./lib -Lcrypto -lpthread -lfxnet
 ifeq ($(ASAN),1)
 LIB_FILE	+= -lasan
 endif
-OUTPUT_DIR =./Debug
-OUTPUT = Test
 
 ifeq ($(GPERF),1)
 C_FLAGS		+= -DGPERF
@@ -52,13 +59,13 @@ endif
 
 #==========================================================
 
-OBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -name "*.cpp"))
-COBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -name "*.cc"))
+OBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -maxdepth 1 -name "*.cpp"))
+COBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -maxdepth 1 -name "*.cc"))
 INCLUDE_FLAG = $(foreach i, $(INCLUDE_DIR), -I$(i))
 
 all:$(OUTPUT)
 
-$(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(OUTPUT_DIR)
+$(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(OUTPUT_DIR) COMMON
 	@echo Build...$@
 	$(CPP) $(CXX_FLAGS) -o $(OUTPUT_DIR)/$(OUTPUT) $(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(LIB_FILE)
 
@@ -72,11 +79,16 @@ $(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(OUTPUT_DIR)
 
 $(OUTPUT_DIR):
 	-mkdir -p $(OUTPUT_DIR)
+
+$(COMMON):
+	@echo Compile...$@
+	$(MAKE) -C common
 	
 -include $(OBJS:.cpp=.d)
 -include $(COBJS:.cc=.d)
 
 clean:
+	$(MAKE) -C common clean
 	rm -f $(OUTPUT_DIR)/$(OUTPUT)
 	rm -f $(OBJS:.cpp=.o)
 	rm -f $(OBJS:.cpp=.d)
