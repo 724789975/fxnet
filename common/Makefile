@@ -51,19 +51,19 @@ INCLUDE_FLAG = $(foreach i, $(INCLUDE_DIR), -I$(i))
 
 all:$(OUTPUT)
 
-$(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(OUTPUT_DIR)
+$(OUTPUT):$(OUTPUT_DIR) $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
 	@echo Build...$@
-	$(AR) $(ARFLAGS) $(OUTPUT_DIR)/$(OUTPUT) $(addprefix($(OUTPUT_DIR)/,$(COBJS:.cc=.o))) $(addprefix($(OUTPUT_DIR)/,$(OBJS:.cpp=.o)))
+	$(AR) $(ARFLAGS) $(OUTPUT_DIR)/$(OUTPUT) $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o)) $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o))
 	@$(RANLIB) $(OUTPUT_DIR)/$(OUTPUT)
 	cp $(OUTPUT_DIR)/$(OUTPUT) ../lib
 
 %.o: %.cpp
 	@echo Compile...$@
-	$(CPP) $(CXX_FLAGS) $(INCLUDE_FLAG) -c $< -o $(OUTPUT_DIR)/$@ -MMD -MP -MF $(@:%.o=%.d) 
+	$(CPP) $(CXX_FLAGS) $(INCLUDE_FLAG) -c $< -o $(OUTPUT_DIR)/$@ -MMD -MP -MF $(OUTPUT_DIR)/$(@:%.o=%.d) 
 
 %.o: %.cc
 	@echo Compile...$@
-	$(CC) $(C_FLAGS) $(INCLUDE_FLAG) -c $< -o $(OUTPUT_DIR)/$@ -MMD -MP -MF $(@:%.o=%.d)
+	$(CC) $(C_FLAGS) $(INCLUDE_FLAG) -c $< -o $(OUTPUT_DIR)/$@ -MMD -MP -MF $(OUTPUT_DIR)/$(@:%.o=%.d)
 
 $(OUTPUT_DIR):
 	-mkdir -p $(OUTPUT_DIR)

@@ -45,7 +45,7 @@ ARFLAGS			= -rc
 #==========================================================
 #  Commands
 CODE_DIR = ./ 
-INCLUDE_DIR =./ 
+INCLUDE_DIR =./ ./include
 LIB_FILE = -L./lib -Lcrypto -lpthread -lfxnet
 ifeq ($(ASAN),1)
 LIB_FILE	+= -lasan
@@ -63,9 +63,10 @@ OBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -maxdepth 1 -name "*.cpp"))
 COBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -maxdepth 1 -name "*.cc"))
 INCLUDE_FLAG = $(foreach i, $(INCLUDE_DIR), -I$(i))
 
+COMMON = "common"
 all:$(OUTPUT)
 
-$(OUTPUT):$(COBJS:.cc=.o) $(OBJS:.cpp=.o) $(OUTPUT_DIR) COMMON
+$(OUTPUT):$(OUTPUT_DIR) $(COMMON) $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
 	@echo Build...$@
 	$(CPP) $(CXX_FLAGS) -o $(OUTPUT_DIR)/$(OUTPUT) $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o)) $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o)) $(LIB_FILE)
 
@@ -82,7 +83,8 @@ $(OUTPUT_DIR):
 
 $(COMMON):
 	@echo Compile...$@
-	$(MAKE) -C common
+	$(MAKE) -C $@
+
 	
 -include $(OBJS:.cpp=.d)
 -include $(COBJS:.cc=.d)

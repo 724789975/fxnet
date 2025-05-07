@@ -68,17 +68,17 @@ public:
 	};
 
 	CWSSession()
-		: m_dConnectedTime(0.)
+		: m_oSendBuff(m_oHeaderCheck)
+		, m_oRecvBuff(m_oHeaderCheck)
+		, m_eSocketHandShakeState(WSHSS_None)
+		, m_szWebInfo("")
+		, m_dConnectedTime(0.)
 		, m_dwPacketLength(0)
 		, m_dwRecvPackagetNum(0)
 		, m_dAllDelayTime(0.)
 		, m_dCurrentDelay(0.)
 		, m_dAverageDelay(0.)
-		, m_eSocketHandShakeState(WSHSS_None)
-		, m_szWebInfo("")
 		, m_oHeaderCheck(this)
-		, m_oSendBuff(m_oHeaderCheck)
-		, m_oRecvBuff(m_oHeaderCheck)
 		{}
 	~CWSSession(){}
 
