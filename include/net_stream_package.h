@@ -189,7 +189,7 @@ namespace FXNET
 
 		bool ReadData(char *pData, unsigned int dwLen)
 		{
-			if (dwLen <= m_strData.size())
+			if (dwLen < m_strData.size())
 			{
 				return false;
 			}

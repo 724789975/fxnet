@@ -7,7 +7,6 @@
 class INetWorkStream
 {
 public:
-	enum {HEADER_LENGTH = sizeof(unsigned int)};
 	INetWorkStream();
 	virtual ~INetWorkStream();
 	unsigned char *GetData() { return m_btData; }
@@ -15,13 +14,13 @@ public:
 	unsigned int GetFreeSize() { return m_dwDataLen - GetSize(); }
 
 	void PopData(unsigned int wLen);
-	void PopData(FXNET::CNetStreamPackage& refPackage);
+	virtual void PopData(FXNET::CNetStreamPackage& refPackage) = 0;
 	void* PushData(const char *szData, unsigned int wLen);
 	void* PushData(unsigned int wLen);
-	void PushData(const FXNET::CNetStreamPackage& refPackage);
+	virtual void PushData(const FXNET::CNetStreamPackage& refPackage) = 0;
 	virtual bool CheckPackage();
 
-private:
+protected:
 	void Realloc(unsigned int dwLen);
 
 protected:
@@ -35,12 +34,34 @@ private:
 class TextWorkStream : public INetWorkStream
 {
 public:
+	enum {HEADER_LENGTH = sizeof(unsigned int)};
 	TextWorkStream() {}
 
+	virtual void PopData(FXNET::CNetStreamPackage& refPackage);
+	virtual void PushData(const FXNET::CNetStreamPackage& refPackage);
 	virtual bool CheckPackage();
 
 protected:
 private:
+};
+
+class WSWorkStream : public INetWorkStream
+{
+public:
+	class WSHeaderCheck
+	{
+	public:
+		virtual bool operator ()() = 0;
+	};
+	WSWorkStream(WSHeaderCheck& oHeader) : m_oHeader(oHeader) {}
+
+	virtual void PopData(FXNET::CNetStreamPackage& refPackage);
+	virtual void PushData(const FXNET::CNetStreamPackage& refPackage);
+	virtual bool CheckPackage();
+
+protected:
+private:
+	WSHeaderCheck& m_oHeader;
 };
 
 #endif // !__NET_WORK_STREAM_H__

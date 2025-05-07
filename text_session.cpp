@@ -111,7 +111,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 	};
 
 	SendOperator* pOperator = new SendOperator(this->m_opSock);
-	pOperator->m_oPackage.WriteInt('T' << 24 | 'E' << 16 | 'S' << 8 | 'T');
+	// pOperator->m_oPackage.WriteInt('T' << 24 | 'E' << 16 | 'S' << 8 | 'T');
 	pOperator->m_oPackage.WriteString(szData, dwLen);
 	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 	return *this;
@@ -135,7 +135,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 	// 	<< "\n";
 	
 	int dwMagicNum = 0;
-	refPackage.ReadInt(dwMagicNum);
+	// refPackage.ReadInt(dwMagicNum);
 	std::string szData;
 	refPackage.ReadString(szData);
 
@@ -198,11 +198,13 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 		<< "\n";
 
 	long long qwSend = (long long)(this->GetSocket()->GetLocalAddr().sin_addr.s_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
-	char szBuff[512] = {0};
-	sprintf(szBuff, "%lld", qwSend);
-	std::string sz(szBuff, 400);
+	// char szBuff[512] = {0};
+	// sprintf(szBuff, "%lld", qwSend);
+	// std::string sz(szBuff, 400);
 	// std::string sz;
 	// sz.resize(1024 * 8);
+
+    std::string sz = "test";
 
 	this->Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
 	this->m_mapSendTimes[qwSend] = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
