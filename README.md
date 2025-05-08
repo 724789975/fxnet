@@ -1,5 +1,5 @@
 fxnet
-[![Build Status](https://www.travis-ci.org/724789975/FxLib.svg?branch=master)](https://www.travis-ci.org/724789975/fxnet/jobs/382006781)
+[![C/C++ CI](https://github.com/724789975/fxnet/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/724789975/fxnet/actions/workflows/c-cpp.yml)
 [![license](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/724789975/fxnet/blob/master/LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/724789975/fxnet/pulls)
 =====================================================================
