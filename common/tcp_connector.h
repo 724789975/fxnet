@@ -26,7 +26,7 @@ namespace FXNET
 		CTcpConnector(ISession* pSession);
 		~CTcpConnector();
 
-		virtual const char* Name()const { return "CTcpConnector"; }
+		SET_CLASS_NAME(CTcpConnector);
 
 		int Init(std::ostream* pOStream, int dwState);
 

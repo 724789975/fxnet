@@ -21,6 +21,8 @@
 #pragma comment(lib,"ws2_32.lib")
 #endif  //_WIN32
 
+#define SET_CLASS_NAME(x) virtual const char* Name()const { return #x; } 
+
 namespace FXNET
 {
 
@@ -48,12 +50,18 @@ namespace FXNET
 			memset(&m_stLocalAddr, 0, sizeof(m_stLocalAddr));
 		}
 		virtual ~ISocketBase() {}
-		virtual const char* Name()const { return "CSocketBase"; }
+		SET_CLASS_NAME(CSocketBase);
 		virtual ISocketBase& Update(double dTime, ErrorCode& refError, std::ostream* POStream) = 0;
 
 		static NativeHandleType InvalidNativeHandle() { return (NativeHandleType)-1; };
 		NativeHandleType& NativeHandle() { return this->m_hNativeHandle; }
 		NativeSocketType& NativeSocket() { return (NativeSocketType&)this->m_hNativeHandle; }
+
+		/**
+		 * @brief 设置IO模块索引
+		 * 
+		 * @param dwIndex 这个索引是自增的 根据这个index来分配所在线程
+		 */
 		void SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex = dwIndex; }
 		unsigned int GetIOModuleIndex() { return this->m_dwIOModuleIndex; }
 

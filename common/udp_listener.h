@@ -30,7 +30,7 @@ namespace FXNET
 		friend class UDPListenIOReadOperation;
 
 		CUdpListener(SessionMaker* pMaker);
-		virtual const char* Name()const { return "CUdpListener"; }
+		SET_CLASS_NAME(CUdpListener);
 		virtual CUdpListener& Update(double dTimedouble, ErrorCode& refError, std::ostream* pOStream);
 
 		CUdpListener& Listen(const char* szIp, unsigned short wPort, ErrorCode& refError, std::ostream* pOStream);

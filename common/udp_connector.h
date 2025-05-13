@@ -81,7 +81,7 @@ namespace FXNET
 		CUdpConnector(ISession* pSession);
 		~CUdpConnector();
 
-		virtual const char* Name()const { return "CUdpConnector"; }
+		SET_CLASS_NAME(CUdpConnector);
 
 		ErrorCode Init(std::ostream* pOStream, int dwState);
 

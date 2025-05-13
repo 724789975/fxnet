@@ -30,7 +30,7 @@ namespace FXNET
 	public: 
 		friend class TCPListenIOAcceptOperation;
 		CTcpListener(SessionMaker* pMaker);
-		virtual const char* Name()const { return "CTcpListener"; }
+		SET_CLASS_NAME(CTcpListener);
 		virtual CTcpListener& Update(double dTimedouble, ErrorCode& refError, std::ostream* pOStream);
 
 		CTcpListener& Listen(const char* szIp, unsigned short wPort, ErrorCode& refError, std::ostream* pOStream);
