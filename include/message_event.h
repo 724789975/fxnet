@@ -5,7 +5,7 @@
 
 #ifdef _WIN32
 #include <WinSock2.h>
-#endif // _WIN32
+#endif  // _WIN32
 
 #include <ostream>
 
@@ -25,16 +25,16 @@ public:\
  */
 class MessageEventBase
 {
-public:
+public: 
 	virtual ~MessageEventBase() {}
 	virtual void operator ()(std::ostream* pOStream) = 0;
 protected:
 private:
 };
 
-class MessageRecvEventBase : public MessageEventBase
+class MessageRecvEventBase: public MessageEventBase
 {
-public:
+public: 
 	FXNET::CNetStreamPackage m_oPackage;
 protected:
 private:
@@ -51,14 +51,14 @@ class IOEventBase
 	, public MessageEventBase
 #else
 	: public MessageEventBase
-#endif // _WIN32
+#endif  // _WIN32
 {
-public:
+public: 
 	IOEventBase()
 	{
 #ifdef _WIN32
 		memset((OVERLAPPED*)this, 0, sizeof(OVERLAPPED));
-#endif // _WIN32
+#endif  // _WIN32
 
 	}
 	virtual ~IOEventBase() {}
@@ -67,4 +67,4 @@ private:
 };
 
 
-#endif // !__MESSAGE_EVENT_H__
+#endif  // !__MESSAGE_EVENT_H__

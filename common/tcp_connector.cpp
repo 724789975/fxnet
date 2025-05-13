@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #ifndef macro_closesocket
 #define macro_closesocket closesocket
-#endif //macro_closesocket
+#endif  //macro_closesocket
 #else
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -15,8 +15,8 @@
 #include <netinet/tcp.h>
 #ifndef macro_closesocket
 #define macro_closesocket close
-#endif //macro_closesocket
-#endif // _WIN32
+#endif  //macro_closesocket
+#endif  // _WIN32
 
 #include <assert.h>
 
@@ -24,16 +24,16 @@
 
 namespace FXNET
 {
-	class TCPConnectorIOReadOperation : public IOOperationBase
+	class TCPConnectorIOReadOperation: public IOOperationBase
 	{
-	public:
+	public: 
 		friend class CTcpConnector;
 		virtual TCPConnectorIOReadOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream);
 #ifdef _WIN32
 		WSABUF m_stWsaBuff;
 		sockaddr_in m_stRemoteAddr;
 		unsigned int m_dwLen;
-#endif // _WIN32
+#endif  // _WIN32
 	};
 
 	TCPConnectorIOReadOperation& TCPConnectorIOReadOperation::operator()
@@ -87,7 +87,7 @@ namespace FXNET
 			if (0 > dwLen)
 			{
 				refConnector.m_bReadable = false;
-				int dwError = errno;
+				int dwError              = errno;
 
 				if (dwError != EAGAIN && dwError != EINTR)
 				{
@@ -122,7 +122,7 @@ namespace FXNET
 				continue;
 			}
 		}
-#endif // _WIN32
+#endif  // _WIN32
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << refConnector.NativeSocket()
 			<< " ip:" << inet_ntoa(refConnector.GetLocalAddr().sin_addr)
@@ -141,13 +141,13 @@ namespace FXNET
 		pOperation->m_stWsaBuff.buf = (char*)pConnector->GetSession()->GetRecvBuff().GetData()
 			+ pConnector->GetSession()->GetRecvBuff().GetSize();
 		pOperation->m_stWsaBuff.len = pConnector->GetSession()->GetRecvBuff().GetFreeSize();
-#endif // _WIN32
+#endif  // _WIN32
 
 		return *pOperation;
 	}
-	class TCPConnectorIOWriteOperation : public IOOperationBase
+	class TCPConnectorIOWriteOperation: public IOOperationBase
 	{
-	public:
+	public: 
 		friend class CTcpConnector;
 		TCPConnectorIOWriteOperation()
 			: m_bDeleted(false)
@@ -166,7 +166,7 @@ namespace FXNET
 
 #ifdef _WIN32
 			refConnector.m_setOperation.erase(this);
-#endif // _WIN32
+#endif  // _WIN32
 
 			if (refSocketBase.GetError())
 			{
@@ -179,8 +179,8 @@ namespace FXNET
 #else
 			if (!refConnector.m_bConnecting)
 			{
-				int dwConnectError = 0;
-				socklen_t dwLen = sizeof(dwConnectError);
+				int       dwConnectError = 0;
+				socklen_t dwLen          = sizeof(dwConnectError);
 				if (0 > getsockopt(refConnector.NativeSocket(), SOL_SOCKET, SO_ERROR, (void*)(&dwConnectError), &dwLen))
 				{
 					int dwError = errno;
@@ -196,7 +196,7 @@ namespace FXNET
 				refConnector.OnConnected(pOStream);
 			}
 			refConnector.m_bWritable = true;
-#endif // _WIN32
+#endif  // _WIN32
 
 			refConnector.SendMessage(refError, pOStream);
 			return *this;
@@ -204,7 +204,7 @@ namespace FXNET
 #ifdef _WIN32
 		WSABUF m_stWsaBuff;
 		std::string m_strData;
-#endif // _WIN32
+#endif  // _WIN32
 		bool m_bDeleted;
 	};
 
@@ -213,14 +213,14 @@ namespace FXNET
 		TCPConnectorIOWriteOperation* pOperation = new TCPConnectorIOWriteOperation();
 #ifdef _WIN32
 		//m_setIOOperations.insert(pOperation);
-#endif // _WIN32
+#endif  // _WIN32
 
 		return *pOperation;
 	}
 
-	class TCPConnectorIOErrorOperation : public IOOperationBase
+	class TCPConnectorIOErrorOperation: public IOOperationBase
 	{
-	public:
+	public: 
 		friend class CTcpConnector;
 		virtual TCPConnectorIOErrorOperation& operator()
 			(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
@@ -252,7 +252,7 @@ namespace FXNET
 		: CConnectorSocket(pSession)
 #ifndef _WIN32
 		, m_bConnecting(false)
-#endif // _WIN32
+#endif  // _WIN32
 	{
 		memset(&m_stRemoteAddr, 0, sizeof(m_stRemoteAddr));
 	}
@@ -265,7 +265,7 @@ namespace FXNET
 		{
 			delete* it;
 		}
-#endif // _WIN32
+#endif  // _WIN32
 	}
 
 	int CTcpConnector::Init(std::ostream* pOStream, int dwState)
@@ -285,7 +285,7 @@ namespace FXNET
 			, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
 		NativeSocketType hSock = socket(AF_INET, SOCK_STREAM, 0);
-#endif // _WIN32
+#endif  // _WIN32
 
 		if (hSock == -1)
 		{
@@ -346,7 +346,7 @@ namespace FXNET
 			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), this, pOStream)
 #else
 			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
-#endif // _WIN32
+#endif  // _WIN32
 			)
 		{
 			macro_closesocket(this->NativeSocket());
@@ -365,8 +365,8 @@ namespace FXNET
 
 #ifdef _WIN32
 		LPFN_CONNECTEX lpfnConnectEx = NULL;
-		DWORD dwBytes = 0;
-		GUID GuidConnectEx = WSAID_CONNECTEX;
+		DWORD          dwBytes       = 0;
+		GUID           GuidConnectEx = WSAID_CONNECTEX;
 
 		if (SOCKET_ERROR == WSAIoctl(this->NativeSocket(), SIO_GET_EXTENSION_FUNCTION_POINTER,
 			&GuidConnectEx, sizeof(GuidConnectEx),
@@ -380,9 +380,9 @@ namespace FXNET
 			return *this;
 		}
 
-		class IOConnectOperation : public IOOperationBase
+		class IOConnectOperation: public IOOperationBase
 		{
-		public:
+		public: 
 			virtual IOConnectOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 			{
 				DELETE_WHEN_DESTRUCT(IOConnectOperation, this);
@@ -400,12 +400,12 @@ namespace FXNET
 		// 这个时候 还没有连上
 
 		if (0 == lpfnConnectEx(this->NativeSocket()
-			, (sockaddr*)&address			// [in] 对方地址
-			, sizeof(address)				// [in] 对方地址长度
-			, NULL									// [in] 连接后要发送的内容，这里不用
-			, 0										// [in] 发送内容的字节数 ，这里不用
-			, NULL									// [out] 发送了多少个字节，这里不用
-			, (OVERLAPPED*)pOperation))							// [in]
+			, (sockaddr*)&address        // [in] 对方地址
+			, sizeof(address)            // [in] 对方地址长度
+			, NULL                       // [in] 连接后要发送的内容，这里不用
+			, 0                          // [in] 发送内容的字节数 ，这里不用
+			, NULL                       // [out] 发送了多少个字节，这里不用
+			, (OVERLAPPED*)pOperation))  // [in]
 		{
 			int dwError = (unsigned int)WSAGetLastError();
 			if (dwError != ERROR_IO_PENDING && dwError != ERROR_IO_INCOMPLETE)
@@ -418,7 +418,7 @@ namespace FXNET
 			}
 		}
 
-#endif // _WIN32
+#endif  // _WIN32
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG2) << this->NativeSocket() << " ip:" << inet_ntoa(this->GetLocalAddr().sin_addr)
 			<< ", port:" << (int)ntohs(this->GetLocalAddr().sin_port)
@@ -449,8 +449,8 @@ namespace FXNET
 	IOOperationBase& CTcpConnector::NewErrorOperation(const ErrorCode& refError)
 	{
 		TCPConnectorIOErrorOperation* pOperation = new TCPConnectorIOErrorOperation();
-		pOperation->m_oError = refError;
-		m_oError = refError;
+		pOperation->m_oError                     = refError;
+		m_oError                                 = refError;
 		return *pOperation;
 	}
 
@@ -469,8 +469,8 @@ namespace FXNET
 
 			if (0 > dwLen)
 			{
-				int dwError = errno;
-				this->m_bWritable = false;
+				int dwError           = errno;
+				this->m_bWritable     = false;
 
 				if (dwError == EAGAIN)
 					break;
@@ -489,7 +489,7 @@ namespace FXNET
 			GetFxIoModule(this->GetIOModuleIndex())->PushMessageEvent(GetSession()->NewOnSendEvent(dwLen));
 			if (0 == this->GetSession()->GetSendBuff().GetSize()) break;
 		}
-#endif // _WIN32
+#endif  // _WIN32
 
 		return *this;
 	}
@@ -500,7 +500,7 @@ namespace FXNET
 		TCPConnectorIOReadOperation& refIOReadOperation = NewTCPConnectorIOReadOperation(this);
 
 		DWORD dwReadLen = 0;
-		DWORD dwFlags = 0;
+		DWORD dwFlags   = 0;
 
 		m_setOperation.insert(&refIOReadOperation);
 
@@ -536,7 +536,7 @@ namespace FXNET
 		refIOWriteOperation.m_stWsaBuff.len = (unsigned long)refIOWriteOperation.m_strData.size();
 
 		DWORD dwWriteLen = 0;
-		DWORD dwFlags = 0;
+		DWORD dwFlags    = 0;
 
 		if (SOCKET_ERROR == WSASend(NativeSocket(), &refIOWriteOperation.m_stWsaBuff
 			, 1, &dwWriteLen, dwFlags, (OVERLAPPED*)(IOOperationBase*)&refIOWriteOperation, NULL))
@@ -556,7 +556,7 @@ namespace FXNET
 		return *this;
 	}
 
-#endif // _WIN32
+#endif  // _WIN32
 
 	void CTcpConnector::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	{
@@ -586,7 +586,7 @@ namespace FXNET
 
 #ifdef _WIN32
 		this->PostRecv(pOStream);
-#endif // _WIN32
+#endif  // _WIN32
 
 	}
 
@@ -604,13 +604,13 @@ namespace FXNET
 		if (SOCKET_ERROR == ioctlsocket(this->NativeSocket(), FIONBIO, (unsigned long*)&ul))
 #else
 		if (fcntl(this->NativeSocket(), F_SETFL, fcntl(this->NativeSocket(), F_GETFL) | O_NONBLOCK))
-#endif //_WIN32
+#endif  //_WIN32
 		{
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
-#else // _WIN32
+#else  // _WIN32
 			int dwError = errno;
-#endif // _WIN32
+#endif  // _WIN32
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
@@ -639,7 +639,7 @@ namespace FXNET
 
 		// linger
 		linger l;
-		l.l_onoff = 0;
+		l.l_onoff  = 0;
 		l.l_linger = 0;
 		setsockopt(this->NativeSocket(), SOL_SOCKET, SO_LINGER, (const char*)&l, sizeof(l));
 

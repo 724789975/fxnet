@@ -19,36 +19,36 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <execinfo.h>
-#endif // _WIN32
+#endif  // _WIN32
 
 namespace FXNET
 {
-	class FxThreadHandler : public IFxThreadHandler
+	class FxThreadHandler: public IFxThreadHandler
 	{
-	public:
+	public: 
 		FxThreadHandler(IFxThread* pThread, bool bNeedWaitfor)
 		{
-			this->m_dwThreadId = 0;
-			this->m_bIsStop = true;
+			this->m_dwThreadId   = 0;
+			this->m_bIsStop      = true;
 			this->m_bNeedWaitfor = bNeedWaitfor;
-			this->m_pThread = pThread;
+			this->m_pThread      = pThread;
 #ifdef _WIN32
 			this->m_hHandle = INVALID_HANDLE_VALUE;
-#endif // _WIN32
+#endif  // _WIN32
 		}
 
 		virtual ~FxThreadHandler()
 		{
 #ifdef _WIN32
 			if (m_hHandle != INVALID_HANDLE_VALUE)
-#endif // _WIN32
+#endif  // _WIN32
 			{
 				unsigned int dwErrCode = 0;
 				this->Kill(dwErrCode);
 			}
 		}
 
-	public:
+	public: 
 		inline virtual void Stop(void)
 		{
 			if (NULL != this->m_pThread)
@@ -75,7 +75,7 @@ namespace FXNET
 #else
 			pthread_cancel(this->m_dwThreadId);
 			return false;
-#endif // _WIN32
+#endif  // _WIN32
 		}
 
 		inline virtual bool WaitFor(unsigned int dwWaitTime = 0xffffffff)
@@ -101,7 +101,7 @@ namespace FXNET
 #else
 			pthread_join(this->m_dwThreadId, NULL);
 			return true;
-#endif // _WIN32
+#endif  // _WIN32
 			return false;
 		}
 
@@ -132,19 +132,19 @@ namespace FXNET
 			{
 				return false;
 			}
-#endif // _WIN32
+#endif  // _WIN32
 			return true;
 		}
 
-	private:
+	private: 
 		static unsigned int
 #ifdef _WIN32
 			__stdcall
-#endif // _WIN32
+#endif  // _WIN32
 			__StaticThreadFunc(void* arg)
 		{
 			FxThreadHandler* pThreadCtrl = (FxThreadHandler*)arg;
-			pThreadCtrl->m_bIsStop = false;
+			pThreadCtrl->m_bIsStop       = false;
 
 #ifdef _WIN32
 #else
@@ -167,7 +167,7 @@ namespace FXNET
 			{
 				pthread_detach(pthread_self());
 			}
-#endif // _WIN32
+#endif  // _WIN32
 			pThreadCtrl->m_pThread->ThrdFunc();
 
 #ifdef _WIN32
@@ -177,25 +177,25 @@ namespace FXNET
 				pThreadCtrl->m_hHandle = INVALID_HANDLE_VALUE;
 				pThreadCtrl->m_bIsStop = true;
 			}
-#endif // _WIN32
+#endif  // _WIN32
 			return 0;
 		}
 
-	protected:
+	protected: 
 
 		bool m_bNeedWaitfor;
 #ifdef _WIN32
 		unsigned int m_dwThreadId;
 #else
 		pthread_t m_dwThreadId;
-#endif // _WIN32
+#endif  // _WIN32
 		IFxThread* m_pThread;
 	};
 
 	bool FxCreateThreadHandler(IFxThread* poThread, bool bNeedWaitfor, IFxThreadHandler*& refpIFxThreadHandler)
 	{
 		FxThreadHandler* pThreadCtrl = new FxThreadHandler(poThread, bNeedWaitfor);
-		refpIFxThreadHandler = pThreadCtrl;
+		refpIFxThreadHandler         = pThreadCtrl;
 		if (NULL == pThreadCtrl)
 		{
 			return false;

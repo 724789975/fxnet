@@ -99,9 +99,9 @@ namespace FXNET
 	 * 
 	 * udp listen 事件 投递到io线程执行
 	 */
-	class UDPListen : public IOEventBase
+	class UDPListen: public IOEventBase
 	{
-	public:
+	public: 
 		UDPListen(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, SessionMaker* pSessionMaker)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
@@ -126,9 +126,9 @@ namespace FXNET
 	 * 
 	 * udp connect事件 投递到io线程执行
 	 */
-	class UDPConnect : public IOEventBase
+	class UDPConnect: public IOEventBase
 	{
-	public:
+	public: 
 		UDPConnect(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, ISession* pSession)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
@@ -154,9 +154,9 @@ namespace FXNET
 	 * 
 	 * tcp listen事件 投递到io线程执行
 	 */
-	class TCPListen : public IOEventBase
+	class TCPListen: public IOEventBase
 	{
-	public:
+	public: 
 		TCPListen(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, SessionMaker* pSessionMaker)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
@@ -181,9 +181,9 @@ namespace FXNET
 	 * 
 	 * tcp connect 事件 投递到io线程执行
 	 */
-	class TCPConnect : public IOEventBase
+	class TCPConnect: public IOEventBase
 	{
-	public:
+	public: 
 		TCPConnect(const char* szIp, unsigned short wPort, unsigned int dwIoModuleIndex, ISession* pSession)
 			: m_szIp(szIp)
 			, m_wPort(wPort)
@@ -209,4 +209,4 @@ namespace FXNET
 };
 
 
-#endif //!__FXNET_INTERFACE_H__
+#endif  //!__FXNET_INTERFACE_H__

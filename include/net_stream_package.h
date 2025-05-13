@@ -5,7 +5,7 @@
 #include <Winsock2.h>
 #else
 #include <arpa/inet.h>
-#endif // _WIN32
+#endif  // _WIN32
 
 #include <string>
 #include <string.h>
@@ -16,7 +16,7 @@ namespace FXNET
 	// read write 不能同时使用
 	class CNetStreamPackage
 	{
-	public:
+	public: 
 		CNetStreamPackage(const char *pData, unsigned int dwLen)
 			: m_strData(pData, dwLen)
 		{
@@ -115,7 +115,7 @@ namespace FXNET
 				unsigned short wByte;
 				unsigned char ucByte[2];
 			};
-			static const short wByte = 0x0102;
+			static const short wByte           = 0x0102;
 			static const ByteOrder &oByteOrder = (ByteOrder &)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
@@ -138,7 +138,7 @@ namespace FXNET
 				unsigned short wByte;
 				unsigned char ucByte[2];
 			};
-			static const short wByte = 0x0102;
+			static const short wByte           = 0x0102;
 			static const ByteOrder &oByteOrder = (ByteOrder &)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
@@ -249,7 +249,7 @@ namespace FXNET
 				unsigned short wByte;
 				unsigned char ucByte[2];
 			};
-			static const short wByte = 0x0102;
+			static const short wByte           = 0x0102;
 			static const ByteOrder &oByteOrder = (ByteOrder &)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
@@ -266,7 +266,7 @@ namespace FXNET
 				unsigned short wByte;
 				unsigned char ucByte[2];
 			};
-			static const short wByte = 0x0102;
+			static const short wByte           = 0x0102;
 			static const ByteOrder &oByteOrder = (ByteOrder &)wByte;
 			if (oByteOrder.ucByte[0] != 0x01)
 			{
@@ -294,9 +294,9 @@ namespace FXNET
 			WriteData(pData, dwLen);
 		}
 
-	private:
+	private: 
 		std::string m_strData;
 	};
 };
 
-#endif //	__NetStreamPackage_H__
+#endif  //	__NetStreamPackage_H__

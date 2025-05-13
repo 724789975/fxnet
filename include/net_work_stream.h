@@ -6,7 +6,7 @@
 
 class INetWorkStream
 {
-public:
+public: 
 	INetWorkStream();
 	virtual ~INetWorkStream();
 	unsigned char *GetData() { return m_btData; }
@@ -20,20 +20,20 @@ public:
 	virtual void PushData(const FXNET::CNetStreamPackage& refPackage) = 0;
 	virtual bool CheckPackage();
 
-protected:
+protected: 
 	void Realloc(unsigned int dwLen);
 
-protected:
+protected: 
 	unsigned char *m_btData;
 	unsigned int m_dwUseLen;
 	unsigned int m_dwDataLen;
 
-private:
+private: 
 };
 
-class TextWorkStream : public INetWorkStream
+class TextWorkStream: public INetWorkStream
 {
-public:
+public: 
 	enum {HEADER_LENGTH = sizeof(unsigned int)};
 	TextWorkStream() {}
 
@@ -45,15 +45,15 @@ protected:
 private:
 };
 
-class WSWorkStream : public INetWorkStream
+class WSWorkStream: public INetWorkStream
 {
-public:
+public: 
 	class WSHeaderCheck
 	{
-	public:
+	public: 
 		virtual bool operator ()() = 0;
 	};
-	WSWorkStream(WSHeaderCheck& oHeader) : m_oHeader(oHeader) {}
+	WSWorkStream(WSHeaderCheck& oHeader): m_oHeader(oHeader) {}
 
 	virtual void PopData(FXNET::CNetStreamPackage& refPackage);
 	virtual void PushData(const FXNET::CNetStreamPackage& refPackage);
@@ -64,4 +64,4 @@ private:
 	WSHeaderCheck& m_oHeader;
 };
 
-#endif // !__NET_WORK_STREAM_H__
+#endif  // !__NET_WORK_STREAM_H__

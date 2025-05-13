@@ -5,23 +5,23 @@ namespace FXNET
 {
 	class CCasLock
 	{
-	public:
+	public: 
 		CCasLock();
 		CCasLock& Lock();
 		CCasLock& Unlock();
-	private:
+	private: 
 		unsigned long m_lLock;
 	};
 
 	class CLockImp
 	{
-	public:
+	public: 
 		CLockImp(CCasLock& refLock);
 		~CLockImp();
-	private:
+	private: 
 		CCasLock& m_refLock;
 	};
 
 };
 
-#endif // !__CAS_LOCK_H__
+#endif  // !__CAS_LOCK_H__

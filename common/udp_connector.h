@@ -9,66 +9,66 @@
 #ifndef _WIN32
 #include<netinet/in.h>
 #include<arpa/inet.h>
-#endif //_WIN32
+#endif  //_WIN32
 
 #include <set>
 
 namespace FXNET
 {
-	class CUdpConnector : public CConnectorSocket
+	class CUdpConnector: public CConnectorSocket
 	{
-	public:
+	public: 
 		friend class UDPConnectorIOReadOperation;
 
-		class UDPOnRecvOperator : public OnRecvOperator
+		class UDPOnRecvOperator: public OnRecvOperator
 		{
-		public:
+		public: 
 			UDPOnRecvOperator(CUdpConnector& refUdpConnector);
 			virtual UDPOnRecvOperator& operator() (char* szBuff, unsigned short wSize, ErrorCode& refError, std::ostream* pOStream);
-		private:
+		private: 
 			CUdpConnector& m_refUdpConnector;
 		};
 
-		class UDPOnConnectedOperator : public OnConnectedOperator
+		class UDPOnConnectedOperator: public OnConnectedOperator
 		{
-		public:
+		public: 
 			UDPOnConnectedOperator(CUdpConnector& refUdpConnector);
 			virtual UDPOnConnectedOperator& operator() (ErrorCode& refError, std::ostream* pOStream);
-		private:
+		private: 
 			CUdpConnector& m_refUdpConnector;
 		};
 
-		class UDPRecvOperator : public RecvOperator
+		class UDPRecvOperator: public RecvOperator
 		{
-		public:
+		public: 
 			UDPRecvOperator(CUdpConnector& refUdpConnector);
 			virtual UDPRecvOperator& operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, ErrorCode& refError, std::ostream* pOStream);
 
 #ifdef _WIN32
 			UDPRecvOperator& SetIOReadOperation(UDPConnectorIOReadOperation* pReadOperation);
-#endif // _WIN32
+#endif  // _WIN32
 
 			CUdpConnector& m_refUdpConnector;
 #ifdef _WIN32
 			UDPConnectorIOReadOperation* m_pReadOperation;
-#endif // _WIN32
+#endif  // _WIN32
 		};
 
-		class UDPSendOperator : public SendOperator
+		class UDPSendOperator: public SendOperator
 		{
-		public:
+		public: 
 			UDPSendOperator(CUdpConnector& refUdpConnector);
 			virtual UDPSendOperator& operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, ErrorCode& refError, std::ostream* pOStream);
-		private:
+		private: 
 			CUdpConnector& m_refUdpConnector;
 		};
 
-		class UDPReadStreamOperator : public ReadStreamOperator
+		class UDPReadStreamOperator: public ReadStreamOperator
 		{
-		public:
+		public: 
 			UDPReadStreamOperator(CUdpConnector& refUdpConnector);
 			virtual unsigned int operator() (std::ostream* pOStream);
-		private:
+		private: 
 			CUdpConnector& m_refUdpConnector;
 		};
 
@@ -109,7 +109,7 @@ namespace FXNET
 		 */
 		CUdpConnector& PostRecv(std::ostream* pOStream);
 		CUdpConnector& PostSend(char* pBuff, unsigned short wLen, ErrorCode& refError, std::ostream* pOStream);
-#endif // _WIN32
+#endif  // _WIN32
 
 		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);
@@ -128,9 +128,9 @@ namespace FXNET
 
 #ifdef _WIN32
 		std::set<IOOperationBase*>		m_setOperation;
-#endif // _WIN32
+#endif  // _WIN32
 
 	};
 };
 
-#endif // !__UDP_CONNECTOR_H__
+#endif  // !__UDP_CONNECTOR_H__

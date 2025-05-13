@@ -12,7 +12,7 @@
 #ifndef _WIN32
 #include<netinet/in.h>
 #include<arpa/inet.h>
-#endif //_WIN32
+#endif  //_WIN32
 
 
 namespace FXNET
@@ -25,9 +25,9 @@ namespace FXNET
 	 * 这样windows下就会带来副作用 接受连接的效率会变低
 	 * 除非不使用重叠io
 	 */
-	class CTcpListener : public CListenSocket
+	class CTcpListener: public CListenSocket
 	{
-	public:
+	public: 
 		friend class TCPListenIOAcceptOperation;
 		CTcpListener(SessionMaker* pMaker);
 		virtual const char* Name()const { return "CTcpListener"; }
@@ -46,7 +46,7 @@ namespace FXNET
 	protected:
 	private:
 		static const unsigned int UDP_ACCEPT_HASH_SIZE = 64;
-		static const unsigned int UDP_ACCEPT_MAX_SIZE = 2048;
+		static const unsigned int UDP_ACCEPT_MAX_SIZE  = 2048;
 
 		CTcpListener& OnClientConnected(NativeSocketType hSock, const sockaddr_in& address, std::ostream* pOStream);
 
@@ -55,12 +55,12 @@ namespace FXNET
 		int								InitAcceptEx(std::ostream* pOStream);
 
 #else
-#endif // _WIN32
+#endif  // _WIN32
 
 #ifdef _WIN32
 		LPFN_ACCEPTEX						m_lpfnAcceptEx;
 		LPFN_GETACCEPTEXSOCKADDRS			m_lpfnGetAcceptExSockaddrs;
-#endif // _WIN32
+#endif  // _WIN32
 		SessionMaker* m_pSessionMaker;
 
 	};
@@ -68,5 +68,5 @@ namespace FXNET
 
 };
 
-#endif // !__TCP_LISTENER_H__
+#endif  // !__TCP_LISTENER_H__
 

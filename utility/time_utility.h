@@ -6,13 +6,13 @@
 #include <time.h>
 #else
 #include <sys/time.h>
-#endif	//!_WIN32
+#endif  //!_WIN32
 
 namespace UTILITY
 {
 	class TimeUtility
 	{
-	public:
+	public: 
 		static unsigned long long GetTimeUS( void )
 		{
 #ifdef _WIN32
@@ -22,7 +22,7 @@ namespace UTILITY
 			LARGE_INTEGER li;
 			unsigned long long qwTime = 0;
 			GetSystemTimeAsFileTime(&ft);
-			li.LowPart = ft.dwLowDateTime;
+			li.LowPart  = ft.dwLowDateTime;
 			li.HighPart = ft.dwHighDateTime;
 			// 从1970年1月1日0:0:0:000到现在的微秒数(UTC时间)
 			qwTime = (li.QuadPart - EPOCHFILETIME) /10;
@@ -47,4 +47,4 @@ namespace UTILITY
 	
 };
 
-#endif	//!__GetTime_H__
+#endif  //!__GetTime_H__

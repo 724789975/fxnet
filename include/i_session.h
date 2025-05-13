@@ -6,7 +6,7 @@
 
 #ifdef _WIN32
 #include <WinSock2.h>
-#endif // _WIN32
+#endif  // _WIN32
 
 #include <string>
 
@@ -27,12 +27,12 @@ namespace FXNET
 	 */
 	class ISession
 	{
-	public:
+	public: 
 #ifdef _WIN32
 		typedef SOCKET NativeSocketType;
-#else //_WIN32
+#else  //_WIN32
 		typedef int NativeSocketType;
-#endif //_WIN32
+#endif  //_WIN32
 
 		virtual ~ISession() {}
 		void SetSock(CConnectorSocket* opSock) { m_opSock = opSock; }
@@ -127,14 +127,14 @@ namespace FXNET
 		virtual MessageEventBase* NewCloseEvent() = 0;
 
 		virtual MessageEventBase* NewOnSendEvent(int dwLen) = 0;
-	protected:
+	protected: 
 		CConnectorSocket* m_opSock;
-	private:
+	private: 
 	};
 
 	class SessionMaker
 	{
-	public:
+	public: 
 		virtual ~SessionMaker() {}
 
 		virtual ISession* operator()() = 0;
@@ -143,4 +143,4 @@ namespace FXNET
 
 }
 
-#endif //!__ISESSION_H__
+#endif  //!__ISESSION_H__

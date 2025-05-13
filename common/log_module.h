@@ -8,13 +8,13 @@
 #include <sstream>
 #include <vector>
 
-/**
+  /**
  * @brief
  */
 class LogModule: public FXNET::IFxThread, public FXNET::TSingleton<LogModule>
 {
-public:
-	LogModule() : m_bStop(false) {}
+public     : 
+LogModule(): m_bStop(false) {}
 
 	/**
 	 * @brief
@@ -38,9 +38,9 @@ public:
 	void					PushLog(std::stringstream*& refpStream);
 	std::stringstream*		GetStream();
 
-private:
+private: 
 
-protected:
+protected: 
 
 	/**
 	 * @brief
@@ -53,4 +53,4 @@ protected:
 	std::vector<std::stringstream*>	m_vecLogStream;
 };
 
-#endif	//!__LOG_MODULE_H__
+#endif  //!__LOG_MODULE_H__

@@ -6,7 +6,7 @@ namespace FXNET
 	template<typename T, unsigned int Size>
 	class CQueue
 	{
-	public:
+	public: 
 		enum { size = Size };
 		CQueue();
 		~CQueue();
@@ -17,8 +17,7 @@ namespace FXNET
 
 		void Free(T* pT);
 
-	protected:
-	private:
+	private: 
 
 		struct Element
 		{
@@ -47,11 +46,11 @@ namespace FXNET
 	{
 		for (unsigned int i = 0; i < Size; ++i)
 		{
-			this->m_oElements[i].m_pNext = this->m_oElements + i;
+			this->m_oElements[i].m_pNext      = this->m_oElements + i;
 			this->m_oElements[i].m_dwUseCount = 0;
 		}
 		this->m_oElements[Size - 1].m_pNext = NULL;
-		this->m_pFreeNode = this->m_oElements;
+		this->m_pFreeNode                   = this->m_oElements;
 
 		return *this;
 	}
@@ -74,7 +73,7 @@ namespace FXNET
 			throw;
 		}
 		++pElement->m_dwUseCount;
-#endif // DEBUG
+#endif  // DEBUG
 		return &pElement->m_oElement;
 	}
 
@@ -88,10 +87,10 @@ namespace FXNET
 			throw;
 		}
 		--pElement->m_dwUseCount;
-#endif // DEBUG
+#endif  // DEBUG
 		pElement->m_pNext = this->m_pFreeNode;
 		this->m_pFreeNode = pElement;
 	}
 };
 
-#endif // !__QUEUE_H__
+#endif  // !__QUEUE_H__

@@ -7,15 +7,15 @@
 #ifdef _WIN32
 #ifndef macro_closesocket
 #define macro_closesocket closesocket
-#endif //macro_closesocket
+#endif  //macro_closesocket
 #else
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #ifndef macro_closesocket
 #define macro_closesocket close
-#endif //macro_closesocket
-#endif // _WIN32
+#endif  //macro_closesocket
+#endif  // _WIN32
 
 #include <assert.h>
 
@@ -23,9 +23,9 @@
 
 namespace FXNET
 {
-	class UDPConnectorIOReadOperation : public IOOperationBase
+	class UDPConnectorIOReadOperation: public IOOperationBase
 	{
-	public:
+	public: 
 		friend class CUdpConnector;
 		virtual UDPConnectorIOReadOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
@@ -51,8 +51,8 @@ namespace FXNET
 			bool bReadable = true;
 #else
 			refConnector.m_bReadable = true;
-			bool& bReadable = refConnector.m_bReadable;
-#endif // _WIN32
+			bool& bReadable          = refConnector.m_bReadable;
+#endif  // _WIN32
 
 			refConnector.m_oBuffContral.ReceiveMessages(GetFxIoModule(refConnector.GetIOModuleIndex())->FxGetCurrentTime(), bReadable, refError, pOStream);
 			if (refError)
@@ -77,7 +77,7 @@ namespace FXNET
 		WSABUF m_stWsaBuff;
 		sockaddr_in m_stRemoteAddr;
 		unsigned int m_dwLen;
-#endif // _WIN32
+#endif  // _WIN32
 		char m_szRecvBuff[UDP_WINDOW_BUFF_SIZE];
 	};
 
@@ -89,14 +89,14 @@ namespace FXNET
 		pOperation->m_stWsaBuff.len = sizeof(pOperation->m_szRecvBuff);
 		memset(pOperation->m_stWsaBuff.buf, 0, pOperation->m_stWsaBuff.len);
 		//m_setIOOperations.insert(pOperation);
-#endif // _WIN32
+#endif  // _WIN32
 
 		return *pOperation;
 	}
 
-	class UDPConnectorIOWriteOperation : public IOOperationBase
+	class UDPConnectorIOWriteOperation: public IOOperationBase
 	{
-	public:
+	public: 
 		friend class CUdpConnector;
 		virtual UDPConnectorIOWriteOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
@@ -109,7 +109,7 @@ namespace FXNET
 			refConnector.m_setOperation.erase(this);
 #else
 			refConnector.m_bWritable = true;
-#endif // _WIN32
+#endif  // _WIN32
 
 			if (refSocketBase.GetError())
 			{
@@ -131,7 +131,7 @@ namespace FXNET
 #ifdef _WIN32
 		WSABUF m_stWsaBuff;
 		sockaddr_in m_stRemoteAddr;
-#endif // _WIN32
+#endif  // _WIN32
 	};
 
 	UDPConnectorIOWriteOperation& NewUDPConnectorWriteOperation()
@@ -140,9 +140,9 @@ namespace FXNET
 		return *pOperation;
 	}
 
-	class UDPConnectorIOErrorOperation : public IOOperationBase
+	class UDPConnectorIOErrorOperation: public IOOperationBase
 	{
-	public:
+	public: 
 		friend class CUdpConnector;
 		virtual UDPConnectorIOErrorOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
@@ -218,7 +218,7 @@ namespace FXNET
 		: m_refUdpConnector(refUdpConnector)
 #ifdef _WIN32
 		, m_pReadOperation(NULL)
-#endif // _WIN32
+#endif  // _WIN32
 	{
 	}
 
@@ -258,7 +258,7 @@ namespace FXNET
 			refError(errno, __FILE__ ":" __LINE2STR__(__LINE__));
 			return *this;
 		}
-#endif // _WIN32
+#endif  // _WIN32
 
 		LOG(pOStream, ELOG_LEVEL_DEBUG4) << pBuff + 7
 			<< "\n";
@@ -271,7 +271,7 @@ namespace FXNET
 		this->m_pReadOperation = pReadOperation;
 		return *this;
 	}
-#endif // _WIN32
+#endif  // _WIN32
 
 	CUdpConnector::UDPSendOperator::UDPSendOperator(CUdpConnector& refUdpConnector)
 		: m_refUdpConnector(refUdpConnector)
@@ -297,7 +297,7 @@ namespace FXNET
 			refError(errno, __FILE__ ":" __LINE2STR__(__LINE__));
 			return *this;
 		}
-#endif // _WIN32
+#endif  // _WIN32
 		LOG(pOStream, ELOG_LEVEL_DEBUG4) << szBuff + 7
 			<< "\n";
 		return *this;
@@ -358,7 +358,7 @@ namespace FXNET
 		{
 			delete* it;
 		}
-#endif // _WIN32
+#endif  // _WIN32
 	}
 
 	ErrorCode CUdpConnector::Init(std::ostream* pOStream, int dwState)
@@ -381,7 +381,7 @@ namespace FXNET
 		LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->NativeSocket() << ", error: " << this->m_oError
 #ifndef _WIN32
 			<< ", " << this->m_bReadable << ", " << this->m_bWritable
-#endif // !_WIN32
+#endif  // !_WIN32
 			<< "\n";
 
 		if (this->GetError())
@@ -409,7 +409,7 @@ namespace FXNET
 			, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else
 		NativeSocketType hSock = socket(AF_INET, SOCK_DGRAM, 0);
-#endif // _WIN32
+#endif  // _WIN32
 
 		if (hSock == -1)
 		{
@@ -446,7 +446,7 @@ namespace FXNET
 		{
 			this->PostRecv(pOStream);
 		}
-#endif // _WIN32
+#endif  // _WIN32
 
 		return *this;
 	}
@@ -471,8 +471,8 @@ namespace FXNET
 	IOOperationBase& CUdpConnector::NewErrorOperation(const ErrorCode& refError)
 	{
 		UDPConnectorIOErrorOperation* pOperation = new UDPConnectorIOErrorOperation();
-		pOperation->m_oError = refError;
-		m_oError = refError;
+		pOperation->m_oError                     = refError;
+		m_oError                                 = refError;
 		return *pOperation;
 	}
 
@@ -488,7 +488,7 @@ namespace FXNET
 		UDPConnectorIOReadOperation& refIOReadOperation = NewUDPConnectorIOReadOperation();
 
 		DWORD dwReadLen = 0;
-		DWORD dwFlags = 0;
+		DWORD dwFlags   = 0;
 
 		m_setOperation.insert(&refIOReadOperation);
 		if (SOCKET_ERROR == WSARecv(NativeSocket(), &refIOReadOperation.m_stWsaBuff
@@ -508,11 +508,11 @@ namespace FXNET
 	CUdpConnector& CUdpConnector::PostSend(char* pBuff, unsigned short wLen, ErrorCode& refError, std::ostream* pOStream)
 	{
 		UDPConnectorIOWriteOperation& refIOWriteOperation = NewUDPConnectorWriteOperation();
-		refIOWriteOperation.m_stWsaBuff.buf = pBuff;
-		refIOWriteOperation.m_stWsaBuff.len = wLen;
+		refIOWriteOperation.m_stWsaBuff.buf               = pBuff;
+		refIOWriteOperation.m_stWsaBuff.len               = wLen;
 
 		DWORD dwWriteLen = 0;
-		DWORD dwFlags = 0;
+		DWORD dwFlags    = 0;
 
 		m_setOperation.insert(&refIOWriteOperation);
 		if (SOCKET_ERROR == WSASend(this->NativeSocket(), &refIOWriteOperation.m_stWsaBuff
@@ -533,7 +533,7 @@ namespace FXNET
 		return *this;
 	}
 
-#endif // _WIN32
+#endif  // _WIN32
 
 	void CUdpConnector::OnError(const ErrorCode& refError, std::ostream* pOStream)
 	{
@@ -577,13 +577,13 @@ namespace FXNET
 		if (SOCKET_ERROR == ioctlsocket(this->NativeSocket(), FIONBIO, (unsigned long*)&ul))
 #else
 		if (fcntl(this->NativeSocket(), F_SETFL, fcntl(this->NativeSocket(), F_GETFL) | O_NONBLOCK))
-#endif //_WIN32
+#endif  //_WIN32
 		{
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
-#else // _WIN32
+#else  // _WIN32
 			int dwError = errno;
-#endif // _WIN32
+#endif  // _WIN32
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
@@ -612,9 +612,9 @@ namespace FXNET
 		{
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
-#else // _WIN32
+#else  // _WIN32
 			int dwError = errno;
-#endif // _WIN32
+#endif  // _WIN32
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
@@ -631,14 +631,14 @@ namespace FXNET
 		setsockopt(this->NativeSocket(), SOL_SOCKET, SO_RCVBUF, (char*)&buf_size, sizeof(buf_size));
 		setsockopt(this->NativeSocket(), SOL_SOCKET, SO_SNDBUF, (char*)&buf_size, sizeof(buf_size));
 
-		// connect
+		  // connect
 		if (connect(this->NativeSocket(), (sockaddr*)&address, sizeof(address)))
 		{
 #ifdef _WIN32
 			int dwError = WSAGetLastError();
-#else // _WIN32
+#else  // _WIN32
 			int dwError = errno;
-#endif // _WIN32
+#endif  // _WIN32
 			macro_closesocket(this->NativeSocket());
 			this->NativeSocket() = (NativeSocketType)InvalidNativeHandle();
 
@@ -655,7 +655,7 @@ namespace FXNET
 			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), this, pOStream)
 #else
 			GetFxIoModule(this->GetIOModuleIndex())->RegisterIO(this->NativeSocket(), EPOLLET | EPOLLIN | EPOLLOUT, this, pOStream)
-#endif // _WIN32
+#endif  // _WIN32
 			)
 		{
 			macro_closesocket(this->NativeSocket());

@@ -15,4 +15,4 @@
  */
 #define UDP_SEND_FREQUENCY 0.005
 
-#endif	//! __SLIDING_WINDOW_DEF_H__
+#endif  //! __SLIDING_WINDOW_DEF_H__

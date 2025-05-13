@@ -11,7 +11,7 @@
 #else
 #include<netinet/in.h>
 #include<arpa/inet.h>
-#endif // _WIN32
+#endif  // _WIN32
 
 #include <ostream>
 #include <iostream>
@@ -19,7 +19,7 @@
 
 #ifdef _WIN32
 #pragma comment(lib,"ws2_32.lib")
-#endif //_WIN32
+#endif  //_WIN32
 
 namespace FXNET
 {
@@ -28,17 +28,17 @@ namespace FXNET
 
 	class ISocketBase
 	{
-	public:
+	public: 
 #ifdef _WIN32
 		typedef HANDLE NativeHandleType;
 		typedef SOCKET NativeSocketType;
-#else //_WIN32
+#else  //_WIN32
 		typedef int NativeHandleType;
 		typedef int NativeSocketType;
-#endif //_WIN32
+#endif  //_WIN32
 
 		ISocketBase()
-			: m_hNativeHandle((NativeHandleType)-1)
+			:  m_hNativeHandle((NativeHandleType)-1)
 			, m_oError(0, "")
 #ifndef _WIN32
 			, m_bReadable(false)
@@ -114,7 +114,7 @@ namespace FXNET
 		 * @param pOStream 
 		 */
 		virtual void OnClose(std::ostream* pOStream) = 0;
-	protected:
+	protected: 
 		NativeHandleType m_hNativeHandle;
 		sockaddr_in m_stLocalAddr;
 		ErrorCode m_oError;
@@ -125,22 +125,22 @@ namespace FXNET
 		//linux下et模式 需要表示是否刻度可写
 		bool m_bReadable;
 		bool m_bWritable;
-#endif // _WIN32
-	private:
+#endif  // _WIN32
+	private: 
 	};
 
 	class IOOperationBase
 #ifdef _WIN32
 		: public OVERLAPPED
-#endif // _WIN32
+#endif  // _WIN32
 	{
-	public:
+	public: 
 		IOOperationBase()
 			: m_oError(0, "")
 		{
 #ifdef _WIN32
 			memset((OVERLAPPED*)this, 0, sizeof(OVERLAPPED));
-#endif // _WIN32
+#endif  // _WIN32
 		}
 		virtual ~IOOperationBase() {}
 		virtual IOOperationBase& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream) = 0;
@@ -151,6 +151,6 @@ namespace FXNET
 	};
 };
 
-#endif // !__SOCKET_BASE_H__
+#endif  // !__SOCKET_BASE_H__
 
 

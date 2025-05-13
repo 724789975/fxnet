@@ -2,7 +2,7 @@
 
 namespace base64
 {
-	static const std::string base64_chars =
+	static const std::string base64_chars = 
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		"abcdefghijklmnopqrstuvwxyz"
 		"0123456789+/";
@@ -28,8 +28,8 @@ namespace base64
 				char_array_4[3] = char_array_3[2] & 0x3f;
 
 				for (i = 0; (i < 4); i++)
-					ret += base64_chars[char_array_4[i]];
-				i = 0;
+				ret += base64_chars[char_array_4[i]];
+				i    = 0;
 			}
 		}
 
@@ -57,9 +57,9 @@ namespace base64
 
 	inline std::string base64_decode(std::string const& encoded_string) {
 		size_t in_len = encoded_string.size();
-		int i = 0;
-		int j = 0;
-		int in_ = 0;
+		int    i      = 0;
+		int    j      = 0;
+		int    in_    = 0;
 		unsigned char char_array_4[4], char_array_3[3];
 		std::string ret;
 
@@ -74,8 +74,8 @@ namespace base64
 				char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
 
 				for (i = 0; (i < 3); i++)
-					ret += char_array_3[i];
-				i = 0;
+				ret += char_array_3[i];
+				i    = 0;
 			}
 		}
 

@@ -15,7 +15,7 @@
 #ifdef _WIN32
 #else
 #include <sys/epoll.h>
-#endif // _WIN32
+#endif  // _WIN32
 
 namespace FXNET
 {
@@ -23,9 +23,9 @@ namespace FXNET
 	 * @brief 
 	 * io线程 只用一个就够了 10000个连接问题不大
 	 */
-	class FxIoModule : public IFxThread
+	class FxIoModule: public IFxThread
 	{
-	public:
+	public: 
 		FxIoModule();
 		virtual ~FxIoModule();
 
@@ -101,7 +101,7 @@ namespace FXNET
 		int						GetHandle();
 		int						WaitEvents(int nMilliSecond);
 		epoll_event*			GetEvent(int nIndex);
-#endif // _WIN32
+#endif  // _WIN32
 
 		/**
 		 * @brief 
@@ -121,10 +121,10 @@ namespace FXNET
 		 * @return FxIoModule& 
 		 */
 		FxIoModule&				PostEvent(IOEventBase* pEvent);
-	private:
+	private: 
 		bool					DealData(std::ostream* pOStream);
 
-	protected:
+	protected: 
 		/**
 		 * @brief 
 		 * 
@@ -139,7 +139,7 @@ namespace FXNET
 		int						m_hEpoll;
 		int						m_hEvent;
 		epoll_event* m_pEvents;
-#endif // _WIN32
+#endif  // _WIN32
 
 		/**
 		 * @brief 
@@ -164,7 +164,7 @@ namespace FXNET
 #ifndef _WIN32
 		CCasLock				m_lockEventLock;
 		std::vector<IOEventBase*> m_vecIOEvent;
-#endif // _WIN32
+#endif  // _WIN32
 
 		MessageEventQueue*		m_pEventQueue;
 
@@ -177,4 +177,4 @@ namespace FXNET
 };
 
 
-#endif // __IOThread_H__
+#endif  // __IOThread_H__

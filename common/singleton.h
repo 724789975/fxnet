@@ -6,14 +6,14 @@ namespace FXNET
 	template<class T>
 	class TSingleton
 	{
-	public:
+	public: 
 		virtual ~TSingleton() {}
 		static T* const & Instance() { return m_pInstance; }
 		static bool CreateInstance()
 		{
 			if (!m_pInstance)
 			{
-				m_pInstance = new T();
+				m_pInstance         = new T();
 				return m_pInstance != 0;
 			}
 			return false;
@@ -40,10 +40,10 @@ namespace FXNET
 			return false;
 		}
 
-	private:
+	private: 
 		//static volatile T* m_pInstance;
 		static T* m_pInstance;
-	protected:
+	protected: 
 		TSingleton() {}
 	};
 
@@ -53,4 +53,4 @@ namespace FXNET
 
 
 
-#endif // __SINGLETON_H__
+#endif  // __SINGLETON_H__

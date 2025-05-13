@@ -9,7 +9,7 @@ namespace FXNET
 {
 	class MessageEventQueue
 	{
-	public:
+	public: 
 		MessageEventQueue() {}
 		~MessageEventQueue() {}
 
@@ -37,7 +37,7 @@ namespace FXNET
 			this->m_dequeEvents.swap(refDeque);
 		}
 
-	private:
+	private: 
 		std::deque<MessageEventBase*> m_dequeEvents;
 		CCasLock				m_lockEventLock;
 	};
@@ -45,4 +45,4 @@ namespace FXNET
 
 }
 
-#endif // !__MESSAGE_QUEUE_H__
+#endif  // !__MESSAGE_QUEUE_H__

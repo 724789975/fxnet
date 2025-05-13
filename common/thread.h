@@ -7,7 +7,7 @@ namespace FXNET
 {
 	class IFxThread
 	{
-	public:
+	public: 
 		virtual ~IFxThread()
 		{
 		}
@@ -19,7 +19,7 @@ namespace FXNET
 
 	class IFxThreadHandler
 	{
-	public:
+	public: 
 		virtual ~IFxThreadHandler()
 		{
 		}
@@ -46,11 +46,11 @@ namespace FXNET
 		{
 			return m_hHandle;
 		}
-	protected:
-		void* m_hHandle;		// 
+	protected: 
+void* m_hHandle;
 #endif // _WIN32
 
-	protected:
+	protected: 
 		bool m_bIsStop;
 	};
 
@@ -58,4 +58,4 @@ namespace FXNET
 };
 
 
-#endif // !__THREAD_H__
+#endif  // !__THREAD_H__

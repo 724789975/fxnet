@@ -44,7 +44,7 @@ void LogModule::ThrdFunc()
 			Sleep(1);
 #else
 			usleep(1000);
-#endif // _WIN32
+#endif  // _WIN32
 			continue;
 		}
 

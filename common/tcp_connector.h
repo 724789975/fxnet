@@ -9,15 +9,15 @@
 #ifndef _WIN32
 #include<netinet/in.h>
 #include<arpa/inet.h>
-#endif //_WIN32
+#endif  //_WIN32
 
 #include <set>
 
 namespace FXNET
 {
-	class CTcpConnector : public CConnectorSocket
+	class CTcpConnector: public CConnectorSocket
 	{
-	public:
+	public: 
 		friend class TCPConnectorIOReadOperation;
 		friend class TCPConnectorIOWriteOperation;
 		friend class TCPConnectorIOErrorOperation;
@@ -54,7 +54,7 @@ namespace FXNET
 		 */
 		CTcpConnector& PostRecv(std::ostream* pOStream);
 		CTcpConnector& PostSend(ErrorCode& refError, std::ostream* pOStream);
-#endif // _WIN32
+#endif  // _WIN32
 
 		virtual void OnError(const ErrorCode& refError, std::ostream* pOStream);
 		virtual void OnClose(std::ostream* pOStream);
@@ -68,9 +68,9 @@ namespace FXNET
 		bool m_bConnecting;
 #else
 		std::set<IOOperationBase*>		m_setOperation;
-#endif // _WIN32
+#endif  // _WIN32
 
 	};
 };
 
-#endif // !__TCP_CONNECTOR_H__
+#endif  // !__TCP_CONNECTOR_H__

@@ -6,9 +6,9 @@
 
 namespace FXNET
 {
-	class CConnectorSocket : public ISocketBase
+	class CConnectorSocket: public ISocketBase
 	{
-	public:
+	public: 
 		CConnectorSocket(ISession* pSession)
 			: m_pSession(pSession)
 		{}
@@ -35,13 +35,13 @@ namespace FXNET
 		 * @return CConnectorSocket&
 		 */
 		inline CConnectorSocket& SetSession(ISession* poSession) { m_pSession = poSession; return *this; }
-	protected:
+	protected: 
 
 		ISession* m_pSession;
-	private:
+	private: 
 	};
 
 };
 
-#endif // !__CONNECTOR_SOCKET_H__
+#endif  // !__CONNECTOR_SOCKET_H__
 

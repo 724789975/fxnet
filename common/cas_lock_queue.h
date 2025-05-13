@@ -8,7 +8,7 @@ namespace FXNET
 	template<typename T, unsigned int Size>
 	class CCasLockQueue
 	{
-	public:
+	public: 
 		enum { size = Size };
 		CCasLockQueue();
 		~CCasLockQueue();
@@ -19,8 +19,8 @@ namespace FXNET
 
 		void Free(T* pT);
 
-	protected:
-	private:
+	protected: 
+	private  : 
 
 		struct Element
 		{
@@ -51,7 +51,7 @@ namespace FXNET
 	{
 		for (unsigned int i = 0; i < Size; ++i)
 		{
-			this->m_oElements[i].m_pNext = this->m_oElements + i;
+			this->m_oElements[i].m_pNext      = this->m_oElements + i;
 			this->m_oElements[i].m_dwUseCount = 0;
 		}
 		this->m_oElements[Size - 1].m_pNext = NULL;
@@ -83,7 +83,7 @@ namespace FXNET
 			throw;
 		}
 		++pElement->m_dwUseCount;
-#endif // DEBUG
+#endif  // DEBUG
 		return &pElement->m_oElement;
 	}
 
@@ -98,10 +98,10 @@ namespace FXNET
 			throw;
 		}
 		--pElement->m_dwUseCount;
-#endif // DEBUG
+#endif  // DEBUG
 		pElement->m_pNext = this->m_pFreeNode;
 		this->m_pFreeNode = pElement;
 	}
 };
 
-#endif // !__CAS_QUEUE_H__
+#endif  // !__CAS_QUEUE_H__
