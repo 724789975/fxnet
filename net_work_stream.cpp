@@ -159,9 +159,9 @@ void WSWorkStream::PopData(FXNET::CNetStreamPackage& refPackage)
 		unsigned int dwHeaderLength = 0;
 		GetWSMsgLength((char*)this->GetData(), this->GetSize(), qwMsgLength, dwHeaderLength);
 		refPackage.~CNetStreamPackage();
-		new (&refPackage) FXNET::CNetStreamPackage((char*)m_btData + dwHeaderLength, qwMsgLength);
+		new (&refPackage) FXNET::CNetStreamPackage((char*)m_btData + dwHeaderLength, (unsigned int)qwMsgLength);
 	
-		this->INetWorkStream::PopData(dwHeaderLength + qwMsgLength);
+		this->INetWorkStream::PopData(dwHeaderLength + (unsigned int)qwMsgLength);
 		return;
 	}
 
