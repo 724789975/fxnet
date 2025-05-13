@@ -38,7 +38,7 @@ namespace FXNET
 #endif  //_WIN32
 
 		ISocketBase()
-			:  m_hNativeHandle((NativeHandleType)-1)
+			: m_hNativeHandle((NativeHandleType)-1)
 			, m_oError(0, "")
 #ifndef _WIN32
 			, m_bReadable(false)
