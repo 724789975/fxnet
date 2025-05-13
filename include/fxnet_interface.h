@@ -13,8 +13,8 @@ namespace FXNET
 {
 	/**
 	 * @brief 
-	 * 
 	 * 启动io线程
+	 * @param pQueue 
 	 */
 	void StartIOModule(MessageEventQueue* pQueue);
 
@@ -22,6 +22,7 @@ namespace FXNET
 	 * @brief 
 	 * 
 	 * 启动日志线程
+	 * @return void
 	 */
 	void StartLogModule();
 

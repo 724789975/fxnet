@@ -42,18 +42,20 @@ namespace FXNET
 		 * @brief 
 		 * 
 		 * 将要发送的数据投递到io线程 然后放入缓存中
-		 * @param szData 
-		 * @param dwLen 
+		 * @param szData 要发送的数据
+		 * @param dwLen 要发送的数据长度
+		 * @param pOStream 日志输出流
 		 * @return ISession& 返回自身
 		 */
 		virtual ISession& Send(const char* szData, unsigned int dwLen, std::ostream* pOStream) = 0;
+		
 		/**
 		 * @brief 
 		 * 
 		 * 当接收到数据时的处理
-		 * @param szData 
-		 * @param dwLen 
-		 * @return ISession& 
+		 * @param refPackage 接受到的包
+		 * @param pOStream 日志输出流
+		 * @return ISession& 返回自身
 		 */
 		virtual ISession& OnRecv(CNetStreamPackage& refPackage, std::ostream* pOStream) = 0;
 

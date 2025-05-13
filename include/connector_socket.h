@@ -22,12 +22,14 @@ namespace FXNET
 		 * @return int 
 		 */
 		virtual CConnectorSocket& SendMessage(ErrorCode& refError, std::ostream* pOStream) = 0;
+
 		/**
 		 * @brief Get the Session object
 		 * 
 		 * @return ISession* const& 
 		 */
 		inline ISession * const & GetSession() { return m_pSession; }
+		
 		/**
 		 * @brief Set the Session object
 		 * 

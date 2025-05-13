@@ -16,20 +16,35 @@ class CWSSession: public FXNET::ISession
 	};
 
 public:
-class WSMessageEvent: public MessageRecvEventBase
+
+	/**
+	 * @brief 
+	 * 消息接收事件
+	 */
+	class SessionRecvEvent: public MessageRecvEventBase
 	{
 	public: 
-		WSMessageEvent(ISession* pSession);
+		SessionRecvEvent(ISession* pSession);
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
-	class ConnectedEvent: public MessageEventBase
+
+	/**
+	 * @brief 
+	 * 连接完成事件
+	 */
+	class SessionConnectedEvent: public MessageEventBase
 	{
 	public: 
-		ConnectedEvent(ISession* pSession);
+		SessionConnectedEvent(ISession* pSession);
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
+
+	/**
+	 * @brief 
+	 * 错误事件
+	 */
 	class SessionErrorEvent: public MessageEventBase
 	{
 	public: 
@@ -38,6 +53,11 @@ class WSMessageEvent: public MessageRecvEventBase
 		ErrorCode m_oError;
 		ISession* m_pSession;
 	};
+
+	/**
+	 * @brief 
+	 * 连接关闭事件
+	 */
 	class CloseSessionEvent: public MessageEventBase
 	{
 	public: 
@@ -45,6 +65,11 @@ class WSMessageEvent: public MessageRecvEventBase
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
+
+	/**
+	 * @brief 
+	 * 发送完成事件
+	 */
 	class SessionOnSendEvent: public MessageEventBase
 	{
 	public: 
@@ -94,7 +119,7 @@ class WSMessageEvent: public MessageRecvEventBase
 	virtual WSWorkStream& GetSendBuff() { return m_oSendBuff; }
 	virtual WSWorkStream& GetRecvBuff() { return m_oRecvBuff; }
 
-	virtual WSMessageEvent* NewRecvMessageEvent();
+	virtual SessionRecvEvent* NewRecvMessageEvent();
 	virtual MessageEventBase* NewConnectedEvent();
 	virtual SessionErrorEvent* NewErrorEvent(const ErrorCode& refError);
 	virtual CloseSessionEvent* NewCloseEvent();

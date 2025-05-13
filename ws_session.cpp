@@ -68,26 +68,26 @@ std::string ResponseKey(std::string szWebInfo)
 	return base64::base64_encode((unsigned char*)dwarrMessageDigest, 20);
 }
 
-CWSSession::WSMessageEvent::WSMessageEvent(ISession* pSession)
+CWSSession::SessionRecvEvent::SessionRecvEvent(ISession* pSession)
 	: m_pSession(pSession)
 {
 }
 
-void CWSSession::WSMessageEvent::operator()(std::ostream* pOStream)
+void CWSSession::SessionRecvEvent::operator()(std::ostream* pOStream)
 {
-	DELETE_WHEN_DESTRUCT(WSMessageEvent, this);
+	DELETE_WHEN_DESTRUCT(SessionRecvEvent, this);
 
 	this->m_pSession->OnRecv(this->m_oPackage, pOStream);
 }
 
-CWSSession::ConnectedEvent::ConnectedEvent(ISession* pSession)
+CWSSession::SessionConnectedEvent::SessionConnectedEvent(ISession* pSession)
 	: m_pSession(pSession)
 {
 }
 
-void CWSSession::ConnectedEvent::operator()(std::ostream* pOStream)
+void CWSSession::SessionConnectedEvent::operator()(std::ostream* pOStream)
 {
-	DELETE_WHEN_DESTRUCT(ConnectedEvent, this);
+	DELETE_WHEN_DESTRUCT(SessionConnectedEvent, this);
 	this->m_pSession->OnConnected(pOStream);
 }
 
@@ -317,15 +317,15 @@ void CWSSession::Close(std::ostream* pOStream)
 	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 }
 
-CWSSession::WSMessageEvent* CWSSession::NewRecvMessageEvent()
+CWSSession::SessionRecvEvent* CWSSession::NewRecvMessageEvent()
 {
-	CWSSession::WSMessageEvent* pEvent = new CWSSession::WSMessageEvent(this);
+	CWSSession::SessionRecvEvent* pEvent = new CWSSession::SessionRecvEvent(this);
 	return pEvent;
 }
 
 MessageEventBase* CWSSession::NewConnectedEvent()
 {
-	CWSSession::ConnectedEvent* pEvent = new CWSSession::ConnectedEvent(this);
+	CWSSession::SessionConnectedEvent* pEvent = new CWSSession::SessionConnectedEvent(this);
 	return pEvent;
 }
 
