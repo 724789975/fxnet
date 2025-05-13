@@ -5,7 +5,7 @@
 
 #include <map>
 
-class CWSSession : public FXNET::ISession
+class CWSSession: public FXNET::ISession
 {
 	enum ESocketHandShakeState
 	{
@@ -16,47 +16,47 @@ class CWSSession : public FXNET::ISession
 	};
 
 public:
-	class WSMessageEvent : public MessageRecvEventBase
+class WSMessageEvent: public MessageRecvEventBase
 	{
-	public:
+	public: 
 		WSMessageEvent(ISession* pSession);
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
-	class ConnectedEvent : public MessageEventBase
+	class ConnectedEvent: public MessageEventBase
 	{
-	public:
+	public: 
 		ConnectedEvent(ISession* pSession);
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
-	class SessionErrorEvent : public MessageEventBase
+	class SessionErrorEvent: public MessageEventBase
 	{
-	public:
+	public: 
 		SessionErrorEvent(ISession* pSession, const ErrorCode& oError);
 		virtual void operator ()(std::ostream* pOStream);
 		ErrorCode m_oError;
 		ISession* m_pSession;
 	};
-	class CloseSessionEvent : public MessageEventBase
+	class CloseSessionEvent: public MessageEventBase
 	{
-	public:
+	public: 
 		CloseSessionEvent(ISession* pSession);
 		virtual void operator ()(std::ostream* pOStream);
 		ISession* m_pSession;
 	};
-	class SessionOnSendEvent : public MessageEventBase
+	class SessionOnSendEvent: public MessageEventBase
 	{
-	public:
+	public: 
 		SessionOnSendEvent(CWSSession* pSession);
 		virtual void operator ()(std::ostream* pOStream);
 		CWSSession* m_pSession;
 		int m_dwLen;
 	};
 
-	class HeaderCheck : public WSWorkStream::WSHeaderCheck
+	class HeaderCheck: public WSWorkStream::WSHeaderCheck
 	{
-	public:
+	public: 
 		HeaderCheck(CWSSession* pSession)
 			: m_pSession(pSession)
 			{}
@@ -100,7 +100,7 @@ public:
 	virtual CloseSessionEvent* NewCloseEvent();
 	virtual SessionOnSendEvent* NewOnSendEvent(int dwLen);
 
-protected:
+protected: 
 	WSWorkStream m_oSendBuff;
 	WSWorkStream m_oRecvBuff;
 
@@ -120,9 +120,9 @@ protected:
 
 };
 
-class WSSessionMaker : public FXNET::SessionMaker
+class WSSessionMaker: public FXNET::SessionMaker
 {
-public:
+public: 
 	virtual CWSSession* operator()() { return new CWSSession(); };
 };
 
