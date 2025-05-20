@@ -102,7 +102,7 @@ namespace FXNET
 	class BufferContral
 	{
 	public:
-		enum { buff_size = BUFF_SIZE };
+		enum { buff_size   = BUFF_SIZE };
 		enum { window_size = WINDOW_SIZE };
 
 		typedef SendWindow<buff_size, window_size> _SendWindow;
@@ -365,24 +365,24 @@ namespace FXNET
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline int BufferContral<BUFF_SIZE, WINDOW_SIZE>::Init(int dwState, double dAckRecvTime)
 	{
-		this->m_dwStatus = dwState;
-		this->m_dDelayTime = 0;
-		this->m_dSendFrequency = UDP_SEND_FREQUENCY;
-		this->m_dDelayAverage = 3 * m_dSendFrequency;
-		this->m_dRetryTime = m_dDelayTime + 2 * m_dDelayAverage;
-		this->m_dSendTime = 0;
+		this->m_dwStatus              = dwState;
+		this->m_dDelayTime            = 0;
+		this->m_dSendFrequency        = UDP_SEND_FREQUENCY;
+		this->m_dDelayAverage         = 3 * m_dSendFrequency;
+		this->m_dRetryTime            = m_dDelayTime + 2 * m_dDelayAverage;
+		this->m_dSendTime             = 0;
 
-		this->m_dAckRecvTime = dAckRecvTime;
-		this->m_dwAckTimeoutRetry = 1;
-		this->m_dwAckSameCount = 0;
-		this->m_bQuickRetry = false;
-		this->m_dSendEmptyDataTime = 0;
+		this->m_dAckRecvTime          = dAckRecvTime;
+		this->m_dwAckTimeoutRetry     = 1;
+		this->m_dwAckSameCount        = 0;
+		this->m_bQuickRetry           = false;
+		this->m_dSendEmptyDataTime    = 0;
 
-		this->m_btAckLast = 0;
-		this->m_btSynLast = 0;
-		this->m_bSendAck = false;
+		this->m_btAckLast             = 0;
+		this->m_btSynLast             = 0;
+		this->m_bSendAck              = false;
 		// this->m_dSendWindowControl = 1;
-		this->m_dSendWindowControl = _SendWindow::window_size;
+		this->m_dSendWindowControl    = _SendWindow::window_size;
 		this->m_dSendWindowThreshhold = _SendWindow::window_size;
 
 		// 清空滑动窗口
@@ -391,13 +391,13 @@ namespace FXNET
 
 		// 初始化发送窗口
 		this->m_oSendWindow.m_btBegin = 1;
-		this->m_oSendWindow.m_btEnd = m_oSendWindow.m_btBegin;
+		this->m_oSendWindow.m_btEnd   = m_oSendWindow.m_btBegin;
 
 		// 初始化接收窗口
 		this->m_oRecvWindow.m_btBegin = 1;
-		this->m_oRecvWindow.m_btEnd = m_oRecvWindow.m_btBegin + _RecvWindow::window_size;
+		this->m_oRecvWindow.m_btEnd   = m_oRecvWindow.m_btBegin + _RecvWindow::window_size;
 
-		this->m_bConnected = false;
+		this->m_bConnected            = false;
 		return 0;
 	}
 
@@ -466,10 +466,9 @@ namespace FXNET
 			//长度不会大于拥塞窗口
 			if (this->m_oSendWindow.m_btEnd - this->m_oSendWindow.m_btBegin > this->m_dSendWindowControl) break;
 
-			unsigned char btId = this->m_oSendWindow.m_btEnd % _SendWindow::window_size;
-
+			unsigned char btId                   = this->m_oSendWindow.m_btEnd % _SendWindow::window_size;
 			// 获取一个帧
-			unsigned char btBufferId = this->m_oSendWindow.m_btFreeBufferId;
+			unsigned char btBufferId             = this->m_oSendWindow.m_btFreeBufferId;
 			this->m_oSendWindow.m_btFreeBufferId = this->m_oSendWindow.m_btarrBuffer[btBufferId][0];
 
 			// 发送的缓存
@@ -477,13 +476,13 @@ namespace FXNET
 
 			// 处理数据头
 			UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
-			oPacket.m_btStatus = this->m_dwStatus;
-			oPacket.m_btSyn = this->m_oSendWindow.m_btEnd;
-			oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
+			oPacket.m_btStatus       = this->m_dwStatus;
+			oPacket.m_btSyn          = this->m_oSendWindow.m_btEnd;
+			oPacket.m_btAck          = this->m_oRecvWindow.m_btBegin - 1;
 
 			// 复制数据
 			unsigned int dwCopyOffset = sizeof(oPacket);
-			unsigned int dwCopySize = _SendWindow::buff_size - dwCopyOffset;
+			unsigned int dwCopySize   = _SendWindow::buff_size - dwCopyOffset;
 			if (dwCopySize > dwSize)
 				dwCopySize = dwSize;
 
@@ -491,7 +490,7 @@ namespace FXNET
 			{
 				memcpy((void*)(pBuffer + dwCopyOffset), pSendBuffer + dwSendSize, dwCopySize);
 
-				dwSize -= dwCopySize;
+				dwSize     -= dwCopySize;
 				dwSendSize += dwCopySize;
 			}
 
@@ -534,7 +533,7 @@ namespace FXNET
 				if (this->m_bQuickRetry == false)
 				{
 					this->m_bQuickRetry = true;
-					bForceRetry = true;
+					bForceRetry         = true;
 
 					this->m_dSendWindowThreshhold = this->m_dSendWindowControl / 2;
 					if (this->m_dSendWindowThreshhold < 2) { this->m_dSendWindowThreshhold = 2; }
@@ -580,7 +579,7 @@ namespace FXNET
 					this->m_dSendWindowControl = this->m_dSendWindowThreshhold;
 					//break;
 
-					this->m_bQuickRetry = false;
+					this->m_bQuickRetry    = false;
 					this->m_dwAckSameCount = 0;
 					break;
 				}
@@ -599,15 +598,15 @@ namespace FXNET
 					unsigned char btId = this->m_oSendWindow.m_btEnd % this->m_oSendWindow.window_size;
 
 					// 获取缓存
-					unsigned char btBufferId = this->m_oSendWindow.m_btFreeBufferId;
+					unsigned char btBufferId             = this->m_oSendWindow.m_btFreeBufferId;
 					this->m_oSendWindow.m_btFreeBufferId = this->m_oSendWindow.m_btarrBuffer[btBufferId][0];
-					unsigned char* pBuffer = this->m_oSendWindow.m_btarrBuffer[btBufferId];
+					unsigned char* pBuffer               = this->m_oSendWindow.m_btarrBuffer[btBufferId];
 
 					// packet header
 					UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
-					oPacket.m_btStatus = this->m_dwStatus;
-					oPacket.m_btSyn = this->m_oSendWindow.m_btEnd;
-					oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
+					oPacket.m_btStatus       = this->m_dwStatus;
+					oPacket.m_btSyn          = this->m_oSendWindow.m_btEnd;
+					oPacket.m_btAck          = this->m_oRecvWindow.m_btBegin - 1;
 
 					LOG(pOStream, ELOG_LEVEL_DEBUG2) << "status:" << (int)oPacket.m_btStatus
 						<< ", syn:" << (int)oPacket.m_btSyn << ", ack:" << (int)oPacket.m_btAck
@@ -632,7 +631,7 @@ namespace FXNET
 		else
 		{
 			this->m_dSendEmptyDataTime = dTime + this->m_dSendEmptyDataFrequency;
-			m_dwSendEmptyDataFactor = 0;
+			m_dwSendEmptyDataFactor    = 0;
 		}
 
 		//开始发送
@@ -641,7 +640,7 @@ namespace FXNET
 			//如果发送长度超过拥塞窗口 就停止
 			if (i - this->m_oSendWindow.m_btBegin >= this->m_dSendWindowControl) { break; }
 
-			unsigned char btId = i % _SendWindow::window_size;
+			unsigned char btId   = i % _SendWindow::window_size;
 			unsigned short wSize = this->m_oSendWindow.m_warrSeqSize[btId];
 
 			//开始发送 或者 重传
@@ -653,9 +652,9 @@ namespace FXNET
 
 				// packet header
 				UDPPacketHeader& oPacket = *(UDPPacketHeader*)pBuffer;
-				oPacket.m_btStatus = this->m_dwStatus;
-				oPacket.m_btSyn = i;
-				oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
+				oPacket.m_btStatus       = this->m_dwStatus;
+				oPacket.m_btSyn          = i;
+				oPacket.m_btAck          = this->m_oRecvWindow.m_btBegin - 1;
 
 				int dwLen = 0;
 				(*this->m_pSendOperator)((char*)pBuffer, wSize, dwLen, refError, pOStream);
@@ -681,11 +680,11 @@ namespace FXNET
 				if (dTime != this->m_oSendWindow.m_darrSeqTime[btId]) { this->m_dwNumPacketsRetry++; }
 
 				this->m_dSendTime = dTime + this->m_dSendFrequency;
+				this->m_bSendAck  = false;
 				// this->m_dSendEmptyDataTime = dTime + this->m_dSendEmptyDataFrequency;
-				this->m_bSendAck = false;
 
-				this->m_oSendWindow.m_dwarrSeqRetryCount[btId]++;
 				//m_oSendWindow.m_darrSeqRetryTime[id] *= 2;
+				this->m_oSendWindow.m_dwarrSeqRetryCount[btId]++;
 				this->m_oSendWindow.m_darrSeqRetryTime[btId] = 1.5 * this->m_dRetryTime;
 				if (this->m_oSendWindow.m_darrSeqRetryTime[btId] > 0.2) this->m_oSendWindow.m_darrSeqRetryTime[btId] = 0.2;
 				this->m_oSendWindow.m_darrSeqRetry[btId] = dTime + this->m_oSendWindow.m_darrSeqRetryTime[btId];
@@ -697,8 +696,8 @@ namespace FXNET
 		{
 			UDPPacketHeader oPacket;
 			oPacket.m_btStatus = this->m_dwStatus;
-			oPacket.m_btSyn = this->m_oSendWindow.m_btBegin - 1;
-			oPacket.m_btAck = this->m_oRecvWindow.m_btBegin - 1;
+			oPacket.m_btSyn    = this->m_oSendWindow.m_btBegin - 1;
+			oPacket.m_btAck    = this->m_oRecvWindow.m_btBegin - 1;
 
 			int dwLen = 0;
 			(*this->m_pSendOperator)((char*)(&oPacket), sizeof(oPacket), dwLen, refError, pOStream);
@@ -709,7 +708,7 @@ namespace FXNET
 			}
 
 			this->m_dSendTime = dTime + this->m_dSendFrequency;
-			this->m_bSendAck = false;
+			this->m_bSendAck  = false;
 		}
 
 		return *this;
@@ -727,8 +726,8 @@ namespace FXNET
 		while (refbReadable)
 		{
 			// allocate buffer
-			unsigned char btBufferId = this->m_oRecvWindow.m_btFreeBufferId;
-			unsigned char* pBuffer = this->m_oRecvWindow.m_btarrBuffer[btBufferId];
+			unsigned char btBufferId             = this->m_oRecvWindow.m_btFreeBufferId;
+			unsigned char* pBuffer               = this->m_oRecvWindow.m_btarrBuffer[btBufferId];
 			this->m_oRecvWindow.m_btFreeBufferId = pBuffer[0];
 
 			// 没有buffer了 断开连接
@@ -754,7 +753,7 @@ namespace FXNET
 				if (EAGAIN == refError)
 				{
 					refbReadable = false;
-					pBuffer[0] = this->m_oRecvWindow.m_btFreeBufferId;
+					pBuffer[0]   = this->m_oRecvWindow.m_btFreeBufferId;
 					this->m_oRecvWindow.m_btFreeBufferId = btBufferId;
 					refError(0, "");
 					break;
@@ -794,10 +793,10 @@ namespace FXNET
 					for (unsigned char i = this->m_oRecvWindow.m_btBegin; i != this->m_oRecvWindow.m_btEnd; ++i)
 					{
 						unsigned char btId = i % this->m_oRecvWindow.window_size;
-						this->m_oRecvWindow.m_btarrSeqBufferId[btId] = this->m_oRecvWindow.window_size;
-						this->m_oRecvWindow.m_warrSeqSize[btId] = 0;
-						this->m_oRecvWindow.m_darrSeqTime[btId] = 0;
-						this->m_oRecvWindow.m_darrSeqRetry[btId] = 0;
+						this->m_oRecvWindow.m_btarrSeqBufferId[btId]   = this->m_oRecvWindow.window_size;
+						this->m_oRecvWindow.m_warrSeqSize[btId]        = 0;
+						this->m_oRecvWindow.m_darrSeqTime[btId]        = 0;
+						this->m_oRecvWindow.m_darrSeqRetry[btId]       = 0;
 						this->m_oRecvWindow.m_dwarrSeqRetryCount[btId] = 0;
 					}
 				}
@@ -815,17 +814,17 @@ namespace FXNET
 			if (this->m_oSendWindow.IsValidIndex(packet.m_btAck))
 			{
 				// 获得到的是一个有效的包
-				this->m_dAckRecvTime = dTime;
-				this->m_dwAckTimeoutRetry = 3;
+				this->m_dAckRecvTime                = dTime;
+				this->m_dwAckTimeoutRetry           = 3;
 
 				// 用于计算delay的因子
-				static const double err_factor = 0.125;
-				static const double average_factor = 0.25;
+				static const double err_factor      = 0.125;
+				static const double average_factor  = 0.25;
 				// static const double retry_factor = 2;
-				static const double retry_factor = 1.5;
+				static const double retry_factor    = 1.5;
 
-				double rtt = m_dDelayTime;
-				double dErrTime = 0;
+				double rtt                          = m_dDelayTime;
+				double dErrTime                     = 0;
 
 				// m_SendWindowControl 不会比m_SendWindowControl 更大
 				double send_window_control_max = this->m_dSendWindowControl * 2;
@@ -947,10 +946,10 @@ namespace FXNET
 				while (this->m_oRecvWindow.m_btBegin != (unsigned char)(btNewAck + 1))
 				{
 					const unsigned char cbtHeadSize = sizeof(UDPPacketHeader);
-					unsigned char btId = this->m_oRecvWindow.m_btBegin % _RecvWindow::window_size;
-					unsigned char btBufferId = this->m_oRecvWindow.m_btarrSeqBufferId[btId];
-					unsigned char* pBuffer = this->m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
-					unsigned short wSize = this->m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
+					unsigned char btId              = this->m_oRecvWindow.m_btBegin % _RecvWindow::window_size;
+					unsigned char btBufferId        = this->m_oRecvWindow.m_btarrSeqBufferId[btId];
+					unsigned char* pBuffer          = this->m_oRecvWindow.m_btarrBuffer[btBufferId] + cbtHeadSize;
+					unsigned short wSize            = this->m_oRecvWindow.m_warrSeqSize[btId] - cbtHeadSize;
 
 					(*this->m_pOnRecvOperator)((char*)pBuffer, wSize, refError, pOStream);
 					if (refError)
