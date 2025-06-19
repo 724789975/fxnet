@@ -13,7 +13,7 @@ namespace FXNET
 	template <unsigned short BUFF_SIZE = 512, unsigned short WINDOW_SIZE = 32>
 	class SlidingWindow
 	{
-	public:
+	public: 
 		enum { buff_size   = BUFF_SIZE };
 		enum { window_size = WINDOW_SIZE };
 
@@ -36,7 +36,7 @@ namespace FXNET
 		 */
 		inline bool IsValidIndex(unsigned char btId)
 		{
-			unsigned char btPos = btId - m_btBegin;
+			unsigned char btPos   = btId - m_btBegin;
 			unsigned char btCount = m_btEnd - m_btBegin;
 			return btPos < btCount;
 		}
@@ -58,7 +58,6 @@ namespace FXNET
 			return *this;
 		}
 
-	protected:
 	public:
 		/**
 		 * @brief 发送/接收 缓冲区
@@ -106,9 +105,9 @@ namespace FXNET
 	};
 
 	template <unsigned int BUFF_SIZE = 512, unsigned int WINDOW_SIZE = 32>
-	class SendWindow : public SlidingWindow<BUFF_SIZE, WINDOW_SIZE>
+	class SendWindow: public SlidingWindow<BUFF_SIZE, WINDOW_SIZE>
 	{
-	public:
+	public: 
 		/**
 		 * @brief 添加到发送窗口
 		 * 
@@ -135,4 +134,4 @@ namespace FXNET
 	};
 } // namespace FXNET
 
-#endif //!__SLIDING_WINDOW_H__
+#endif  //!__SLIDING_WINDOW_H__
