@@ -14,7 +14,7 @@ namespace FXNET
 	class SlidingWindow
 	{
 	public:
-		enum { buff_size = BUFF_SIZE };
+		enum { buff_size   = BUFF_SIZE };
 		enum { window_size = WINDOW_SIZE };
 
 		/**
@@ -43,7 +43,7 @@ namespace FXNET
 
 		/**
 		 * @brief 
-		 * 
+		 * 清空窗口内容
 		 * @return SlidingWindow& 返回自身
 		 */
 		inline SlidingWindow& ClearBuffer()
@@ -117,14 +117,15 @@ namespace FXNET
 		 * @param wPacketSize 包大小
 		 * @param dTime 添加时间
 		 * @param dRetryTime 等待多久后开始重试
+		 * @return SendWindow& 返回自身
 		 */
 		SendWindow& Add2SendWindow(unsigned char btId, unsigned char btBuffId, unsigned short wPacketSize, double dTime, double dRetryTime)
 		{
-			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btarrSeqBufferId[btId] = btBuffId;
-			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_warrSeqSize[btId] = wPacketSize;
-			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqTime[btId] = dTime;
-			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetry[btId] = dTime;
-			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetryTime[btId] = dRetryTime;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btarrSeqBufferId[btId]   = btBuffId;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_warrSeqSize[btId]        = wPacketSize;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqTime[btId]        = dTime;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetry[btId]       = dTime;
+			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_darrSeqRetryTime[btId]   = dRetryTime;
 			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_dwarrSeqRetryCount[btId] = 0;
 			this->SlidingWindow<BUFF_SIZE, WINDOW_SIZE>::m_btEnd++;
 
