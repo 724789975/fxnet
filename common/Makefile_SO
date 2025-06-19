@@ -7,13 +7,8 @@
 CC		= gcc
 CPP		= g++
 
-ifeq ($(DLL), 1)
-MAKEFILE = Makefile_SO
-else
-MAKEFILE = Makefile_A
-endif
+OUTPUT = libfxnet.so
 
-OUTPUT = fxnet
 ifeq ($(shell uname -m), x86_64)
 MOUTPUT_DIR = ./x64
 else
@@ -23,13 +18,13 @@ endif
 #  Flags
 ifeq ($(BUILD),DEBUG)
 D = d
-C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -fpic -ldl
-CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -fpic -ldl
+C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -pg -fPIC
+CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -pg -fPIC
 OUTPUT_DIR      = $(MOUTPUT_DIR)/DEBUG
 else
 D = 
-C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX -fpic -ldl
-CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX -fpic -ldl
+C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX -fPIC
+CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX -fPIC
 OUTPUT_DIR      = $(MOUTPUT_DIR)/RELEASE
 endif
 
@@ -38,48 +33,26 @@ C_FLAGS			+= -D__SINGLE_THREAD__
 CXX_FLAGS		+= -D__SINGLE_THREAD__
 endif
 
-ifeq ($(ASAN),1)
-C_FLAGS		+= -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold
-CXX_FLAGS	+= -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold
-endif
-
-ARFLAGS			= -rc
 #==========================================================
 
 #==========================================================
 #  Commands
-CODE_DIR = ./ 
-INCLUDE_DIR =./ ./include
-LIB_FILE = -L./lib -Lcrypto -lpthread
-ifeq ($(DLL), 1)
-LIB_FILE += -l:libfxnet.so
-else
-LIB_FILE += -lfxnet
-endif
-
-#  Flags
-ifeq ($(ASAN),1)
-LIB_FILE	+= -lasan
-endif
-
-ifeq ($(GPERF),1)
-C_FLAGS		+= -DGPERF
-CXX_FLAGS	+= -DGPERF
-LIB_FILE += -ltcmalloc_and_profiler
-endif
+CODE_DIR    = ./
+INCLUDE_DIR = ../include/
 
 #==========================================================
 
-OBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -maxdepth 1 -name "*.cpp"))
-COBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -maxdepth 1 -name "*.cc"))
+OBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -name "*.cpp"))
+COBJS = $(foreach i, $(CODE_DIR), $(shell find $(i) -name "*.cc"))
 INCLUDE_FLAG = $(foreach i, $(INCLUDE_DIR), -I$(i))
 
-COMMON = "common"
 all:$(OUTPUT)
 
-$(OUTPUT):$(OUTPUT_DIR) $(COMMON) $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
-	@echo Build...$@
-	$(CPP) $(CXX_FLAGS) -o $(OUTPUT_DIR)/$(OUTPUT) $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o)) $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o)) $(LIB_FILE)
+$(OUTPUT):$(OUTPUT_DIR) $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
+	@echo Build dynamic lib ...$@
+	$(CC) -shared -o $(OUTPUT_DIR)/$(OUTPUT) $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o)) $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o))
+	cp $(OUTPUT_DIR)/$(OUTPUT) ../lib
+
 
 %.o: %.cpp
 	@echo Compile...$@
@@ -91,16 +64,11 @@ $(OUTPUT):$(OUTPUT_DIR) $(COMMON) $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
 
 $(OUTPUT_DIR):
 	-mkdir -p $(OUTPUT_DIR)
-
-$(COMMON):
-	@echo Compile...$@
-	$(MAKE) -f $(MAKEFILE) -C $@
-
+	
 -include $(OBJS:.cpp=.d)
 -include $(COBJS:.cc=.d)
 
 clean:
-	$(MAKE) -C common -f $(MAKEFILE) clean
 	rm -f $(OUTPUT_DIR)/$(OUTPUT)
 	rm -f $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o))
 	rm -f $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.d))

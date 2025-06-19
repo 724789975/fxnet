@@ -19,7 +19,7 @@ namespace FXNET
 		 * 投递消息事件 在io线程执行 放入队列 在主线程消费
 		 * @param pMessageEvent
 		 */
-		void					PushMessageEvent(MessageEventBase* pMessageEvent)
+		void PushMessageEvent(MessageEventBase* pMessageEvent)
 		{
 			CLockImp oImp(this->m_lockEventLock);
 			this->m_dequeEvents.push_back(pMessageEvent);
@@ -31,7 +31,7 @@ namespace FXNET
 		 * 交换事件 在主线程执行 事件在io线程创建 放入队列 在主线程消费
 		 * @param refDeque
 		 */
-		void					SwapEvent(std::deque<MessageEventBase*>& refDeque)
+		void SwapEvent(std::deque<MessageEventBase*>& refDeque)
 		{
 			CLockImp oImp(this->m_lockEventLock);
 			this->m_dequeEvents.swap(refDeque);
