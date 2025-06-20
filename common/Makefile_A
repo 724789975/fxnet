@@ -18,7 +18,7 @@ MOUTPUT_DIR = ./
 endif
 
 #  Flags
-ifeq ($(BUILD),DEBUG)
+ifeq ($(DEBUG), 1)
 D = d
 C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -pg
 CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -pg
@@ -30,7 +30,7 @@ CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX
 OUTPUT_DIR      = $(MOUTPUT_DIR)/RELEASE
 endif
 
-ifeq ($(SINGLE_THREAD),1)
+ifeq ($(SINGLE_THREAD), 1)
 C_FLAGS			+= -D__SINGLE_THREAD__
 CXX_FLAGS		+= -D__SINGLE_THREAD__
 endif

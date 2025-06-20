@@ -21,7 +21,7 @@ MOUTPUT_DIR = ./
 endif
 
 #  Flags
-ifeq ($(BUILD),DEBUG)
+ifeq ($(DEBUG), 1)
 D = d
 C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -fpic -ldl
 CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -fpic -ldl

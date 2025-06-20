@@ -25,7 +25,6 @@ double GetNow()
 	// 	return pTimeFunc();
 	// }
 	return UTILITY::TimeUtility::GetTimeUS() / 1000000.;
-	return 0.;
 }
 
 void LogModule::ThrdFunc()
