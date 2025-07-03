@@ -1,7 +1,7 @@
 #include "include/fxnet_interface.h"
 #include "include/message_queue.h"
 #include "text_session.h"
-#include "ws_session.h"
+#include "text_session.h"
 
 #ifdef GPERF
 #include "gperftools/tcmalloc.h"
@@ -88,7 +88,7 @@ int main()
 	// const char* szTargetIp = "81.70.54.105";
 	//const char* szTargetIp = "192.168.122.128";
 
-	std::vector<CWSSession*> vecSession;
+	std::vector<CTextSession*> vecSession;
 
 #define SERVER_TEST 1
 
@@ -116,7 +116,7 @@ int main()
 #define TCP_LISTEN(tcp_port) \
 {\
 	int dwIndex1 = FXNET::GetFxIoModuleIndex();\
-	FXNET::PostEvent(dwIndex1, new FXNET::TCPListen("0.0.0.0", tcp_port, dwIndex1, new WSSessionMaker));\
+	FXNET::PostEvent(dwIndex1, new FXNET::TCPListen("0.0.0.0", tcp_port, dwIndex1, new TextSessionMaker));\
 }\
 
 #define UDP_LISTEN(udp_port) \
