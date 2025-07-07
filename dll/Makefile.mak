@@ -4,7 +4,7 @@ CC = cl
 CFLAGS = /c /analyze- /W3 /Zc:wchar_t /Gm- /Zc:inline /fp:precise /D "WIN32" /D "_CONSOLE" /errorReport:prompt /WX- /Zc:forScope /Gd /FC /EHsc /nologo /diagnostics:classic
 
 TARGET = fxnet
-EXECUTABLE_NAME = $(TARGET).exe
+EXECUTABLE_NAME = $(TARGET).dll
 
 !IFDEF WIN32
 PLATFORM_DIR = ""
@@ -30,9 +30,10 @@ CFLAGS = $(CFLAGS) /Fp"$(DIR_OUT)\$(TARGET).pch" /Fd"$(OBJ_OUT)\$(TARGET)_nmake.
 
 DIR_SRC = .\\
 DIR_INCLUDE = \
-        /I "./include"
+        /I "./include"\
+        /I "../include"
         
-LK = link
+LK = link /DLL
 LKFLAGS = /NOLOGO
 #LKFLAGS = $(LKFLAGS) /MANIFEST:NO
  
@@ -65,8 +66,8 @@ $(EXECUTABLE_NAME) : makeobj
 	$(LK) $(LKFLAGS) $(OBJ_OUT)\*.obj
 
 makeobj: $(OBJ_OUT)
-	@for %%f in (*.cpp) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
-	@for %%f in (*.cc) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
+	@for %%f in (src\*.cpp) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
+	@for %%f in (src\*.cc) do ( $(CC) $(CFLAGS) /Fo"$(OBJ_OUT)\%%~nf.obj" $(DIR_INCLUDE) %%f )
 
 # delete output directories
 clean:

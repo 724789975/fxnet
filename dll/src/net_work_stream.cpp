@@ -1,5 +1,5 @@
-#include "include/net_work_stream.h"
-#include "include/net_stream_package.h"
+#include "../../include/net_work_stream.h"
+#include "../../include/net_stream_package.h"
 
 #ifdef _WIN32
 #include <Winsock2.h>

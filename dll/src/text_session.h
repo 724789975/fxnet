@@ -1,11 +1,12 @@
 #pragma once
-#include "include/i_session.h"
-#include "include/net_work_stream.h"
-#include "include/message_event.h"
+#include "../../include/i_session.h"
+#include "../../include/net_work_stream.h"
+#include "../../include/message_event.h"
+#include "../include/util.h"
 
 #include <map>
 
-class CTextSession : public FXNET::ISession
+class FX_API CTextSession : public FXNET::ISession
 {
 public:
 	class TextMessageEvent : public MessageRecvEventBase
