@@ -6,8 +6,8 @@
 class FX_API Connector {
 public:
 	virtual ~Connector() {}
-	virtual int UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort) = 0;
-	virtual int TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort) = 0;
+	virtual void UdpConnect(const char* szIp, unsigned short wPort) = 0;
+	virtual void TcpConnect(const char* szIp, unsigned short wPort) = 0;
 
 	virtual void Send(const char* szData, unsigned int dwLen) = 0;
 

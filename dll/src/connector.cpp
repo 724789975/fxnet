@@ -12,17 +12,15 @@ public:
     virtual ~ConnectorImpl()
     {
     }
-   	virtual int UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort)
+   	virtual void UdpConnect(const char* szIp, unsigned short wPort)
 	{
-		ErrorCode code;
-		FXNET::UdpConnect(dwIOModuleIndex, szIp, wPort, &m_oSession, code, nullptr);
-		return code;
+		int dwIndex1 = FXNET::GetFxIoModuleIndex();
+		FXNET::PostEvent(dwIndex1, new FXNET::UDPConnect(szIp, wPort, dwIndex1, &m_oSession));
 	}
-	virtual int TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort)
+	virtual void TcpConnect(const char* szIp, unsigned short wPort)
 	{
-		ErrorCode code;
-		FXNET::UdpConnect(dwIOModuleIndex, szIp, wPort, &m_oSession, code, nullptr);
-		return code;
+		int dwIndex1 = FXNET::GetFxIoModuleIndex();
+		FXNET::PostEvent(dwIndex1, new FXNET::TCPConnect(szIp, wPort, dwIndex1, &m_oSession));
 	}
     virtual void Send(const char* szData, unsigned int dwLen)
     {
