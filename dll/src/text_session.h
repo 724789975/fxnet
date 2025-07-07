@@ -3,10 +3,11 @@
 #include "../../include/net_work_stream.h"
 #include "../../include/message_event.h"
 #include "../include/util.h"
+#include "../include/connector.h"
 
 #include <map>
 
-class FX_API CTextSession : public FXNET::ISession
+class CTextSession : public FXNET::ISession
 {
 public:
 	class TextMessageEvent : public MessageRecvEventBase
@@ -47,13 +48,18 @@ public:
 		int m_dwLen;
 	};
 
-	CTextSession()
+	CTextSession(Connector* pConnector, OnRecvCallback* onRecv, OnConnectedCallback* onConnected, OnErrorCallback* onError, OnCloseCallback* onClose)
 		: m_dConnectedTime(0.)
 		, m_dwPacketLength(0)
 		, m_dwRecvPackagetNum(0)
 		, m_dAllDelayTime(0.)
 		, m_dCurrentDelay(0.)
 		, m_dAverageDelay(0.)
+		, m_pConnector(pConnector)
+		, m_pOnRecv(onRecv)
+		, m_pOnConnected(onConnected)
+		, m_pOnError(onError)
+		, m_pOnClose(onClose)
 		{}
 	~CTextSession(){}
 
@@ -88,11 +94,10 @@ protected:
 	double m_dCurrentDelay;
 	double m_dAverageDelay;
 
-};
-
-class TextSessionMaker : public FXNET::SessionMaker
-{
-public:
-	virtual CTextSession* operator()() { return new CTextSession(); };
+	Connector* m_pConnector;
+	OnRecvCallback* m_pOnRecv;
+	OnConnectedCallback* m_pOnConnected;
+	OnErrorCallback* m_pOnError;
+	OnCloseCallback* m_pOnClose;
 };
 
