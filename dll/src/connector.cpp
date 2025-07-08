@@ -2,6 +2,10 @@
 #include "text_session.h"
 #include "../../include/fxnet_interface.h"
 #include "../../include/error_code.h"
+#include "connector.h"
+
+OnLogCallback *g_pLogCallback = nullptr;
+std::stringstream g_LogStream;
 
 class ConnectorImpl : public Connector {
 public:
@@ -24,11 +28,11 @@ public:
 	}
     virtual void Send(const char* szData, unsigned int dwLen)
     {
-		m_oSession.Send(szData, dwLen, nullptr);
+		m_oSession.Send(szData, dwLen, &g_LogStream);
     }
     virtual void Close()
     {
-		m_oSession.Close(nullptr);
+		m_oSession.Close(&g_LogStream);
     }
 private:
 	CTextSession m_oSession;
@@ -41,4 +45,55 @@ Connector* CreateConnector(OnRecvCallback* onRecv, OnConnectedCallback* onConnec
 void DestroyConnector(Connector *pConnector)
 {
 	delete pConnector;
+}
+
+FX_API void UdpConnect(Connector *pConnector, const char *szIp, unsigned short wPort)
+{
+	pConnector->UdpConnect(szIp, wPort);
+}
+
+FX_API void TcpConnect(Connector *pConnector, const char *szIp, unsigned short wPort)
+{
+	pConnector->TcpConnect(szIp, wPort);
+}
+
+FX_API void Send(Connector *pConnector, const char *szData, unsigned int dwLen)
+{
+	pConnector->Send(szData, dwLen);
+}
+
+FX_API void Close(Connector *pConnector)
+{
+	pConnector->Close();
+}
+
+FXNET::MessageEventQueue oQueue;
+void StartIOModule()
+{
+	FXNET::StartIOModule(&oQueue);
+}
+
+FX_API void ProcessIOModule()
+{
+#ifdef __SINGLE_THREAD__
+	FXNET::ProcSignelThread(&g_LogStream);
+#endif	//!__SINGLE_THREAD__
+	std::deque<MessageEventBase*> dequeMessage;
+	oQueue.SwapEvent(dequeMessage);
+
+	for (std::deque<MessageEventBase*>::iterator it = dequeMessage.begin()
+		; it != dequeMessage.end(); ++it)
+	{
+		(**it)(&g_LogStream);
+	}
+	if (g_pLogCallback)
+	{
+		g_pLogCallback(g_LogStream.str().c_str(), g_LogStream.str().length());
+		g_LogStream.str("");
+	}
+}
+
+FX_API void SetLogCallback(OnLogCallback *onLog)
+{
+	g_pLogCallback = onLog;
 }
