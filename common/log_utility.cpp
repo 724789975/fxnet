@@ -50,11 +50,11 @@ void LogModule::ThrdFunc()
 		for (std::vector<std::stringstream*>::iterator it = vecTemp.begin()
 			; it != vecTemp.end(); ++it)
 		{
-			std::cout << (*it)->str();
+			// std::cout << (*it)->str();
 			delete (*it);
 		}
 
-		std::cout << std::flush;
+		// std::cout << std::flush;
 	}
 
 }
