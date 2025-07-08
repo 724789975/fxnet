@@ -104,7 +104,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 	};
 
 	SendOperator* pOperator = new SendOperator(this->m_opSock);
-	pOperator->m_oPackage.WriteString(szData, dwLen);
+	pOperator->m_oPackage.WriteData(szData, dwLen);
 	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 	return *this;
 }
