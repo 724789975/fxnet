@@ -1,0 +1,14 @@
+{
+    "name": "fxnetlib.dllimport",
+    "rootNamespace": "fxnetlib.dllimport",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

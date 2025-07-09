@@ -1,0 +1,11 @@
+{
+	"name": "com.dlxl.fxnet",
+	"version": "1.0.0",
+	"displayName": "FXNET Package",
+	"description": "This is a package for network.",
+	"unity": "2020.3",
+	"author": {
+		"name": "724789975",
+		"email": "724789975@qq.com"
+	}
+}
