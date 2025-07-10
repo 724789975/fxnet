@@ -7,7 +7,7 @@
 CC		= gcc
 CPP		= g++
 
-OUTPUT = fxnet111.so
+OUTPUT = fxnet.so
 ifeq ($(shell uname -m), x86_64)
 MOUTPUT_DIR = ./x64
 else
