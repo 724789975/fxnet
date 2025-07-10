@@ -20,13 +20,13 @@ endif
 #  Flags
 ifeq ($(DEBUG), 1)
 D = d
-C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -pg
-CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -pg
+C_FLAGS			= -g -O0 -rdynamic -Wall -D_DEBUG -DLINUX -pg -fpic -ldl
+CXX_FLAGS 		= -g -O0 -rdynamic -Wall -Woverloaded-virtual -D_DEBUG -DLINUX -pg -fpic -ldl
 OUTPUT_DIR      = $(MOUTPUT_DIR)/DEBUG
 else
 D = 
-C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX
-CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX
+C_FLAGS			= -g -rdynamic -Wall -DNDEBUG -DLINUX -fpic -ldl
+CXX_FLAGS 		= -g -rdynamic -Wall -Woverloaded-virtual -DNDEBUG -DLINUX -fpic -ldl
 OUTPUT_DIR      = $(MOUTPUT_DIR)/RELEASE
 endif
 
