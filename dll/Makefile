@@ -47,9 +47,13 @@ INCLUDE_FLAG = $(foreach i, $(INCLUDE_DIR), -I$(i))
 
 all:$(OUTPUT)
 
-$(OUTPUT):$(OUTPUT_DIR) $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
+$(OUTPUT):$(OUTPUT_DIR)_DIR $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
 	@echo Build...$@
 	$(CC) -shared -o $(OUTPUT_DIR)/$(OUTPUT) $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.o)) $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o)) $(LIB_FILE)
+
+$(OUTPUT_DIR)_DIR:
+	@echo "mkdir"
+	-mkdir -p $(OUTPUT_DIR)/src
 
 %.o: %.cpp
 	@echo Compile...$@
@@ -58,9 +62,6 @@ $(OUTPUT):$(OUTPUT_DIR) $(COBJS:.cc=.o) $(OBJS:.cpp=.o)
 %.o: %.cc
 	@echo Compile...$@
 	$(CC) $(C_FLAGS) $(INCLUDE_FLAG) -c $< -o $(OUTPUT_DIR)/$@ -MMD -MP -MF $(OUTPUT_DIR)/$(@:%.o=%.d)
-
-$(OUTPUT_DIR):
-	-mkdir -p $(OUTPUT_DIR)/src
 
 -include $(OBJS:.cpp=.d)
 -include $(COBJS:.cc=.d)
