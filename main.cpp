@@ -131,7 +131,7 @@ int main()
 #endif
 
 	TCP_LISTEN(10085);
-	UDP_LISTEN(10086);
+	UDP_LISTEN(10085);
 
 	std::stringstream strstream;
 	strstream.flags(std::cout.fixed);
