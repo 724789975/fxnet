@@ -70,21 +70,21 @@ namespace FXNET
 
 	void FxIoModule::ThrdFunc()
 	{
-		std::stringstream* pStrstream = FXNET::GetStream();
-		pStrstream->flags(std::cout.fixed);
-		LOG(pStrstream, ELOG_LEVEL_INFO) <<  "thread id " << this->m_poThrdHandler->GetThreadId() << " start\n";
+		std::stringstream strstream;
+		strstream.flags(std::cout.fixed);
+		LOG(&strstream, ELOG_LEVEL_INFO) <<  "thread id " << this->m_poThrdHandler->GetThreadId() << " start\n";
 
 		while (!m_bStop)
 		{
-			this->DealFunction(pStrstream);
+			this->DealFunction(&strstream);
 
-			FXNET::PushLog(pStrstream);
-			pStrstream = FXNET::GetStream();
-			pStrstream->flags(std::cout.fixed);
+			FXNET::PushLog(&strstream);
+			strstream.str("");
+			strstream.flags(std::cout.fixed);
 		}
-		*pStrstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
+		strstream << "thread id " << this->m_poThrdHandler->GetThreadId() << " end\n";
 
-		FXNET::PushLog(pStrstream);
+		FXNET::PushLog(&strstream);
 	}
 
 	void FxIoModule::DealFunction(std::ostream* pOStream)

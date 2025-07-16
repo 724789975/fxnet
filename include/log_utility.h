@@ -17,6 +17,7 @@
 
 #include <sstream>
 #include <vector>
+#include "util.h"
 
 enum ELogLevel
 {
@@ -33,10 +34,8 @@ enum ELogLevel
 
 int GetLogLevel();
 
-double GetNow();
-
 #define LOG(STREAM, LOG_LEVEL)\
 	if (STREAM && (GetLogLevel() & LOG_LEVEL))\
-		*STREAM << "[" << #LOG_LEVEL << "]\t[" << GetNow() << "]\t" << " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\t"
+		*STREAM << "[" << #LOG_LEVEL << "]\t[" << FXNET::GetNow() << "]\t" << " [" << __FILE__ << ":" << __LINE__ << ", " << __FUNCTION_DETAIL__ << "]\t"
 
 #endif // !__LOG_UTILITY_H__

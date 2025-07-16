@@ -99,15 +99,14 @@ namespace FXNET
 		}
 	}
 
-	std::stringstream* GetStream()
-	{
-		return LogModule::Instance()->GetStream();
-	}
-
-	void PushLog(std::stringstream*& pStrstream)
+	void PushLog(std::stringstream* pStrstream)
 	{
 		LogModule::Instance()->PushLog(pStrstream);
 	}
 
+	const char* GetLogStr()
+	{
+		return LogModule::Instance()->GetLogStr();
+	}
 };
 
