@@ -26,6 +26,7 @@ void LogModule::ThrdFunc()
 		{
 			FXNET::CLockImp oImp(this->m_lockEventLock);
 			strTemp.swap(this->m_oStream);
+			m_oStream.str("");
 		}
 
 		if (0 == strTemp.str().length())
