@@ -112,7 +112,7 @@ CTextSession& CTextSession::Send(const char* szData, unsigned int dwLen, std::os
 
 	SendOperator* pOperator = new SendOperator(this->m_opSock);
 	// pOperator->m_oPackage.WriteInt('T' << 24 | 'E' << 16 | 'S' << 8 | 'T');
-	pOperator->m_oPackage.WriteString(szData, dwLen);
+	pOperator->m_oPackage.WriteData(szData, dwLen);
 	FXNET::PostEvent(this->m_opSock->GetIOModuleIndex(), pOperator);
 	return *this;
 }
@@ -136,58 +136,8 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 	
 	int dwMagicNum = 0;
 	// refPackage.ReadInt(dwMagicNum);
-	std::string szData;
-	refPackage.ReadString(szData);
 
-	long long qwRecv = atoll(szData.c_str());
-	if (this->m_mapSendTimes.end() == this->m_mapSendTimes.find(qwRecv))
-	{
-		this->Send(szData.c_str(), szData.size(), pOStream);
-		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-			<< ", " << this->m_opSock->NativeSocket()
-			<< ", seq: " << (qwRecv & 0xFFFF)
-			<< "\n";
-		// for (size_t i = 0; i < 1000; i++)
-		// {
-		// 	this->Send(szData, dwLen, pOStream);
-		// 	LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-		// 		<< ", " << this->m_opSock->NativeSocket()
-		// 		<< ", seq: " << (qwRecv & 0xFFFF)
-		// 		<< "\n";
-		// }
-	}
-	else
-	{
-		// int dwRandLen = UTILITY::TimeUtility::GetTimeUS() % 2017;
-		int dwRandLen = UTILITY::TimeUtility::GetTimeUS() % 970;
-		double dCurrentTime = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
-		this->m_dCurrentDelay = dCurrentTime - this->m_mapSendTimes[qwRecv];
-		++this->m_dwRecvPackagetNum;
-		this->m_dAllDelayTime += this->m_dCurrentDelay;
-		this->m_dAverageDelay = this->m_dAllDelayTime / this->m_dwRecvPackagetNum;
-
-		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
-			<< ", " << this->m_opSock->NativeSocket()
-			<< ", current delay: " << this->m_dCurrentDelay << ", average: "
-			<< this->m_dAverageDelay
-			<< ", package num: " << this->m_dwRecvPackagetNum
-			<< ", seq: " << (qwRecv & 0xFFFF)
-			<< "\n";
-
-		char szBuff[2048] = {0};
-		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
-		sprintf(szBuff, "%lld", qwSend);
-		std::string szSend(szBuff, 30 + dwRandLen);
-
-		this->m_mapSendTimes.erase(qwRecv);
-		this->m_mapSendTimes[qwSend] = dCurrentTime;
-		this->Send(szSend.c_str(), (unsigned int)szSend.size(), pOStream);
-
-		LOG(pOStream, ELOG_LEVEL_DEBUG4) << this->m_opSock->Name()
-			<< ", " << this->m_opSock->NativeSocket()
-			<< ", " << szSend
-			<< "\n";
-	}
+	LOG(pOStream, ELOG_LEVEL_INFO) << refPackage.GetData() << "\n";
 	
 	return *this;
 }
@@ -197,20 +147,20 @@ void CTextSession::OnConnected(std::ostream* pOStream)
 	LOG(pOStream, ELOG_LEVEL_INFO) << GetSocket()->NativeSocket() << ", connected!!!"
 		<< "\n";
 
-	long long qwSend = (long long)(this->GetSocket()->GetLocalAddr().sin_addr.s_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
-	// char szBuff[512] = {0};
-	// sprintf(szBuff, "%lld", qwSend);
-	// std::string sz(szBuff, 400);
-	// std::string sz;
-	// sz.resize(1024 * 8);
+	// long long qwSend = (long long)(this->GetSocket()->GetLocalAddr().sin_addr.s_addr) << 32 | (this->GetSocket()->GetLocalAddr().sin_port << 16);
+	// // char szBuff[512] = {0};
+	// // sprintf(szBuff, "%lld", qwSend);
+	// // std::string sz(szBuff, 400);
+	// // std::string sz;
+	// // sz.resize(1024 * 8);
 
-    std::string sz = "test";
+    // std::string sz = "test";
 
-	this->Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
-	this->m_mapSendTimes[qwSend] = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
+	// this->Send(sz.c_str(), (unsigned int)sz.size(), pOStream);
+	// this->m_mapSendTimes[qwSend] = UTILITY::TimeUtility::GetTimeUS() / 1000000.;
 
-	this->m_dConnectedTime = this->m_mapSendTimes[qwSend];
-	this->m_dwPacketLength = 0;
+	// this->m_dConnectedTime = this->m_mapSendTimes[qwSend];
+	// this->m_dwPacketLength = 0;
 }
 
 void CTextSession::OnError(const ErrorCode& refError, std::ostream* pOStream)
