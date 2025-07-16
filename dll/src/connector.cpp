@@ -5,7 +5,7 @@
 #include "connector.h"
 
 OnLogCallback *g_pLogCallback = nullptr;
-std::stringstream* g_pLogStream = nullptr;
+	std::stringstream g_LogStream;
 
 class ConnectorImpl : public Connector {
 public:
@@ -28,11 +28,11 @@ public:
 	}
     virtual void Send(const char* szData, unsigned int dwLen)
     {
-		m_oSession.Send(szData, dwLen, g_pLogStream);
+		m_oSession.Send(szData, dwLen, &g_LogStream);
     }
     virtual void Close()
     {
-		m_oSession.Close(g_pLogStream);
+		m_oSession.Close(&g_LogStream);
     }
 private:
 	CTextSession m_oSession;
@@ -82,18 +82,18 @@ FX_API void ProcessIOModule()
 	std::deque<MessageEventBase*> dequeMessage;
 	oQueue.SwapEvent(dequeMessage);
 
-	g_pLogStream = FXNET::GetStream();
 	for (std::deque<MessageEventBase*>::iterator it = dequeMessage.begin()
 		; it != dequeMessage.end(); ++it)
 	{
-		(**it)(g_pLogStream);
+		(**it)(&g_LogStream);
 	}
+	FXNET::PushLog(&g_LogStream);
+	g_LogStream.str("");
+	const char* szLog = FXNET::GetLogStr();
 	if (g_pLogCallback)
 	{
-		g_pLogCallback(g_pLogStream->str().c_str(), g_pLogStream->str().length());
+		g_pLogCallback(szLog, strlen(szLog));
 	}
-	FXNET::PushLog(g_pLogStream);
-	g_pLogStream = FXNET::GetStream();
 }
 
 FX_API void SetLogCallback(OnLogCallback *onLog)
