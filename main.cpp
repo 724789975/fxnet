@@ -116,7 +116,7 @@ int main()
 #define TCP_LISTEN(tcp_port) \
 {\
 	int dwIndex1 = FXNET::GetFxIoModuleIndex();\
-	FXNET::PostEvent(dwIndex1, new FXNET::TCPListen("0.0.0.0", tcp_port, dwIndex1, new WSSessionMaker));\
+	FXNET::PostEvent(dwIndex1, new FXNET::TCPListen("0.0.0.0", tcp_port, dwIndex1, new TextSessionMaker));\
 }\
 
 #define UDP_LISTEN(udp_port) \
@@ -163,5 +163,7 @@ int main()
 			(**it)(&strstream);
 		}
 		FXNET::PushLog(&strstream);
+		strstream.str("");
+		strstream.flags(std::cout.fixed);
 	}
 }
