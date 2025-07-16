@@ -18,26 +18,17 @@ int GetLogLevel()
 	return g_sLogLevel;
 }
 
-double GetNow()
-{
-	// if (pTimeFunc)
-	// {
-	// 	return pTimeFunc();
-	// }
-	return UTILITY::TimeUtility::GetTimeUS() / 1000000.;
-}
-
 void LogModule::ThrdFunc()
 {
 	while (!m_bStop)
 	{
-		std::vector<std::stringstream*> vecTemp;
+		std::stringstream strTemp;
 		{
 			FXNET::CLockImp oImp(this->m_lockEventLock);
-			vecTemp.swap(this->m_vecLogStream);
+			strTemp.swap(this->m_oStream);
 		}
 
-		if (0 == vecTemp.size())
+		if (0 == strTemp.str().length())
 		{
 #ifdef _WIN32
 			Sleep(1);
@@ -47,16 +38,10 @@ void LogModule::ThrdFunc()
 			continue;
 		}
 
-		for (std::vector<std::stringstream*>::iterator it = vecTemp.begin()
-			; it != vecTemp.end(); ++it)
-		{
-			std::cout << (*it)->str();
-			delete (*it);
-		}
+		std::cout << strTemp.str();
 
 		std::cout << std::flush;
 	}
-
 }
 
 void LogModule::Stop()
@@ -102,11 +87,15 @@ void LogModule::Uninit()
 void LogModule::PushLog(std::stringstream*& refpStream)
 {
 	FXNET::CLockImp oImp(this->m_lockEventLock);
-	m_vecLogStream.push_back(refpStream);
-	// refpStream = new std::stringstream;
+	m_oStream << refpStream->str();
 }
 
-std::stringstream* LogModule::GetStream()
+const char* LogModule::GetLogStr()
 {
-	return new std::stringstream;
+	std::stringstream strTemp;
+	{
+		FXNET::CLockImp oImp(this->m_lockEventLock);
+		strTemp.swap(this->m_oStream);
+	}
+	return strTemp.str().c_str();
 }

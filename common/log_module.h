@@ -34,9 +34,8 @@ public:
 
 	bool					Init();
 	void					Uninit();
-
 	void					PushLog(std::stringstream*& refpStream);
-	std::stringstream*		GetStream();
+	const char*				GetLogStr();
 
 private:
 
@@ -50,7 +49,7 @@ protected:
 	FXNET::IFxThreadHandler* m_poThrdHandler;
 	bool					m_bStop;
 	FXNET::CCasLock			m_lockEventLock;
-	std::vector<std::stringstream*>	m_vecLogStream;
+	std::stringstream		m_oStream;
 };
 
 #endif	//!__LOG_MODULE_H__

@@ -204,8 +204,8 @@ namespace FXNET
 		unsigned int m_dwIOModuleIndex;
 	};
 
-	std::stringstream* GetStream();
-	void PushLog(std::stringstream*& pStrstream);
+	void PushLog(std::stringstream* pStrstream);
+	const char* GetLogStr();
 };
 
 
