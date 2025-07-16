@@ -19,6 +19,11 @@ namespace FXNET
 		}
 	}
 
+	void InitLogModule()
+	{
+		LogModule::CreateInstance();
+	}
+
 	void StartLogModule()
 	{
 		LogModule::CreateInstance();

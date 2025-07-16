@@ -21,6 +21,14 @@ namespace FXNET
 	/**
 	 * @brief 
 	 * 
+	 * 初始化日志模块
+	 * @note 只有不使用日志线程的情况下才需要调用
+	 */
+	void InitLogModule();
+
+	/**
+	 * @brief 
+	 * 
 	 * 启动日志线程
 	 */
 	void StartLogModule();

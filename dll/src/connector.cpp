@@ -70,7 +70,7 @@ FX_API void Close(Connector *pConnector)
 FXNET::MessageEventQueue oQueue;
 void StartIOModule()
 {
-	FXNET::StartLogModule();
+	FXNET::InitLogModule();
 	FXNET::StartIOModule(&oQueue);
 }
 
