@@ -104,6 +104,12 @@ namespace FXNET
 		LogModule::Instance()->PushLog(pStrstream);
 	}
 
+	/**
+	 * @brief 获取日志字符串，并清空日志缓存
+	 * 
+	 * @return const char* 
+	 * @note 如果不使用日志线程，那么每帧都要调用一下这个函数
+	 */
 	const char* GetLogStr()
 	{
 		return LogModule::Instance()->GetLogStr();
