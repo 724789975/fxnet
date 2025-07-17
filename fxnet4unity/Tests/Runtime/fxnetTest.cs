@@ -14,6 +14,11 @@ public class NewBehaviourScript : MonoBehaviour
 			Debug.Log(pData);
 		}
 		);
+
+		DLLImport.CreateSessionMake(delegate (IntPtr pConnector, string pData, uint nLen) {
+			Debug.Log(pData);
+			DLLImport.Send(pConnector, pData, nLen);
+		}, delegate (IntPtr pConnector) { }, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector) { });
 	}
 
 	// Update is called once per frame
@@ -22,9 +27,16 @@ public class NewBehaviourScript : MonoBehaviour
 		DLLImport.ProcessIOModule();
 	}
 
+	public void L()
+	{
+		DLLImport.TcpListen("0.0.0.0", 10085);
+	}
+
 	public void OnClick()
 	{
-		connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, string pData, int nLen) { }, delegate (IntPtr pConnector) { }, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector) { });
+		connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, string pData, uint nLen) {
+			Debug.Log(pData);
+		}, delegate (IntPtr pConnector) { }, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector) { });
 
 		DLLImport.TcpConnect(connector, "127.0.0.1", 10085);
 	}
