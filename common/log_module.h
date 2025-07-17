@@ -35,7 +35,7 @@ public:
 	bool					Init();
 	void					Uninit();
 	void					PushLog(std::stringstream*& refpStream);
-	const char*				GetLogStr();
+	std::string				GetLogStr();
 
 private:
 

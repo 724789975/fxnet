@@ -213,7 +213,14 @@ namespace FXNET
 	};
 
 	void PushLog(std::stringstream* pStrstream);
-	const char* GetLogStr();
+	
+	/**
+	 * @brief 获取日志字符串，并清空日志缓存
+	 * 
+	 * @return 
+	 * @note 如果不使用日志线程，那么每帧都要调用一下这个函数
+	 */
+	std::string GetLogStr();
 };
 
 

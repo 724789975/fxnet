@@ -92,11 +92,11 @@ void LogModule::PushLog(std::stringstream*& refpStream)
 	refpStream->str("");
 }
 
-const char* LogModule::GetLogStr()
+std::string LogModule::GetLogStr()
 {
 	std::string strTemp;
 	FXNET::CLockImp oImp(this->m_lockEventLock);
 	m_oStream.str().swap(strTemp);
 	m_oStream.str("");
-	return strTemp.c_str();
+	return strTemp;
 }
