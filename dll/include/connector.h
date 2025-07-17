@@ -25,7 +25,7 @@ extern "C" {
 	 * @param pData 数据
 	 * @param nLen 长度
 	 */
-	typedef FX_API void OnRecvCallback(Connector* pConnector, const char* pData, int nLen);
+	typedef FX_API void OnRecvCallback(Connector* pConnector, const char* pData, unsigned int nLen);
 
 	/**
 	 * @brief 连接成功回调
@@ -111,7 +111,7 @@ extern "C" {
 	 * @param szIp 监听的ip
 	 * @param wPort 监听的端口
 	 */
-	FX_API void TcpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort);
+	FX_API void TcpListen(const char* szIp, unsigned short wPort);
 
 	/**
 	 * @brief 
@@ -122,7 +122,7 @@ extern "C" {
 	 * @param szIp 监听的ip
 	 * @param wPort 监听的端口
 	 */
-	FX_API void UdpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort);
+	FX_API void UdpListen(const char* szIp, unsigned short wPort);
 
 	/**
 	 * @brief 发送数据

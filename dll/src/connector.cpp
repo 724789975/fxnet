@@ -91,13 +91,13 @@ FX_API void TcpConnect(Connector *pConnector, const char *szIp, unsigned short w
 	pConnector->TcpConnect(szIp, wPort);
 }
 
-FX_API void TcpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort)
+FX_API void TcpListen(const char* szIp, unsigned short wPort)
 {
 	int dwIndex1 = FXNET::GetFxIoModuleIndex();
 	FXNET::PostEvent(dwIndex1, new FXNET::UDPListen(szIp, wPort, dwIndex1, g_pSessionMaker));
 }
 
-FX_API void UdpListen(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort)
+FX_API void UdpListen(const char* szIp, unsigned short wPort)
 {
 	int dwIndex1 = FXNET::GetFxIoModuleIndex();
 	FXNET::PostEvent(dwIndex1, new FXNET::UDPListen(szIp, wPort, dwIndex1, g_pSessionMaker));
