@@ -92,7 +92,10 @@ FX_API void ProcessIOModule()
 	const char* szLog = FXNET::GetLogStr();
 	if (g_pLogCallback)
 	{
-		g_pLogCallback(szLog, strlen(szLog));
+		if (size_t nLen = strlen(szLog))
+		{
+			g_pLogCallback(szLog, strlen(szLog));
+		}
 	}
 }
 
