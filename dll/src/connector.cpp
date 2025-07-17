@@ -89,12 +89,12 @@ FX_API void ProcessIOModule()
 	}
 	FXNET::PushLog(&g_LogStream);
 	g_LogStream.str("");
-	const char* szLog = FXNET::GetLogStr();
+	std::string szLog = FXNET::GetLogStr();
 	if (g_pLogCallback)
 	{
-		if (size_t nLen = strlen(szLog))
+		if (szLog.length())
 		{
-			g_pLogCallback(szLog, strlen(szLog));
+			g_pLogCallback(szLog.c_str(), szLog.length());
 		}
 	}
 }
