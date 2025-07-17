@@ -56,6 +56,13 @@ namespace FXNET
 
 	void UdpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, ErrorCode& refError, std::ostream* pOStream)
 	{
+		if (pSession->GetSocket())
+		{
+			refError = CODE_ERROR_NET_ERROR_SESSION_ALREADY_CONNECTED;
+			pSession->GetSocket()->NewErrorOperation(refError)(*pSession->GetSocket(), 0, refError, pOStream);
+			return;
+		}
+		
 		CUdpConnector* pConnector = new CUdpConnector(pSession);
 		pConnector->SetIOModuleIndex(dwIOModuleIndex);
 
@@ -85,6 +92,13 @@ namespace FXNET
 
 	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, ErrorCode& refError, std::ostream* pOStream)
 	{
+		if (pSession->GetSocket())
+		{
+			refError = CODE_ERROR_NET_ERROR_SESSION_ALREADY_CONNECTED;
+			pSession->GetSocket()->NewErrorOperation(refError)(*pSession->GetSocket(), 0, refError, pOStream);
+			return;
+		}
+		
 		CTcpConnector* pConnector = new CTcpConnector(pSession);
 		pConnector->SetIOModuleIndex(dwIOModuleIndex);
 
