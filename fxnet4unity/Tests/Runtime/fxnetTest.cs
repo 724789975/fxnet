@@ -5,30 +5,35 @@ using UnityEngine;
 using fxnetlib.dllimport;
 public class NewBehaviourScript : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        DLLImport.StartIOModule();
-    }
+	// Start is called before the first frame update
+	void Start()
+	{
+		DLLImport.StartIOModule();
+		DLLImport.SetLogCallback(delegate (string pData, int dwLen)
+		{
+			Debug.Log(pData);
+		}
+		);
+	}
 
-    // Update is called once per frame
-    void Update()
-    {
-        DLLImport.ProcessIOModule();
-    }
+	// Update is called once per frame
+	void Update()
+	{
+		DLLImport.ProcessIOModule();
+	}
 
-    public void OnClick()
-    {
-        connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, string pData, int nLen) { }, delegate (IntPtr pConnector){ }, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector) { });
+	public void OnClick()
+	{
+		connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, string pData, int nLen) { }, delegate (IntPtr pConnector) { }, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector) { });
 
-        DLLImport.TcpConnect(connector, "127.0.0.1", 10085);
-    }
+		DLLImport.TcpConnect(connector, "127.0.0.1", 10085);
+	}
 
-    public void SendM()
-    {
-        string m = "1234";
-        DLLImport.Send(connector, m, (uint)m.Length);
-    }
+	public void SendM()
+	{
+		string m = "1234";
+		DLLImport.Send(connector, m, (uint)m.Length);
+	}
 
-    IntPtr connector;
+	IntPtr connector;
 }
