@@ -97,6 +97,7 @@ const char* LogModule::GetLogStr()
 	{
 		FXNET::CLockImp oImp(this->m_lockEventLock);
 		strTemp.swap(this->m_oStream);
+		m_oStream.str("");
 	}
 	return strTemp.str().c_str();
 }
