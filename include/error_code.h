@@ -44,6 +44,7 @@ enum UserError
 	CODE_ERROR_NET_ERROR_SOCKET,													//socket < 0
 	CODE_ERROR_NET_ERROR_COMPLETION_PORT,											//CompletionPort < 0
 	CODE_ERROR_NET_ERROR_EPOLL_HANDLE,												//epoll < 0
+	CODE_ERROR_NET_ERROR_SESSION_ALREADY_CONNECTED,									//已经链接了
 	CODE_ERROR_NET_END = 3 << 30 | 1 << 29 | FACILITY_NET << 16 | 0xF,
 	CODE_ERROR_END = 3 << 30 | 1 << 29 | FACILITY_END << 16 | 0xF,
 	////////////////////////////////////错误//////////////////////////////////////
