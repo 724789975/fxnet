@@ -33,7 +33,8 @@ namespace FXNET
 #else //_WIN32
 		typedef int NativeSocketType;
 #endif //_WIN32
-
+		
+		ISession() : m_opSock(0) {}
 		virtual ~ISession() {}
 		void SetSock(CConnectorSocket* opSock) { m_opSock = opSock; }
 		CConnectorSocket* GetSocket() { return m_opSock; }
