@@ -15,10 +15,18 @@ public class NewBehaviourScript : MonoBehaviour
 		}
 		);
 
-		DLLImport.CreateSessionMake(delegate (IntPtr pConnector, string pData, uint nLen) {
-			Debug.Log(pData);
+		DLLImport.CreateSessionMake(delegate (IntPtr pConnector, string pData, uint nLen)
+		{
+			Debug.LogFormat("{0} recv: {1}", pConnector, pData);
 			DLLImport.Send(pConnector, pData, nLen);
-		}, delegate (IntPtr pConnector) { }, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector) { });
+		}, delegate (IntPtr pConnector)
+		{
+			Debug.LogFormat("{0} connected", pConnector);
+		}, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector)
+		{
+			Debug.Log("connector closed");
+			DLLImport.DestroyConnector(pConnector);
+		});
 	}
 
 	// Update is called once per frame
@@ -34,9 +42,17 @@ public class NewBehaviourScript : MonoBehaviour
 
 	public void OnClick()
 	{
-		connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, string pData, uint nLen) {
+		connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, string pData, uint nLen)
+		{
 			Debug.Log(pData);
-		}, delegate (IntPtr pConnector) { }, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector) { });
+		}, delegate (IntPtr pConnector)
+		{
+			Debug.LogFormat("{0} connected2222", pConnector);
+		}, delegate (IntPtr pConnector, IntPtr nLen) { }, delegate (IntPtr pConnector)
+		{
+			Debug.Log("connector destroy");
+			DLLImport.DestroyConnector(pConnector);
+		});
 
 		DLLImport.TcpConnect(connector, "127.0.0.1", 10085);
 	}
