@@ -157,7 +157,7 @@ static struct nlmsghdr *getNetlinkResponse(int p_socket, int *p_size, int *p_don
                     return NULL;
                 }
             }
-            return l_buffer;
+            return (nlmsghdr *)l_buffer;
         }
         
         l_size *= 2;
@@ -166,7 +166,7 @@ static struct nlmsghdr *getNetlinkResponse(int p_socket, int *p_size, int *p_don
 
 static NetlinkList *newListItem(struct nlmsghdr *p_data, unsigned int p_size)
 {
-    NetlinkList *l_item = malloc(sizeof(NetlinkList));
+    NetlinkList *l_item = (NetlinkList*)malloc(sizeof(NetlinkList));
     l_item->m_next = NULL;
     l_item->m_data = p_data;
     l_item->m_size = p_size;
@@ -308,7 +308,7 @@ static void interpretLink(struct nlmsghdr *p_hdr, struct ifaddrs **p_links, stru
         }
     }
     
-    struct ifaddrs *l_entry = malloc(sizeof(struct ifaddrs) + l_nameSize + l_addrSize + l_dataSize);
+    struct ifaddrs *l_entry = (ifaddrs *)malloc(sizeof(struct ifaddrs) + l_nameSize + l_addrSize + l_dataSize);
     memset(l_entry, 0, sizeof(struct ifaddrs));
     l_entry->ifa_name = "";
     
@@ -344,7 +344,7 @@ static void interpretLink(struct nlmsghdr *p_hdr, struct ifaddrs **p_links, stru
                 break;
             }
             case IFLA_IFNAME:
-                strncpy(l_name, l_rtaData, l_rtaDataSize);
+                strncpy(l_name, (const char*)l_rtaData, l_rtaDataSize);
                 l_name[l_rtaDataSize] = '\0';
                 l_entry->ifa_name = l_name;
                 break;
@@ -401,7 +401,7 @@ static void interpretAddr(struct nlmsghdr *p_hdr, struct ifaddrs **p_links, stru
         }
     }
     
-    struct ifaddrs *l_entry = malloc(sizeof(struct ifaddrs) + l_nameSize + l_addrSize);
+    struct ifaddrs *l_entry = (ifaddrs *)malloc(sizeof(struct ifaddrs) + l_nameSize + l_addrSize);
     memset(l_entry, 0, sizeof(struct ifaddrs));
     l_entry->ifa_name = p_links[l_info->ifa_index - 1]->ifa_name;
     
@@ -458,7 +458,7 @@ static void interpretAddr(struct nlmsghdr *p_hdr, struct ifaddrs **p_links, stru
                 break;
             }
             case IFA_LABEL:
-                strncpy(l_name, l_rtaData, l_rtaDataSize);
+                strncpy(l_name, (const char*)l_rtaData, l_rtaDataSize);
                 l_name[l_rtaDataSize] = '\0';
                 l_entry->ifa_name = l_name;
                 break;
