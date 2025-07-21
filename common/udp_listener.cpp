@@ -18,7 +18,11 @@
 #include <sys/socket.h>
 #include <net/if.h>
 #include <unistd.h>
+#ifdef __ANDROID__
+#include "ifaddrs.h"
+#else
 #include <ifaddrs.h>
+#endif // __ANDROID__
 #ifndef macro_closesocket
 #define macro_closesocket close
 #endif //macro_closesocket
@@ -251,7 +255,7 @@ namespace FXNET
 
 				sockaddr_in stRemoteAddr = { 0 };
 				memset(&stRemoteAddr, 0, sizeof(stRemoteAddr));
-				unsigned int nRemoteAddrLen = sizeof(stRemoteAddr);
+				socklen_t nRemoteAddrLen = sizeof(stRemoteAddr);
 
 				int dwLen = recvfrom(refSocketBase.NativeSocket(), (char*)(&oUDPPacketHeader), sizeof(oUDPPacketHeader), 0, (sockaddr*)&stRemoteAddr, &nRemoteAddrLen);
 				if (0 > dwLen)

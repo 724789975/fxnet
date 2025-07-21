@@ -7,17 +7,18 @@
 namespace FXNET
 {
 #ifndef _WIN32
-	static inline unsigned long atomic_cas_uint32(unsigned long* p, unsigned long dwNew, unsigned long dwOld)
-	{
-		unsigned long dwPrev;
+	// android NDK does not support atomic_cas_uint32
+	// static inline unsigned long atomic_cas_uint32(unsigned long* p, unsigned long dwNew, unsigned long dwOld)
+	// {
+	// 	unsigned long dwPrev;
 
-		__asm volatile(
-			"lock cmpxchgq %2, %1"
-			: "=a"(dwPrev), "+m"(*(volatile long*)(p))
-			: "r"(dwNew), "0"(dwOld)
-			: "memory");
-		return dwPrev;
-	}
+	// 	__asm volatile(
+	// 		"lock cmpxchgq %2, %1"
+	// 		: "=a"(dwPrev), "+m"(*(volatile long*)(p))
+	// 		: "r"(dwNew), "0"(dwOld)
+	// 		: "memory");
+	// 	return dwPrev;
+	// }
 #endif //_WIN32
 
 	CCasLock::CCasLock()

@@ -102,7 +102,7 @@ namespace FXNET
 			refListenerSocket.PostAccept(pOStream);
 #else
 			sockaddr_in stRemoteAddr;
-			unsigned int dwAddrLen = sizeof(stRemoteAddr);
+			socklen_t dwAddrLen = sizeof(stRemoteAddr);
 			ISocketBase::NativeSocketType hAcceptSock = accept(refListenerSocket.NativeSocket(), (sockaddr*)&stRemoteAddr, &dwAddrLen);
 			if (ISocketBase::InvalidNativeHandle() == hAcceptSock)
 			{

@@ -72,6 +72,12 @@ namespace FXNET
 				return true;
 			}
 			return false;
+#elif __ANDROID__
+			if (pthread_kill(this->m_dwThreadId, SIGKILL))
+			{
+				return true;
+			}
+			return false;
 #else
 			pthread_cancel(this->m_dwThreadId);
 			return false;
@@ -148,8 +154,11 @@ namespace FXNET
 
 #ifdef _WIN32
 #else
+
+#ifndef __ANDROID__ 
 			pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
 			pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, 0);
+#endif // __ANDROID__
 
 			sigset_t new_set, old_set;
 			sigemptyset(&new_set);
