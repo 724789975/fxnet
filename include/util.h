@@ -3,6 +3,12 @@
 
 namespace FXNET
 {
+#ifdef _WIN32
+#define fx_snprintf sprintf_s
+#else
+#define fx_snprintf snprintf
+#endif
+
 	typedef double TimeFunc();
 
 	void SetTimeFunc(TimeFunc* func);
