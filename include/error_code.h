@@ -2,6 +2,7 @@
 #define __ERROR_CODE_H__
 
 #include <string>
+#include "util.h"
 #include <stdio.h>
 
 enum UserError
@@ -90,7 +91,7 @@ public:
 	std::string What() const
 	{
 		char buff[32] = { 0 };
-		sprintf_s(buff, sizeof(buff), "%d", m_dwError);
+		fx_snprintf(buff, sizeof(buff), "%d", m_dwError);
 		return m_strWhat + ",error:" + buff;
 	}
 	// private:
