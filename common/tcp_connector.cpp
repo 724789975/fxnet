@@ -149,13 +149,7 @@ namespace FXNET
 	{
 	public:
 		friend class CTcpConnector;
-		TCPConnectorIOWriteOperation()
-			: m_bDeleted(false)
-		{}
-		~TCPConnectorIOWriteOperation()
-		{
-			m_bDeleted = true;
-		}
+		TCPConnectorIOWriteOperation() { }
 		virtual TCPConnectorIOWriteOperation& operator()(ISocketBase& refSocketBase, unsigned int dwLen, ErrorCode& refError, std::ostream* pOStream)
 		{
 			DELETE_WHEN_DESTRUCT(TCPConnectorIOWriteOperation, this);
@@ -205,7 +199,6 @@ namespace FXNET
 		WSABUF m_stWsaBuff;
 		std::string m_strData;
 #endif // _WIN32
-		bool m_bDeleted;
 	};
 
 	TCPConnectorIOWriteOperation& NewTCPConnectorIOWriteOperation()
