@@ -176,7 +176,7 @@ CWSSession& CWSSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::ostrea
 
 	if (WSHSS_Request == this->m_eSocketHandShakeState)
 	{
-		int nLen = refPackage.GetDataLength();
+		unsigned int nLen = static_cast<unsigned int>(refPackage.GetDataLength());
 		refPackage.ReadData(m_szWebInfo, nLen);
 		//判断pUseBuf 最后四位是不是"\r\n\r\n" 就可以了
 		if (strncmp(m_szWebInfo + nLen - 4, "\r\n\r\n", 4) != 0)
@@ -187,7 +187,7 @@ CWSSession& CWSSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::ostrea
 		m_eSocketHandShakeState = WSHSS_Response;
 
 		char szResponse[1024] = { 0 };
-		sprintf(szResponse, "HTTP/1.1 101 Switching Protocols\r\n"
+		sprintf_s(szResponse, sizeof(szResponse), "HTTP/1.1 101 Switching Protocols\r\n"
 			"Connection: Upgrade\r\n"
 			"Upgrade: WebSocket\r\n"
 			"Server: %s\r\n"
@@ -197,7 +197,7 @@ CWSSession& CWSSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::ostrea
 			ResponseKey(m_szWebInfo).c_str()
 		);
 
-		this->Send(szResponse, strlen(szResponse), pOStream);
+		this->Send(szResponse, static_cast<unsigned int>(strlen(szResponse)), pOStream);
 		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
 			<< ", " << this->m_opSock->NativeSocket()
 			<< ", handshake response: " << szResponse
@@ -212,9 +212,9 @@ CWSSession& CWSSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::ostrea
 	szData.resize(refPackage.GetDataLength() + 1);
 
 	char* pBuf = (char*)szData.data();
-	refPackage.ReadData(pBuf, refPackage.GetDataLength());
+	refPackage.ReadData(pBuf, static_cast<unsigned int>(refPackage.GetDataLength()));
 
-	this->Send(szData.c_str(), szData.size(), pOStream);
+	this->Send(szData.c_str(), static_cast<unsigned int>(szData.size()), pOStream);
 	LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
 		<< ", " << this->m_opSock->NativeSocket();
 
