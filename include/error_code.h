@@ -90,7 +90,7 @@ public:
 	std::string What() const
 	{
 		char buff[32] = { 0 };
-		sprintf(buff, "%d", m_dwError);
+		sprintf_s(buff, sizeof(buff), "%d", m_dwError);
 		return m_strWhat + ",error:" + buff;
 	}
 	// private:
