@@ -187,7 +187,7 @@ CWSSession& CWSSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::ostrea
 		m_eSocketHandShakeState = WSHSS_Response;
 
 		char szResponse[1024] = { 0 };
-		sprintf_s(szResponse, sizeof(szResponse), "HTTP/1.1 101 Switching Protocols\r\n"
+		fx_snprintf(szResponse, sizeof(szResponse), "HTTP/1.1 101 Switching Protocols\r\n"
 			"Connection: Upgrade\r\n"
 			"Upgrade: WebSocket\r\n"
 			"Server: %s\r\n"

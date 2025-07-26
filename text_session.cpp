@@ -176,7 +176,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 
 		char szBuff[2048] = {0};
 		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
-		sprintf_s(szBuff, sizeof(szBuff), "%lld", qwSend);
+		fx_snprintf(szBuff, sizeof(szBuff), "%lld", qwSend);
 		std::string szSend(szBuff, 30 + dwRandLen);
 
 		this->m_mapSendTimes.erase(qwRecv);
