@@ -128,7 +128,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 	//}
 	//Send(strData.c_str(), (unsigned int)strData.size(), pOStream);
 
-	this->m_dwPacketLength += refPackage.GetDataLength();
+	this->m_dwPacketLength += static_cast<unsigned int>(refPackage.GetDataLength());
 	// LOG(pOStream, ELOG_LEVEL_INFO) << m_opSock->Name()
 	// 	<< ", total: " << m_dwPacketLength << ", average: "
 	// 	<< m_dwPacketLength / (FXNET::GetFxIoModule(0)->FxGetCurrentTime() - m_dConnectedTime)
@@ -142,7 +142,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 	long long qwRecv = atoll(szData.c_str());
 	if (this->m_mapSendTimes.end() == this->m_mapSendTimes.find(qwRecv))
 	{
-		this->Send(szData.c_str(), szData.size(), pOStream);
+		this->Send(szData.c_str(), static_cast<unsigned int>(szData.size()), pOStream);
 		LOG(pOStream, ELOG_LEVEL_INFO) << this->m_opSock->Name()
 			<< ", " << this->m_opSock->NativeSocket()
 			<< ", seq: " << (qwRecv & 0xFFFF)
@@ -176,7 +176,7 @@ CTextSession& CTextSession::OnRecv(FXNET::CNetStreamPackage& refPackage, std::os
 
 		char szBuff[2048] = {0};
 		long long qwSend = (qwRecv & 0xFFFFFFFFFFFF0000) | ((qwRecv + 1) & 0xFFFF);
-		sprintf(szBuff, "%lld", qwSend);
+		sprintf_s(szBuff, sizeof(szBuff), "%lld", qwSend);
 		std::string szSend(szBuff, 30 + dwRandLen);
 
 		this->m_mapSendTimes.erase(qwRecv);

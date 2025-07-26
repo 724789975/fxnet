@@ -133,8 +133,8 @@ int main()
 	TCP_LISTEN(10085);
 	UDP_LISTEN(10086);
 
-	std::stringstream* pStrstream = FXNET::GetStream();
-	pStrstream->flags(std::cout.fixed);
+	std::stringstream pStrstream;
+	pStrstream.flags(std::cout.fixed);
 	for (int i = 0; ; ++i)
 	{
 		if (i >= 10 && i < 11)
@@ -143,7 +143,7 @@ int main()
 			// UDP_CONNECT(szTargetIp, 10086);
 		}
 #ifdef __SINGLE_THREAD__
-		FXNET::ProcSignelThread(pStrstream);
+		FXNET::ProcSignelThread(&pStrstream);
 #endif	//!__SINGLE_THREAD__
 		std::deque<MessageEventBase*> dequeMessage;
 		oQueue.SwapEvent(dequeMessage);
@@ -160,10 +160,10 @@ int main()
 		for (std::deque<MessageEventBase*>::iterator it = dequeMessage.begin()
 			; it != dequeMessage.end(); ++it)
 		{
-			(**it)(pStrstream);
+			(**it)(&pStrstream);
 		}
-		FXNET::PushLog(pStrstream);
-		pStrstream = FXNET::GetStream();
-		pStrstream->flags(std::cout.fixed);
+		FXNET::PushLog(&pStrstream);
+		pStrstream.str("");
+		pStrstream.flags(std::cout.fixed);
 	}
 }
