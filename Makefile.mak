@@ -44,10 +44,10 @@ LKFLAGS = $(LKFLAGS) /DEBUG /PDB:"$(DIR_OUT)$(TARGET).pdb" /ManifestFile:"$(OBJ_
 
 !IF "$(DEBUG)" == "1"
 LIBDIRS = $(PLATFORM_DIR)DEBUG\\
-LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib dbghelp.lib NetLib.lib
+LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib NetLib.lib
 !ELSE
 LIBDIRS = $(PLATFORM_DIR)RELEASE\\
-LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib dbghelp.lib NetLib.lib
+LIBS = kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ws2_32.lib NetLib.lib
 !ENDIF
 LINKLIBS = $(LIBDIRS) $(LIBS)
 
