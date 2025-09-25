@@ -6,6 +6,7 @@
 
 #include <psapi.h>
 #include <cstddef>
+#include <dbghelp.h>
 #else
 #include <pthread.h>
 #include <signal.h>
