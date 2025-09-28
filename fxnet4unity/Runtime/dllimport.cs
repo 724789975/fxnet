@@ -6,7 +6,7 @@ namespace fxnetlib.dllimport
     public class DLLImport
     {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void OnRecvCallback(IntPtr pConnector, string pData, uint nLen);
+        public delegate void OnRecvCallback(IntPtr pConnector, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] pData, uint nLen);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void OnConnectedCallback(IntPtr pConnector);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -14,7 +14,7 @@ namespace fxnetlib.dllimport
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void OnCloseCallback(IntPtr pConnector);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void OnLogCallback(string pLog, int nLen);
+        public delegate void OnLogCallback([MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] pLog, int nLen);
 
         [DllImport("fxnet", EntryPoint = "CreateConnector", CharSet = CharSet.Ansi)]
         public static extern IntPtr CreateConnector(OnRecvCallback onRecv, OnConnectedCallback onConnected, OnErrorCallback onError, OnCloseCallback onClose);
@@ -31,7 +31,7 @@ namespace fxnetlib.dllimport
         [DllImport("fxnet", EntryPoint = "TcpConnect", CharSet = CharSet.Ansi)]
         public static extern void TcpConnect(IntPtr pConnector, string szIp, UInt16 wPort);
         [DllImport("fxnet", EntryPoint = "Send", CharSet = CharSet.Ansi)]
-        public static extern void Send(IntPtr pConnector, string szData, UInt32 dwLen);
+        public static extern void Send(IntPtr pConnector, byte[] szData, UInt32 dwLen);
         [DllImport("fxnet", EntryPoint = "Close", CharSet = CharSet.Ansi)]
         public static extern void Close(IntPtr pConnector);
         [DllImport("fxnet", EntryPoint = "StartIOModule", CharSet = CharSet.Ansi)]
