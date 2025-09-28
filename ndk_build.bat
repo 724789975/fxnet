@@ -1,0 +1,1 @@
+ndk-build.cmd NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./common/android.mk APP_ABI=all APP_PLATFORM=android-24
