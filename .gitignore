@@ -38,3 +38,6 @@
 *.suo
 *.ncb
 *.opt
+x64
+.vs
+obj
