@@ -1,1 +1,2 @@
-ndk-build.cmd NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./common/android.mk APP_ABI=all APP_PLATFORM=android-24
+REM 手动一条一条执行
+ndk-build.cmd NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./common/android.mk APP_ABI=all APP_PLATFORM=android-24 && ndk-build.cmd NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./dll/android.mk APP_ABI=all APP_PLATFORM=android-24
