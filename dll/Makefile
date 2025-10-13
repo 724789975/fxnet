@@ -36,7 +36,7 @@ endif
 #  Commands
 CODE_DIR = ./ 
 INCLUDE_DIR =./ ./include
-LIB_FILE = -L../lib -Lcrypto -lpthread
+LIB_FILE = -L../lib -Lcrypto -lpthread -lstdc++
 LIB_FILE += -lfxnet
 
 #==========================================================

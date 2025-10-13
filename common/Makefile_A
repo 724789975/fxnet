@@ -77,5 +77,6 @@ clean:
 	rm -f $(addprefix $(OUTPUT_DIR)/,$(COBJS:.cc=.d))
 	rm -f $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.o))
 	rm -f $(addprefix $(OUTPUT_DIR)/,$(OBJS:.cpp=.d))
+	rm -f ../lib/$(OUTPUT)
 	
 	@echo Clean ...done!
