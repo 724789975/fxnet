@@ -1,21 +1,22 @@
+using fxnetlib.dllimport;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
-using fxnetlib.dllimport;
 public class NewBehaviourScript : MonoBehaviour
 {
 	// Start is called before the first frame update
 	void Start()
 	{
 		DLLImport.StartIOModule();
-		DLLImport.SetLogCallback(delegate (string pData, int dwLen)
+		DLLImport.SetLogCallback(delegate (byte[] pData, int dwLen)
 		{
 			Debug.Log(pData);
 		}
 		);
 
-		DLLImport.CreateSessionMake(delegate (IntPtr pConnector, string pData, uint nLen)
+		DLLImport.CreateSessionMake(delegate (IntPtr pConnector, byte[] pData, uint nLen)
 		{
 			Debug.LogFormat("{0} recv: {1}", pConnector, pData);
 			DLLImport.Send(pConnector, pData, nLen);
@@ -42,7 +43,7 @@ public class NewBehaviourScript : MonoBehaviour
 
 	public void OnClick()
 	{
-		connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, string pData, uint nLen)
+		connector = DLLImport.CreateConnector(delegate (IntPtr pConnector, byte[] pData, uint nLen)
 		{
 			Debug.Log(pData);
 		}, delegate (IntPtr pConnector)
@@ -60,7 +61,8 @@ public class NewBehaviourScript : MonoBehaviour
 	public void SendM()
 	{
 		string m = "1234";
-		DLLImport.Send(connector, m, (uint)m.Length);
+		byte[]  str = Encoding.UTF8.GetBytes(m);
+		DLLImport.Send(connector, str, (uint)str.Length);
 	}
 
 	IntPtr connector;
