@@ -118,6 +118,30 @@ namespace FXNET
 		}
 	}
 
+	void CloseAllSockets(std::ostream* pOStream)
+	{
+		class _CloseAllSockets : public IOEventBase
+		{
+		public:
+			_CloseAllSockets(unsigned int dwIoModuleIndex)
+				: m_dwIOModuleIndex(dwIoModuleIndex)
+			{}
+			virtual void operator ()(std::ostream* pOStream)
+			{
+				DELETE_WHEN_DESTRUCT(_CloseAllSockets, this);
+				GetFxIoModule(m_dwIOModuleIndex)->CloseAllSockets(pOStream);
+			}
+		private:
+			unsigned int m_dwIOModuleIndex;
+		};
+
+		for (unsigned int i = 0; i < GetFxIoModuleNum(); ++i)
+		{
+			GetFxIoModule(i)->PostEvent(new _CloseAllSockets(i));
+		}
+	}
+
+
 	void PushLog(std::stringstream* pStrstream)
 	{
 		LogModule::Instance()->PushLog(pStrstream);

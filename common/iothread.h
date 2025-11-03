@@ -58,6 +58,8 @@ namespace FXNET
 
 		void					SetIOModuleIndex(unsigned int dwIndex) { this->m_dwIOModuleIndex = dwIndex; }
 		unsigned int			GetIOModuleIndex() { return this->m_dwIOModuleIndex; }
+
+		void					CloseAllSockets(std::ostream* pOStream);
 		/**
 		 * @brief 
 		 * 

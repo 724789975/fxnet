@@ -102,6 +102,8 @@ namespace FXNET
 	 */
 	void TcpConnect(unsigned int dwIOModuleIndex, const char* szIp, unsigned short wPort, ISession* pSession, ErrorCode& refError, std::ostream* pOStream);
 
+	void CloseAllSockets(std::ostream* pOStream);
+
 	/**
 	 * @brief 
 	 * 
