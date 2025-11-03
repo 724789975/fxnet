@@ -145,6 +145,12 @@ FX_API void ProcessIOModule()
 	}
 }
 
+FX_API void StopAllSockets()
+{
+	FXNET::CloseAllSockets(&g_LogStream);
+}
+
+
 FX_API void SetLogCallback(OnLogCallback *onLog)
 {
 	g_pLogCallback = onLog;

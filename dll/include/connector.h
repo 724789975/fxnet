@@ -155,6 +155,12 @@ extern "C" {
 	FX_API void ProcessIOModule();
 
 	/**
+	 * @brief 停止所有socket
+	 * @note 停止所有socket后，不能再进行连接
+	 */
+	FX_API void StopAllSockets();
+
+	/**
 	 * @brief 日志回调
 	 * 
 	 * @param pLog 日志内容
