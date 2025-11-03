@@ -156,6 +156,8 @@ namespace FXNET
 			DELETE_WHEN_DESTRUCT(TCPListenIOErrorOperation, this);
 			LOG(pOStream, ELOG_LEVEL_ERROR) << refSocketBase.NativeSocket() << " IOErrorOperation failed(" << m_oError.What() << ")"
 				<< "\n";
+
+			macro_closesocket(refSocketBase.NativeSocket());
 			return *this;
 		}
 	};

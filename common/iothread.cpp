@@ -238,6 +238,19 @@ namespace FXNET
 		return this->m_dCurrentTime;
 	}
 
+	void FxIoModule::CloseAllSockets(std::ostream* pOStream)
+	{
+		for (std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it = this->m_mapSockets.begin();
+			it != this->m_mapSockets.end();)
+		{
+			std::map<ISocketBase::NativeSocketType, ISocketBase*>::iterator it_tmp = it++;
+			ISocketBase* pISock = it_tmp->second;
+			this->DeregisterIO(pISock->NativeSocket(), pOStream);
+			ErrorCode oError(CODE_SUCCESS_NET_EOF, __FILE__ ":" __LINE2STR__(__LINE__));
+			pISock->NewErrorOperation(CODE_SUCCESS_NET_EOF)(*pISock, 0, oError, pOStream);
+		}
+	}
+
 	void FxIoModule::PushMessageEvent(MessageEventBase* pMessageEvent)
 	{
 		this->m_pEventQueue->PushMessageEvent(pMessageEvent);
