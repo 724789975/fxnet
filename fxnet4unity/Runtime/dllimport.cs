@@ -40,5 +40,9 @@ namespace fxnetlib.dllimport
         public static extern void ProcessIOModule();
         [DllImport("fxnet", EntryPoint = "SetLogCallback", CharSet = CharSet.Ansi)]
         public static extern void SetLogCallback(OnLogCallback onLogCallback);
+#UNITY_EDITOR
+        [DllImport("fxnet", EntryPoint = "StopAllSockets", CharSet = CharSet.Ansi)]
+        public static extern void StopAllSockets();
+#endif
     }
 }
