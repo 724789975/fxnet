@@ -1,6 +1,6 @@
 {
 	"name": "com.dlxl.fxnet",
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"displayName": "FXNET Package",
 	"description": "This is a package for network.",
 	"unity": "2020.3",
