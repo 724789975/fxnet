@@ -48,7 +48,7 @@ namespace FXNET
 
 		if (refSocketBase.GetError())
 		{
-			refError(refSocketBase.GetError());
+			refError(refSocketBase.GetError(), __FILE__ ":" __LINE2STR__(__LINE__));
 			return *this;
 		}
 
