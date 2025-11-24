@@ -11,8 +11,14 @@
 namespace FXNET
 {
 
+	bool bInitFxIoModule = false;
 	void StartIOModule(MessageEventQueue* pQueue)
 	{
+		if (bInitFxIoModule)
+		{
+			return;
+		}
+		bInitFxIoModule = true;
 		for (unsigned int i = 0; i < GetFxIoModuleNum(); ++i)
 		{
 			GetFxIoModule(i)->Init(i, pQueue, &std::cout);
