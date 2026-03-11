@@ -1,3 +1,15 @@
+/**
+ * @file buff_contral.h
+ * @brief UDP可靠传输缓冲区控制器
+ * 
+ * 该模块实现了基于UDP的可靠传输机制，包含以下核心功能：
+ * - 滑动窗口协议（发送窗口和接收窗口）
+ * - 拥塞控制（慢启动、拥塞避免）
+ * - 超时重传和快速重传
+ * - RTT/RTO计算
+ * - 连接状态管理
+ */
+
 #ifndef __BUFF_CONTRAL_H__
 #define __BUFF_CONTRAL_H__
 
@@ -22,6 +34,10 @@
 
 namespace FXNET
 {
+	/**
+	 * @brief 数据接收回调操作符基类
+	 * 用于处理接收到的有效数据
+	 */
 	class OnRecvOperator
 	{
 	public:
@@ -37,6 +53,10 @@ namespace FXNET
 		virtual OnRecvOperator& operator() (char* szBuff, unsigned short wSize, ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
+	/**
+	 * @brief 连接建立回调操作符基类
+	 * 用于处理连接建立成功时的操作
+	 */
 	class OnConnectedOperator
 	{
 	public:
@@ -48,6 +68,10 @@ namespace FXNET
 		virtual OnConnectedOperator& operator() (ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
+	/**
+	 * @brief 底层接收操作符基类
+	 * 用于从socket实际接收数据
+	 */
 	class RecvOperator
 	{
 	public:
@@ -63,6 +87,10 @@ namespace FXNET
 		virtual RecvOperator& operator() (char* pBuff, unsigned short wBuffSize, int& wRecvSize, ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
+	/**
+	 * @brief 底层发送操作符基类
+	 * 用于通过socket实际发送数据
+	 */
 	class SendOperator
 	{
 	public:
@@ -78,6 +106,10 @@ namespace FXNET
 		virtual SendOperator& operator() (char* szBuff, unsigned short wBufferSize, int& dwSendLen, ErrorCode& refError, std::ostream* pOStream) = 0;
 	};
 
+	/**
+	 * @brief 流读取操作符基类
+	 * 用于读取并输出统计信息
+	 */
 	class ReadStreamOperator
 	{
 	public:
@@ -87,71 +119,91 @@ namespace FXNET
 	private:
 	};
 
+	/**
+	 * @brief 连接状态枚举
+	 * 模拟TCP的三次握手和四次挥手状态机
+	 */
 	enum ConnectionStatus
 	{
-		ST_IDLE,
-		ST_SYN_SEND,		//使用
-		ST_SYN_RECV,		//使用
-		ST_SYN_RECV_WAIT,
-		ST_ESTABLISHED,		//使用
-		ST_FIN_WAIT_1,
-		ST_FIN_WAIT_2,
+		ST_IDLE,			//空闲状态
+		ST_SYN_SEND,		//已发送SYN包 使用中
+		ST_SYN_RECV,		//已收到SYN包 使用中
+		ST_SYN_RECV_WAIT,	//等待SYN确认
+		ST_ESTABLISHED,		//连接已建立 使用中
+		ST_FIN_WAIT_1,		//等待FIN确认
+		ST_FIN_WAIT_2,		//等待对方FIN
 	};
 
+	/**
+	 * @brief 缓冲区控制器模板类
+	 * 实现基于UDP的可靠传输，包含滑动窗口、拥塞控制、重传等TCP特性
+	 * @tparam BUFF_SIZE 单个缓冲区大小，默认512字节
+	 * @tparam WINDOW_SIZE 滑动窗口大小，默认32个包
+	 */
 	template <unsigned short BUFF_SIZE = 512, unsigned short WINDOW_SIZE = 32>
 	class BufferContral
 	{
 	public:
-		enum { buff_size = BUFF_SIZE };
-		enum { window_size = WINDOW_SIZE };
+		enum { buff_size = BUFF_SIZE };		//单个缓冲区大小
+		enum { window_size = WINDOW_SIZE };	//滑动窗口大小
 
-		typedef SendWindow<buff_size, window_size> _SendWindow;
-		typedef SlidingWindow<buff_size, window_size> _RecvWindow;
-		typedef BufferContral<buff_size, window_size> BUFF_CONTRAL;
+		typedef SendWindow<buff_size, window_size> _SendWindow;		//发送窗口类型
+		typedef SlidingWindow<buff_size, window_size> _RecvWindow;	//接收窗口类型
+		typedef BufferContral<buff_size, window_size> BUFF_CONTRAL;	//自身类型
 
 		BufferContral();
 		~BufferContral();
 
+		/**
+		 * @brief 初始化缓冲区控制器
+		 * @param dwState 初始连接状态
+		 * @param dAckRecvTime 初始ACK接收时间
+		 * @return 初始化结果，0表示成功
+		 */
 		int Init(int dwState, double dAckRecvTime);
 
+		/**
+		 * @brief 获取当前连接状态
+		 * @return 当前连接状态
+		 */
 		int GetState()const;
 
 		/**
-		 * @brief Set the On Recv Operator object
-		 * 
-		 * @param p 
-		 * @return BufferContral& 
+		 * @brief 设置数据接收回调操作符
+		 * @param p 接收回调操作符指针
+		 * @return 自身引用，支持链式调用
 		 */
 		BufferContral& SetOnRecvOperator(OnRecvOperator* p);
 		/**
-		 * @brief Set the On Connected Operator object
-		 * 
-		 * @param p 
-		 * @return BufferContral& 
+		 * @brief 设置连接建立回调操作符
+		 * @param p 连接建立回调操作符指针
+		 * @return 自身引用，支持链式调用
 		 */
 		BufferContral& SetOnConnectedOperator(OnConnectedOperator* p);
 		/**
-		 * @brief Set the Recv Operator object
-		 * 
-		 * @param p 
-		 * @return BufferContral& 
+		 * @brief 设置底层接收操作符
+		 * @param p 底层接收操作符指针
+		 * @return 自身引用，支持链式调用
 		 */
 		BufferContral& SetRecvOperator(RecvOperator* p);
 		/**
-		 * @brief Set the Send Operator object
-		 * 
-		 * @param p 
-		 * @return BufferContral& 
+		 * @brief 设置底层发送操作符
+		 * @param p 底层发送操作符指针
+		 * @return 自身引用，支持链式调用
 		 */
 		BufferContral& SetSendOperator(SendOperator* p);
 		/**
-		 * @brief Set the Read Stream Operator object
-		 * 
-		 * @param p 
-		 * @return BufferContral& 
+		 * @brief 设置流读取操作符
+		 * @param p 流读取操作符指针
+		 * @return 自身引用，支持链式调用
 		 */
 		BufferContral& SetReadStreamOperator(ReadStreamOperator* p);
 
+		/**
+		 * @brief 设置ACK超时时间
+		 * @param dOutTime ACK超时时间（秒）
+		 * @return 自身引用，支持链式调用
+		 */
 		BufferContral& SetAckOutTime(double dOutTime);
 
 		/**
@@ -164,184 +216,147 @@ namespace FXNET
 		unsigned int Send(const char* pSendBuffer, unsigned int dwSize);
 
 		/**
-		 * @brief 
-		 * 
-		 * 发送消息 将缓存中数据发送出去
-		 * @param dTime 
-		 * @param pOStream 
-		 * @return int 
+		 * @brief 发送消息，将发送窗口中的数据发送出去
+		 * 包含拥塞控制、快速重传、超时重传等机制
+		 * @param dTime 当前时间戳
+		 * @param refErrorCode 错误码引用
+		 * @param pOStream 日志输出流指针
+		 * @return 自身引用，支持链式调用
 		 */
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>& SendMessages
 			(double dTime, ErrorCode& refErrorCode, std::ostream* pOStream);
 		/**
-		 * @brief 
-		 * 
-		 * 接收数据
-		 * @param dTime 
-		 * @param refbReadable 
-		 * @param pOStream 
-		 * @return int 
+		 * @brief 接收数据并处理
+		 * 从socket接收数据，更新接收窗口，处理ACK，交付数据给上层
+		 * @param dTime 当前时间戳
+		 * @param refbReadable 是否还有数据可读的引用
+		 * @param refError 错误码引用
+		 * @param pOStream 日志输出流指针
+		 * @return 自身引用，支持链式调用
 		 */
 		BufferContral<BUFF_SIZE, WINDOW_SIZE>& ReceiveMessages
 			(double dTime, bool& refbReadable, ErrorCode& refError, std::ostream* pOStream);
 		
 	private:
-		_SendWindow m_oSendWindow;
-		_RecvWindow m_oRecvWindow;
+		_SendWindow m_oSendWindow;			//发送滑动窗口
+		_RecvWindow m_oRecvWindow;			//接收滑动窗口
 
-		OnRecvOperator* m_pOnRecvOperator;
-		OnConnectedOperator* m_pOnConnectedOperator;
-		RecvOperator* m_pRecvOperator;
-		SendOperator* m_pSendOperator;
-		ReadStreamOperator* m_pReadStreamOperator;
+		OnRecvOperator* m_pOnRecvOperator;			//数据接收回调
+		OnConnectedOperator* m_pOnConnectedOperator;	//连接建立回调
+		RecvOperator* m_pRecvOperator;				//底层接收操作
+		SendOperator* m_pSendOperator;				//底层发送操作
+		ReadStreamOperator* m_pReadStreamOperator;	//流读取操作
 
 		/**
-		 * @brief 
-		 * 
-		 * 已发送字节数
+		 * @brief 已发送字节数统计
 		 */
 		unsigned int m_dwNumBytesSend;
 		/**
-		 * @brief 
-		 * 
-		 * 已接收字节数
+		 * @brief 已接收字节数统计
 		 */
 		unsigned int m_dwNumBytesReceived;
 
 		/**
-		 * @brief 
-		 * 
-		 * rtt(收包延迟时间)
+		 * @brief RTT（往返时间）测量值
 		 */
 		double m_dDelayTime;
 		/**
-		 * @brief 
-		 * 
-		 * 平均rtt
+		 * @brief 平均RTT（平滑往返时间）
 		 */
 		double m_dDelayAverage;
 		/**
-		 * @brief 
-		 * 
-		 * 重传时间
-		 * 一定时间后没有发送出去 那么就开始重传
+		 * @brief RTO（重传超时时间）
+		 * 超过该时间未收到ACK则进行重传
 		 */
 		double m_dRetryTime;
 		/**
-		 * @brief 
-		 * 
-		 * 下一次发包的时间
+		 * @brief 下一次发送数据包的时间
 		 */
 		double m_dSendTime;
 		/**
-		 * @brief 
-		 * 
-		 * 发送频率
+		 * @brief 发送频率控制（秒）
 		 */
 		double m_dSendFrequency;
 		/**
-		 * @brief 
-		 * 
-		 * 拥塞控制
+		 * @brief 拥塞窗口大小（拥塞控制）
 		 */
 		double m_dSendWindowControl;
 		/**
-		 * @brief 
-		 * 
-		 * 发送窗口阈值
+		 * @brief 慢启动阈值
+		 * 超过该值进入拥塞避免阶段
 		 */
 		double m_dSendWindowThreshhold;
 		/**
-		 * @brief 
-		 * 
-		 * 下次发送空包时间
+		 * @brief 下次发送空包的时间
+		 * 用于保活和窗口同步
 		 */
 		double m_dSendEmptyDataTime;
 		/**
-		 * @brief 
-		 * 
-		 * 发送空包频率
+		 * @brief 发送空包的基础频率（秒）
 		 */
 		double m_dSendEmptyDataFrequency;
 		/**
-		 * @brief 
-		 * 
-		 * 发送空包因子 等下一次非空包时 置零
+		 * @brief 空包发送因子（指数退避）
+		 * 发送下一个非空包时置零
 		 */
 		int m_dwSendEmptyDataFactor;
 
 		/**
-		 * @brief 
-		 * 
-		 * 发包数量(每512字节或少于512 算一个包)
+		 * @brief 发送数据包数量统计
+		 * 每512字节或少于512字节算一个包
 		 */
 		unsigned int m_dwNumPacketsSend;
 		/**
-		 * @brief 
-		 * 
-		 * 收包数量
+		 * @brief 重传数据包数量统计
 		 */
 		unsigned int m_dwNumPacketsRetry;
 
-		bool m_bConnected;
+		bool m_bConnected;		//连接是否已建立标志
 
 		/**
-		 * @brief 
-		 * 
-		 * 最后一个有效包时间
+		 * @brief 最后一次收到有效ACK的时间
 		 */
 		double m_dAckRecvTime;
 		/**
-		 * @brief 
-		 * 
-		 * 超时重试次数
+		 * @brief ACK超时重试次数
 		 */
 		int m_dwAckTimeoutRetry;
 		/**
-		 * @brief 
-		 * 
-		 * 连接状态
+		 * @brief 当前连接状态
 		 */
 		unsigned int m_dwStatus;
 
 		/**
-		 * @brief 
-		 * 
-		 * 相同ack次数
+		 * @brief 连续收到相同ACK的次数
+		 * 用于快速重传判断
 		 */
 		int m_dwAckSameCount;
 		/**
-		 * @brief 
-		 * 
-		 * 是否正在快速重传
+		 * @brief 是否正在进行快速重传
 		 */
 		bool m_bQuickRetry;
 		/**
-		 * @brief 
-		 * 
-		 * 是否需要发送ack
+		 * @brief 是否需要发送ACK
 		 */
 		bool m_bSendAck;
 		/**
-		 * @brief 
-		 * 
-		 * 最后一个ack
+		 * @brief 最后处理的ACK序号
 		 */
 		unsigned char m_btAckLast;
 		/**
-		 * @brief 
-		 * 
-		 * 最后一个syn
+		 * @brief 最后处理的SYN序号
 		 */
 		unsigned char m_btSynLast;
 		/**
-		 * @brief 
-		 * 
-		 * 超时时间
+		 * @brief ACK超时时间（秒），默认5秒
 		 */
-		double m_dAckOutTime; //默认是5
+		double m_dAckOutTime;
 	};
 
+	/**
+	 * @brief 构造函数
+	 * 初始化各成员变量的默认值
+	 */
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>::BufferContral()
 		: m_dwNumBytesSend(0)
@@ -358,6 +373,9 @@ namespace FXNET
 	{
 	}
 
+	/**
+	 * @brief 析构函数
+	 */
 	template<unsigned short BUFF_SIZE, unsigned short WINDOW_SIZE>
 	inline BufferContral<BUFF_SIZE, WINDOW_SIZE>::~BufferContral()
 	{ }
