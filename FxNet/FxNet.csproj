@@ -6,5 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- 单线程模式：取消注释以启用，等效于 C++ 的 -D__SINGLE_THREAD__ -->
+    <!-- <DefineConstants>SINGLE_THREAD</DefineConstants> -->
   </PropertyGroup>
 </Project>

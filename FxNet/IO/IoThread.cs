@@ -21,7 +21,6 @@ namespace FxNet.IO
         private double _lastUpdateTime;   // 上次更新时间戳（用于周期性 UDP 更新）
         private MessageEventQueue? _eventQueue; // 全局消息事件队列
         private uint _ioModuleIndex;      // 本模块索引
-        private int _dealCount;           // DealFunction 调用计数（调试用）
 
         // Socket 注册表（Socket 句柄 → SocketBase 对象）
         private readonly Dictionary<Socket, SocketBase> _sockets = new();
@@ -29,8 +28,12 @@ namespace FxNet.IO
         private readonly List<MessageEventBase> _pendingEvents = new();
         private readonly object _eventLock = new object(); // 事件队列锁
 
-        // 单例数组（当前仅支持 1 个 IO 模块）
+        // 单例数组：单线程模式 1 个 IO 模块，多线程模式 3 个（与 C++ FXNET_AOI_THREAD_NUM 对齐）
+#if SINGLE_THREAD
         private static readonly IoModule[] _instances = new IoModule[1];
+#else
+        private static readonly IoModule[] _instances = new IoModule[3];
+#endif
 
         public IoModule()
         {
@@ -56,12 +59,16 @@ namespace FxNet.IO
             if (_instances[index] == null)
                 _instances[index] = this;
 
+#if SINGLE_THREAD
+            // 单线程模式：不创建后台线程，由主线程调用 DealFunction
+#else
             _thread = new FxThread(this);
             if (!_thread.Start())
             {
                 LogUtility.Log(output, LogLevel.Error, "IoModule start thread failed");
                 return false;
             }
+#endif
             return true;
         }
 
@@ -126,19 +133,14 @@ namespace FxNet.IO
         }
 
         /// <summary>
-        /// 后台 IO 线程主循环。
-        /// 注意：Socket 周期性更新（UDP 重传等）由 DealFunction 在主线程处理，
-        /// 后台线程仅负责处理 PostEvent 投递的 IO 事件，避免多线程并发访问 BufferContral 状态。
+        /// 后台 IO 线程主循环（多线程模式下由后台线程调用）。
+        /// 每轮调用 DealFunction：更新 Socket 状态 + 处理消息事件队列。
         /// </summary>
         public void ThreadFunc()
         {
             while (!_stop)
             {
-                _currentTime = TimeUtility.GetTimeSeconds();
-
-                // 处理 PostEvent 投递的 IO 事件
-                ProcessPendingEvents(null);
-
+                DealFunction(null);
                 Thread.Sleep(1);
             }
         }
@@ -164,13 +166,14 @@ namespace FxNet.IO
         /// 核心处理函数，周期性调用：
         /// 1. 更新当前时间
         /// 2. 周期性更新所有 Socket（UDP 可靠传输定时重传等）
-        /// 3. 批量处理全局消息队列中的事件
+        /// 3. 处理 PostEvent 投递的本地 IO 事件
+        /// 注意：全局消息队列处理不在此方法内，由调用方（主循环）单独调用 ProcessMessageEvents
         /// </summary>
         public void DealFunction(TextWriter? output)
         {
             _currentTime = TimeUtility.GetTimeSeconds();
 
-            // Update sockets periodically
+            // 1. 周期性更新所有 Socket（UDP 可靠传输定时重传等）
             if (_currentTime - _lastUpdateTime >= SlidingWindowDef.UdpSendFrequency)
             {
                 var error = new ErrorCode();
@@ -181,9 +184,6 @@ namespace FxNet.IO
                 {
                     socketsCopy = new List<SocketBase>(_sockets.Values);
                 }
-
-                if (_dealCount++ % 200 == 0)
-                    Console.WriteLine($"[DBG-DEAL] Updating {socketsCopy.Count} sockets");
 
                 foreach (var sock in socketsCopy)
                 {
@@ -199,23 +199,17 @@ namespace FxNet.IO
                 }
             }
 
-            // Process message events from the queue
-            if (_eventQueue != null)
-            {
-                var events = new List<MessageEventBase>();
-                _eventQueue.SwapEvents(events);
-                foreach (var evt in events)
-                {
-                    evt.Execute(output);
-                }
-            }
+            // 2. 处理 PostEvent 投递的本地 IO 事件
+            ProcessPendingEvents(output);
         }
 
         public void Stop()
         {
             _stop = true;
+#if !SINGLE_THREAD
             _thread?.Stop();
             _thread = null;
+#endif
         }
 
         public void SetStoped() => _stop = true;

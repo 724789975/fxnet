@@ -7,20 +7,23 @@ using FxNet.Util;
 namespace FxNet.UdpClient;
 
 /// <summary>
-/// UDP 测试客户端：
-/// - 阶段1: 基础 UDP 收发（发送多种消息类型，验证回显正确性）
+/// UDP 测试客户端（端到端验证版）：
+/// - 阶段1: 基础消息回显验证（各种数据类型、大小、特殊字符）
 /// - 阶段2: 延迟测量（PING-PONG 往返时间）
 /// - 阶段3: 批量发送吞吐量测试
-/// - 阶段4: 服务器命令交互（模式切换、统计查询）
-/// - 阶段5: 大数据传输（1KB/10KB/64KB）
-/// - 连接状态监控与日志输出（UTF-8 编码写入 udp_client.txt）
+/// - 阶段4: 服务器命令交互（CLIENT_COUNT/STATS/SWITCH_MODE）
+/// - 阶段5: 回显模式验证（大写模式、反转模式）
+/// - 阶段6: 大数据传输（1KB/8KB/10KB）
+/// - 阶段7: 多客户端并发
+/// - 阶段8: 错误处理（关闭后发送）
+/// - 自动化 PASS/FAIL 判定，UTF-8 日志输出
 /// </summary>
 class Program
 {
     private const string ServerIp = "115.190.230.47";
     private const ushort ServerPort = 9001;
     private const string LogFilePath = "udp_client.txt";
-    private const double MaxRunSeconds = 30.0;
+    private static double MaxRunSeconds = 60.0;
 
     static volatile bool _running = true;
     static volatile bool _connected = false;
@@ -31,27 +34,49 @@ class Program
     static long _totalSent, _totalRecv;
     static long _totalBytesSent, _totalBytesRecv;
 
+    // === 验证 ===
+    static int _passCount, _failCount;
+    static volatile bool _waitingResponse;
+    static byte[]? _lastRecvData;
+    static int _lastRecvLen;
+    static string? _lastExpectedResponse;
+
     // === 延迟测量 ===
     static double _pingSendTime;
     static volatile bool _waitingPong;
 
+    // === 多客户端 ===
+    static readonly List<Connector> _extraConnectors = new();
+
     static void Main(string[] args)
     {
+        // 支持通过命令行参数配置运行时间（秒）
+        if (args.Length > 0 && double.TryParse(args[0], out var secs) && secs > 0)
+            MaxRunSeconds = secs;
+
         Console.OutputEncoding = Encoding.UTF8;
         _logFile = new StreamWriter(LogFilePath, false, new UTF8Encoding(false)) { AutoFlush = true };
 
         LogRaw("╔══════════════════════════════════════╗");
-        LogRaw("║       FxNet UDP 测试客户端           ║");
+        LogRaw("║   FxNet UDP 测试客户端（验证版）     ║");
         LogRaw("╚══════════════════════════════════════╝");
         LogRaw($"[配置] 服务器: {ServerIp}:{ServerPort}");
+        LogRaw($"[配置] 最大运行时间: {MaxRunSeconds} 秒");
         LogRaw("");
 
         FxNetInterface.StartLogModule();
         FxNetInterface.StartIOModule();
 
+#if SINGLE_THREAD
+        LogRaw("[配置] 线程模式: 单线程 (SINGLE_THREAD)");
+#else
+        LogRaw("[配置] 线程模式: 多线程 (IO模块=3)");
+#endif
+        LogRaw("");
+
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; _running = false; };
 
-        // 创建 UDP 连接
+        // 创建主 UDP 连接
         _connector = FxNetApi.CreateConnector(
             onRecv: OnServerRecv,
             onConnected: OnConnected,
@@ -60,83 +85,114 @@ class Program
 
         Log($"[连接] 正在连接 {ServerIp}:{ServerPort} (UDP)...");
         FxNetApi.UdpConnect(_connector, ServerIp, ServerPort);
-
-        // UDP 是无连接的，BC 已初始化为 Established 状态，直接标记已连接
         _connected = true;
 
-        // 发送初始握手消息触发服务器响应
+        // 发送初始握手
         SendText("UDP-CONNECT");
+        PumpEvents(500);
 
-        // 运行测试阶段（限时30秒）
+        // 运行测试阶段
         double startTime = GetNow();
         RunTests(startTime);
 
-        // 如果还有剩余时间，继续处理事件直到30秒
-        double remaining = MaxRunSeconds - (GetNow() - startTime);
-        if (remaining > 0)
-        {
-            Log($"\n[等待] 测试已完成，继续运行 {remaining:F1} 秒...");
-            double idleEnd = GetNow() + remaining;
-            while (_connected && _running && GetNow() < idleEnd)
-            {
-                FxNetInterface.ProcSingleThread();
-                Thread.Sleep(50);
-            }
-        }
-
+        // 输出最终结果
         PrintFinalStats();
+        PrintVerdict();
+
         Log("[关闭] UDP 客户端已退出");
         _connector?.Close();
+        foreach (var c in _extraConnectors) { try { c.Close(); } catch { } }
         _logFile?.Close();
     }
 
     static void RunTests(double startTime)
     {
-        // 阶段1: 基础消息测试
-        Log("\n═══════ 阶段1: 基础 UDP 消息测试 ═══════");
-        SendTestMessages();
-        WaitForResponses(8);
-        if (GetNow() - startTime >= MaxRunSeconds) return;
+        bool TimeExpired() => GetNow() - startTime >= MaxRunSeconds;
+
+        // 阶段1: 基础消息回显验证
+        Log("\n═══════ 阶段1: 基础消息回显验证 ═══════");
+        BasicEchoTest();
+        if (TimeExpired()) return;
 
         // 阶段2: 延迟测量
         Log("\n═══════ 阶段2: 延迟测量 ═══════");
         MeasureLatency(5);
-        WaitForResponses(5);
-        if (GetNow() - startTime >= MaxRunSeconds) return;
+        if (TimeExpired()) return;
 
-        // 阶段3: 批量发送测试
-        Log("\n═══════ 阶段3: 批量发送测试 ═══════");
-        BatchSendTest(50);
-        WaitForResponses(50);
-        if (GetNow() - startTime >= MaxRunSeconds) return;
+        // 阶段3: 批量发送吞吐量测试
+        Log("\n═══════ 阶段3: 批量发送吞吐量测试 ═══════");
+        BatchSendTest(590);
+        if (TimeExpired()) return;
 
         // 阶段4: 服务器命令交互
         Log("\n═══════ 阶段4: 服务器命令交互 ═══════");
         ServerCommandTest();
-        WaitForResponses(5);
-        if (GetNow() - startTime >= MaxRunSeconds) return;
+        if (TimeExpired()) return;
 
-        // 阶段5: 大数据传输测试
-        Log("\n═══════ 阶段5: 大数据传输测试 ═══════");
+        // 阶段5: 回显模式验证
+        Log("\n═══════ 阶段5: 回显模式验证 ═══════");
+        EchoModeTest();
+        if (TimeExpired()) return;
+
+        // 阶段6: 大数据传输
+        Log("\n═══════ 阶段6: 大数据传输测试 ═══════");
         LargeDataTest();
-        WaitForResponses(3);
+        if (TimeExpired()) return;
 
-        Log("\n═══════ 所有测试完成 ═══════");
+        // 阶段7: 多客户端并发
+        Log("\n═══════ 阶段7: 多客户端并发 ═══════");
+        MultiClientTest();
+        if (TimeExpired()) return;
+
+        // 阶段8: 错误处理
+        Log("\n═══════ 阶段8: 错误处理 ═══════");
+        ErrorHandlingTest();
+
+        Log("\n═══════ 所有测试阶段完成 ═══════");
     }
 
-    // ======================== 测试阶段 ========================
+    // ======================== 阶段1: 基础消息回显验证 ========================
 
-    static void SendTestMessages()
+    static void BasicEchoTest()
     {
-        SendText("Hello, UDP Server!");
-        SendText("你好世界！UDP 中文测试");
-        SendText("NUM:42");
-        SendText("{\"type\":\"udp\",\"id\":1}");
-        SendText("Special: !@#$%^&*()");
-        SendText("");
-        SendText(new string('U', 200));
-        SendText("Line1\nLine2");
+        // 英文文本
+        SendAndVerify("Hello, UDP Server!", "Hello, UDP Server!");
+
+        // 中文文本
+        SendAndVerify("你好世界！UDP 中文测试", "你好世界！UDP 中文测试");
+
+        // 数字格式
+        SendAndVerify("NUM:42", "NUM:42");
+
+        // JSON
+        string json = "{\"type\":\"udp\",\"id\":1,\"data\":\"hello\"}";
+        SendAndVerify(json, json);
+
+        // 特殊字符
+        string special = "Special: !@#$%^&*()_+-=";
+        SendAndVerify(special, special);
+
+        // 空消息（服务器原文回显空数据）
+        SendAndVerify("", "");
+
+        // 重复字符长串
+        string repeated = new string('U', 200);
+        SendAndVerify(repeated, repeated);
+
+        // 含换行符
+        string newline = "Line1\nLine2";
+        SendAndVerify(newline, newline);
+
+        // Unicode/Emoji
+        string unicode = "你好🎉🚀 emoji: 😀👍";
+        SendAndVerify(unicode, unicode);
+
+        // Tab 和混合空白
+        string whitespace = "Col1\tCol2\r\nCol3  Space";
+        SendAndVerify(whitespace, whitespace);
     }
+
+    // ======================== 阶段2: 延迟测量 ========================
 
     static void MeasureLatency(int count)
     {
@@ -150,9 +206,12 @@ class Program
             SendText($"PING-{i + 1}");
 
             double waitStart = GetNow();
-            while (_waitingPong && _connected && GetNow() - waitStart < 2.0)
+            while (_waitingPong && _connected && GetNow() - waitStart < 3.0)
             {
+#if SINGLE_THREAD
                 FxNetInterface.ProcSingleThread();
+#endif
+                FxNetInterface.ProcessMessageEvents();
                 Thread.Sleep(1);
             }
 
@@ -162,10 +221,12 @@ class Program
                 totalLatency += latency;
                 successCount++;
                 Log($"  [延迟] PING-{i + 1}: {latency:F2} ms");
+                RecordPass($"PING-{i + 1} 延迟 {latency:F2}ms");
             }
             else
             {
                 Log($"  [延迟] PING-{i + 1}: 超时");
+                RecordFail("PING-" + (i + 1) + " 超时");
             }
 
             Thread.Sleep(50);
@@ -175,48 +236,297 @@ class Program
             Log($"  [延迟] 平均: {totalLatency / successCount:F2} ms ({successCount}/{count} 成功)");
     }
 
+    // ======================== 阶段3: 批量发送吞吐量 ========================
+
     static void BatchSendTest(int count)
     {
         Log($"  批量发送 {count} 条消息...");
+        long startRecv = Volatile.Read(ref _totalRecv);
         double startTime = GetNow();
 
+        // 分批发送，每批 50 条，间隔 10ms，避免 UDP 缓冲区溢出
+        int batchSize = 50;
         for (int i = 0; i < count && _connected && _running; i++)
         {
             SendText($"udp-batch-{i + 1}");
+            if ((i + 1) % batchSize == 0)
+            {
+#if SINGLE_THREAD
+                FxNetInterface.ProcSingleThread();
+#endif
+                FxNetInterface.ProcessMessageEvents();
+                Thread.Sleep(10);
+            }
         }
 
         double sendTime = GetNow() - startTime;
         if (sendTime > 0)
             Log($"  发送完成，耗时: {sendTime * 1000:F1} ms，速率: {count / sendTime:F0} msg/s");
+
+        // 等待回显
+        int expected = count;
+        double waitEnd = GetNow() + 30.0;
+        while (Volatile.Read(ref _totalRecv) - startRecv < expected && _connected && GetNow() < waitEnd)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(10);
+        }
+
+        long batchRecv = Volatile.Read(ref _totalRecv) - startRecv;
+        double lossRate = (1.0 - (double)batchRecv / expected) * 100;
+        Log($"  批量回显: 收到 {batchRecv}/{expected} (丢包率 {lossRate:F1}%)");
+        // 批量测试仅作信息统计，跨公网 UDP 丢包不可避免
+        if (batchRecv > 0)
+            RecordPass($"批量发送 {count} 条回显 {batchRecv} 条 (丢包 {lossRate:F1}%)");
+        else
+            RecordFail($"批量发送 {count} 条无回显");
     }
+
+    // ======================== 阶段4: 服务器命令交互 ========================
 
     static void ServerCommandTest()
     {
-        SendText("CMD:CLIENT_COUNT");
-        Thread.Sleep(200);
-        PumpEvents();
+        // CMD:CLIENT_COUNT
+        SendCommandAndVerify("CMD:CLIENT_COUNT", "活跃客户端");
 
-        SendText("CMD:STATS");
-        Thread.Sleep(200);
-        PumpEvents();
+        // CMD:STATS
+        SendCommandAndVerify("CMD:STATS", "消息");
 
-        SendText("CMD:SWITCH_MODE");
-        Thread.Sleep(200);
-        PumpEvents();
+        // CMD:SWITCH_MODE（切换到 UpperCase）
+        SendCommandAndVerify("CMD:SWITCH_MODE", "回显模式");
 
-        SendText("Hello after mode switch!");
-        Thread.Sleep(200);
-        PumpEvents();
+        // 未知命令
+        SendCommandAndVerify("CMD:UNKNOWN_CMD", "未知命令");
     }
+
+    // ======================== 阶段5: 回显模式验证 ========================
+
+    static void EchoModeTest()
+    {
+        // 当前服务器应处于 UpperCase 模式（阶段4已切换一次）
+        // 验证大写回显
+        SendAndVerify("hello uppercase", "HELLO UPPERCASE");
+
+        // 切换到 Reverse 模式
+        SendCommandAndVerify("CMD:SWITCH_MODE", "回显模式");
+        PumpEvents(300);
+
+        // 验证反转回显
+        SendAndVerify("abcdef", "fedcba");
+
+        // 切换回 Original 模式
+        SendCommandAndVerify("CMD:SWITCH_MODE", "回显模式");
+        PumpEvents(300);
+
+        // 验证原文回显恢复
+        SendAndVerify("original test", "original test");
+    }
+
+    // ======================== 阶段6: 大数据传输 ========================
 
     static void LargeDataTest()
     {
         // 1KB
-        SendText(new string('A', 1024));
+        string data1k = new string('A', 1024);
+        SendAndVerify(data1k, data1k, "1KB");
+
+        // 8KB
+        string data8k = new string('C', 8 * 1024);
+        SendAndVerify(data8k, data8k, "8KB");
+
         // 10KB
-        SendText(new string('B', 10 * 1024));
-        // 8KB (UDP 安全大小，避免分片丢失；BufferContral 单包有 1024 字节载荷限制)
-        SendText(new string('C', 8 * 1024));
+        string data10k = new string('B', 10 * 1024);
+        SendAndVerify(data10k, data10k, "10KB");
+    }
+
+    // ======================== 阶段7: 多客户端并发 ========================
+
+    static void MultiClientTest()
+    {
+        const int clientCount = 3;
+        var results = new string?[clientCount];
+        var dones = new ManualResetEventSlim[clientCount];
+
+        for (int i = 0; i < clientCount; i++)
+        {
+            int idx = i;
+            dones[idx] = new ManualResetEventSlim(false);
+
+            var c = FxNetApi.CreateConnector(
+                onRecv: (conn, data, len) =>
+                {
+                    results[idx] = Encoding.UTF8.GetString(data, 0, len);
+                    dones[idx].Set();
+                },
+                onConnected: _ => { },
+                onError: (_, _) => { },
+                onClose: _ => { });
+
+            FxNetApi.UdpConnect(c, ServerIp, ServerPort);
+            _extraConnectors.Add(c);
+
+            string msg = $"multi-client-{idx + 1}";
+            byte[] sendData = Encoding.UTF8.GetBytes(msg);
+            c.Send(sendData, sendData.Length);
+            Interlocked.Increment(ref _totalSent);
+            Interlocked.Add(ref _totalBytesSent, sendData.Length);
+            Log($"  [多客户端] 客户端 {idx + 1} 发送: \"{msg}\"");
+            Thread.Sleep(50);
+        }
+
+        // 等待所有回显
+        double waitEnd = GetNow() + 15.0;
+        for (int i = 0; i < clientCount; i++)
+        {
+            while (!dones[i].IsSet && GetNow() < waitEnd)
+            {
+#if SINGLE_THREAD
+                FxNetInterface.ProcSingleThread();
+#endif
+                FxNetInterface.ProcessMessageEvents();
+                Thread.Sleep(10);
+            }
+        }
+
+        // 验证
+        for (int i = 0; i < clientCount; i++)
+        {
+            string expected = $"multi-client-{i + 1}";
+            if (results[i] == expected)
+                RecordPass($"多客户端 {i + 1} 回显正确");
+            else
+                RecordFail($"多客户端 {i + 1} 期望 \"{expected}\" 实际 \"{results[i] ?? "null"}\"");
+        }
+
+        // 清理额外连接器
+        foreach (var c in _extraConnectors) { try { c.Close(); } catch { } }
+        _extraConnectors.Clear();
+    }
+
+    // ======================== 阶段8: 错误处理 ========================
+
+    static void ErrorHandlingTest()
+    {
+        // 测试：关闭连接器后发送不崩溃
+        var testConnector = FxNetApi.CreateConnector(
+            onRecv: (_, _, _) => { },
+            onConnected: _ => { },
+            onError: (_, _) => { },
+            onClose: _ => { });
+        FxNetApi.UdpConnect(testConnector, ServerIp, ServerPort);
+        PumpEvents(200);
+
+        testConnector.Close();
+        PumpEvents(200);
+
+        byte[] data = Encoding.UTF8.GetBytes("after-close-test");
+        Exception? caught = null;
+        try { testConnector.Send(data, data.Length); } catch (Exception ex) { caught = ex; }
+        if (caught == null)
+            RecordPass("关闭后发送不崩溃");
+        else
+            RecordFail($"关闭后发送异常: {caught.Message}");
+    }
+
+    // ======================== 核心验证方法 ========================
+
+    /// <summary>发送消息并验证回显内容（原文回显模式）</summary>
+    static void SendAndVerify(string message, string expectedEcho, string? label = null)
+    {
+        if (!_connected || !_running) return;
+
+        string tag = label ?? Truncate(message, 30);
+        _lastExpectedResponse = expectedEcho;
+        _waitingResponse = true;
+        _lastRecvData = null;
+        _lastRecvLen = 0;
+
+        byte[] sendData = Encoding.UTF8.GetBytes(message);
+        _connector?.Send(sendData, sendData.Length);
+        Interlocked.Increment(ref _totalSent);
+        Interlocked.Add(ref _totalBytesSent, sendData.Length);
+        Log($"  [发送] {sendData.Length} 字节 | \"{tag}\"");
+
+        // 等待回显
+        double waitEnd = GetNow() + 10.0;
+        while (_waitingResponse && _connected && _running && GetNow() < waitEnd)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
+        }
+
+        if (_lastRecvData != null && _lastRecvLen > 0)
+        {
+            string actual = Encoding.UTF8.GetString(_lastRecvData, 0, _lastRecvLen);
+            if (actual == expectedEcho)
+                RecordPass($"回显正确: \"{tag}\"");
+            else
+                RecordFail($"回显不匹配: \"{tag}\" 期望 \"{Truncate(expectedEcho, 40)}\" 实际 \"{Truncate(actual, 40)}\"");
+        }
+        else if (_waitingResponse)
+        {
+            RecordFail($"回显超时: \"{tag}\"");
+        }
+    }
+
+    /// <summary>发送命令并验证响应包含指定关键字</summary>
+    static void SendCommandAndVerify(string command, string expectedKeyword)
+    {
+        if (!_connected || !_running) return;
+
+        _lastExpectedResponse = expectedKeyword;
+        _waitingResponse = true;
+        _lastRecvData = null;
+        _lastRecvLen = 0;
+
+        byte[] sendData = Encoding.UTF8.GetBytes(command);
+        _connector?.Send(sendData, sendData.Length);
+        Interlocked.Increment(ref _totalSent);
+        Interlocked.Add(ref _totalBytesSent, sendData.Length);
+        Log($"  [命令] {command}");
+
+        double waitEnd = GetNow() + 10.0;
+        while (_waitingResponse && _connected && _running && GetNow() < waitEnd)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
+        }
+
+        if (_lastRecvData != null && _lastRecvLen > 0)
+        {
+            string actual = Encoding.UTF8.GetString(_lastRecvData, 0, _lastRecvLen);
+            if (actual.Contains(expectedKeyword))
+                RecordPass($"命令响应正确: {command} → \"{Truncate(actual, 50)}\"");
+            else
+                RecordFail($"命令响应缺少关键字: {command} 期望含 \"{expectedKeyword}\" 实际 \"{Truncate(actual, 50)}\"");
+        }
+        else
+        {
+            RecordFail($"命令响应超时: {command}");
+        }
+
+        PumpEvents(200);
+    }
+
+    static void RecordPass(string detail)
+    {
+        Interlocked.Increment(ref _passCount);
+        Log($"  [PASS] {detail}");
+    }
+
+    static void RecordFail(string detail)
+    {
+        Interlocked.Increment(ref _failCount);
+        Log($"  [FAIL] {detail}");
     }
 
     // ======================== 回调处理 ========================
@@ -234,11 +544,21 @@ class Program
 
         string message = Encoding.UTF8.GetString(data, 0, len);
 
+        // PING-PONG 延迟测量
         if (_waitingPong && message.StartsWith("PING-"))
             _waitingPong = false;
 
+        // 回显验证
+        if (_waitingResponse)
+        {
+            _lastRecvData = new byte[len];
+            Array.Copy(data, _lastRecvData, len);
+            _lastRecvLen = len;
+            _waitingResponse = false;
+        }
+
         string display = message.Length > 60 ? message[..57] + "..." : message;
-        Log($"[接收] {len} 字节 | \"{display}\"");
+        Log($"  [接收] {len} 字节 | \"{display}\"");
     }
 
     static void OnError(Connector connector, int error)
@@ -264,42 +584,19 @@ class Program
         Interlocked.Add(ref _totalBytesSent, data.Length);
 
         string display = text.Length > 50 ? text[..47] + "..." : text;
-        Log($"[发送] {data.Length} 字节 | \"{display}\"");
+        Log($"  [发送] {data.Length} 字节 | \"{display}\"");
     }
 
-    /// <summary>绕过 _connected 检查直接发送（用于初始握手）</summary>
-    static void SendRaw(string text)
+    static void PumpEvents(int milliseconds)
     {
-        if (_connector?.Session == null) return;
-        byte[] data = Encoding.UTF8.GetBytes(text);
-        _connector.Session.Send(data, data.Length, null);
-        Interlocked.Increment(ref _totalSent);
-        Interlocked.Add(ref _totalBytesSent, data.Length);
-        Log($"[发送-原始] {data.Length} 字节 | \"{text}\"");
-    }
-
-    static void WaitForResponses(int expectedCount)
-    {
-        int received = 0;
-        long startRecv = Volatile.Read(ref _totalRecv);
-        double timeout = GetNow() + 10.0;
-
-        while (received < expectedCount && _connected && _running && GetNow() < timeout)
+        double end = GetNow() + milliseconds / 1000.0;
+        while (_running && GetNow() < end)
         {
+#if SINGLE_THREAD
             FxNetInterface.ProcSingleThread();
-            Thread.Sleep(10);
-            received = (int)(Volatile.Read(ref _totalRecv) - startRecv);
-        }
-
-        Log($"  等待响应: 收到 {received}/{expectedCount}");
-    }
-
-    static void PumpEvents()
-    {
-        for (int i = 0; i < 10 && _running; i++)
-        {
-            FxNetInterface.ProcSingleThread();
-            Thread.Sleep(10);
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
         }
     }
 
@@ -311,6 +608,19 @@ class Program
         LogRaw($"  接收消息数: {Volatile.Read(ref _totalRecv)}");
         LogRaw($"  发送字节数: {FormatBytes(Volatile.Read(ref _totalBytesSent))}");
         LogRaw($"  接收字节数: {FormatBytes(Volatile.Read(ref _totalBytesRecv))}");
+        LogRaw($"  验证通过: {Volatile.Read(ref _passCount)}");
+        LogRaw($"  验证失败: {Volatile.Read(ref _failCount)}");
+    }
+
+    static void PrintVerdict()
+    {
+        int pass = Volatile.Read(ref _passCount);
+        int fail = Volatile.Read(ref _failCount);
+        LogRaw("");
+        if (fail == 0 && pass > 0)
+            LogRaw("=== 验证结果: PASS ===");
+        else
+            LogRaw("=== 验证结果: FAIL ===");
     }
 
     static void Log(string message)
@@ -334,4 +644,6 @@ class Program
         if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
         return $"{bytes / (1024.0 * 1024.0):F1} MB";
     }
+
+    static string Truncate(string s, int maxLen) => s.Length <= maxLen ? s : s[..maxLen] + "...";
 }

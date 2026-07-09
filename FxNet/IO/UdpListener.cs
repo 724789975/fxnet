@@ -23,12 +23,8 @@ namespace FxNet.IO
 
         public override string Name => "UdpListener";
 
-        private int _updateCount;
         public override void Update(double time, ErrorCode error, TextWriter? output)
         {
-            _updateCount++;
-            if (_updateCount % 100 == 1)
-                Console.WriteLine($"[DBG-LIST] Update #{_updateCount}, socket={NativeSocketHandle != null}");
             // 1. 同步轮询接收所有待处理的 UDP 数据
             if (NativeSocketHandle != null)
             {
@@ -40,7 +36,6 @@ namespace FxNet.IO
                         int received = NativeSocketHandle.ReceiveFrom(_recvBuffer, 0, _recvBuffer.Length,
                             SocketFlags.None, ref remoteEp);
                         if (received <= 0) break;
-                        Console.WriteLine($"[DBG-LIST] Received {received} bytes from {remoteEp}");
 
                         var data = new byte[received];
                         Array.Copy(_recvBuffer, data, received);
@@ -69,7 +64,6 @@ namespace FxNet.IO
 
                         // 将数据加入客户端 UdpConnector 的待处理队列
                         client.EnqueuePendingRecv(data, received);
-                        Console.WriteLine($"[DBG-LIST] Enqueued {received} bytes to client, clients={_clients.Count}, queue={client.GetPendingQueueCount()}");
                     }
                     catch (SocketException ex) when (ex.SocketErrorCode == SocketError.WouldBlock)
                     {
@@ -93,8 +87,6 @@ namespace FxNet.IO
             }
 
             // 2. Update all client connections (处理接收数据 + 发送 keepalive/重传等)
-            if (_clients.Count > 0 && _updateCount % 100 == 1)
-                Console.WriteLine($"[DBG-LIST] Updating {_clients.Count} clients");
             foreach (var client in _clients.Values)
             {
                 client.Update(time, error, output);

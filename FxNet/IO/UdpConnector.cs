@@ -91,24 +91,20 @@ namespace FxNet.IO
 
             public void Execute(byte[] buffer, ushort size, ErrorCode error, TextWriter? output)
             {
-                Console.WriteLine($"[DBG-CONN] OnRecvOperator: {size} bytes");
                 var session = _connector.Session;
                 if (session == null)
                 {
-                    Console.WriteLine($"[DBG-CONN] OnRecvOperator: session is null!");
                     return;
                 }
 
                 var recvBuff = session.GetRecvBuff();
                 recvBuff.PushData(buffer, size);
-                Console.WriteLine($"[DBG-CONN] OnRecvOperator: pushed {size} bytes to recvBuff, checkPackage={recvBuff.CheckPackage()}");
 
                 while (recvBuff.CheckPackage())
                 {
                     var msgEvent = session.NewRecvMessageEvent();
                     recvBuff.PopData(msgEvent.Package);
                     msgEvent.Session = session;
-                    Console.WriteLine($"[DBG-CONN] OnRecvOperator: pushing event to IoModule");
 
                     var module = IoModule.GetInstance(_connector.IOModuleIndex);
                     module?.PushMessageEvent(msgEvent);
@@ -143,7 +139,7 @@ namespace FxNet.IO
         /// <summary>初始化可靠传输控制状态</summary>
         public ErrorCode Init(TextWriter? output, int state)
         {
-            _bufferContral.Init(state, IoModule.GetInstance(IOModuleIndex)?.GetCurrentTime() ?? 0);
+            _bufferContral.Init(state, FxNetInterface.GetNow());
             return new ErrorCode();
         }
 

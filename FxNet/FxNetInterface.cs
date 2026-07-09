@@ -62,10 +62,24 @@ namespace FxNet
             return _ioModuleIndex++;
         }
 
-        /// <summary>单线程模式下处理一次 IO 事件（用于主线程调用）</summary>
+        /// <summary>处理一次 IO 事件（主线程调用，遍历所有 IO 模块执行 DealFunction）</summary>
         public static void ProcSingleThread(TextWriter? output = null)
         {
-            IoModule.GetInstance(0)?.DealFunction(output);
+            for (uint i = 0; i < IoModule.GetModuleCount(); i++)
+            {
+                IoModule.GetInstance(i)?.DealFunction(output);
+            }
+        }
+
+        /// <summary>处理全局消息队列中的事件（主线程调用，对齐 C++ main.cpp 中 oQueue.SwapEvent）</summary>
+        public static void ProcessMessageEvents(TextWriter? output = null)
+        {
+            var events = new List<MessageEventBase>();
+            _eventQueue.SwapEvents(events);
+            foreach (var evt in events)
+            {
+                evt.Execute(output);
+            }
         }
 
         /// <summary>向指定 IO 模块投递事件</summary>

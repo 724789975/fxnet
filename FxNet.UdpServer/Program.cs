@@ -20,7 +20,7 @@ namespace FxNet.UdpServer;
 class Program
 {
     private const string ListenIp = "0.0.0.0";
-    private const ushort ListenPort = 9001;
+    private static ushort ListenPort = 9001;
     private const int StatsIntervalSec = 5;
     private const int IdleTimeoutSec = 30;
     private const string LogFilePath = "udp_server.txt";
@@ -55,6 +55,10 @@ class Program
 
     static void Main(string[] args)
     {
+        // 支持通过命令行参数配置监听端口
+        if (args.Length > 0 && ushort.TryParse(args[0], out var port) && port > 0)
+            ListenPort = port;
+
         Console.OutputEncoding = Encoding.UTF8;
         _logFile = new StreamWriter(LogFilePath, false, new UTF8Encoding(false)) { AutoFlush = true };
 
@@ -78,7 +82,10 @@ class Program
 
         while (_running)
         {
+#if SINGLE_THREAD
             FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
 
             double now = GetNow();
             if (now - _lastStatsTime >= StatsIntervalSec)
@@ -184,7 +191,7 @@ class Program
                     info.SentCount++;
             }
 
-            Log($"[收发] {len} 字节 → 回显 {echoData.Length} 字节 | \"{Truncate(message, 40)}\"");
+            Log($"[验证] 回显 {len} 字节 → {echoData.Length} 字节 | 模式={EchoModeNames[(int)mode]} | \"{Truncate(message, 40)}\"");
             return this;
         }
 
@@ -196,7 +203,7 @@ class Program
                 int newMode = (Volatile.Read(ref _echoModeIndex) + 1) % EchoModeNames.Length;
                 Volatile.Write(ref _echoModeIndex, newMode);
                 response = $"[UDP服务器] 回显模式: {EchoModeNames[newMode]}";
-                Log($"[命令] 模式切换 → {EchoModeNames[newMode]}");
+                Log($"[验证] 命令处理: {cmd} → \"{Truncate(response, 50)}\"");
             }
             else if (cmd.Equals("CMD:STATS", StringComparison.OrdinalIgnoreCase))
             {

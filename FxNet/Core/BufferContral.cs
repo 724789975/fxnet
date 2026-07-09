@@ -241,7 +241,7 @@ namespace FxNet.Core
 
                 // 将数据包加入发送窗口队列
                 _sendWindow.Add2SendWindow(id, bufferId, (ushort)(copySize + copyOffset),
-                    IoModule.GetInstance(0)?.GetCurrentTime() ?? 0, _retryTime);
+                    FxNetInterface.GetNow(), _retryTime);
             }
 
             return sendSize;
@@ -478,12 +478,9 @@ namespace FxNet.Core
                     break;
                 }
 
-                Console.WriteLine($"[DBG-BC] RecvOperator returned {len} bytes, bufferId={bufferId}");
-
                 // 数据不足一个包头，丢弃并回收缓冲区
                 if (len < UDPPacketHeader.Size)
                 {
-                    Console.WriteLine($"[DBG-BC] len < header size, discarding");
                     buffer[0] = _recvWindow.FreeBufferId;
                     _recvWindow.FreeBufferId = bufferId;
                     continue;
@@ -517,7 +514,6 @@ namespace FxNet.Core
 
                 var packet = new UDPPacketHeader();
                 packet.ReadFrom(buffer, 0);
-                Console.WriteLine($"[DBG-BC] Packet: Status={packet.Status}, Syn={packet.Syn}, Ack={packet.Ack}, recvBegin={_recvWindow.Begin}");
 
                 // === 处理 ACK：滑动发送窗口，回收已确认的缓冲区 ===
                 if (_sendWindow.IsValidIndex(packet.Ack))
@@ -582,7 +578,6 @@ namespace FxNet.Core
                 if (_recvWindow.IsValidIndex(packet.Syn))
                 {
                     byte rid = (byte)(packet.Syn % SlidingWindow.WindowSize);
-                    Console.WriteLine($"[DBG-BC] IsValidIndex=true, rid={rid}, SeqBufferId[rid]={_recvWindow.SeqBufferId[rid]}");
 
                     // 该序号位置尚未有数据，存入接收窗口
                     if (_recvWindow.SeqBufferId[rid] >= SlidingWindow.WindowSize)
