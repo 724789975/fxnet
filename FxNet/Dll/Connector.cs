@@ -49,6 +49,7 @@ namespace FxNet.Dll
 #if SINGLE_THREAD
                 FxNetInterface.ProcSingleThread();
 #endif
+                FxNetInterface.ProcessMessageEvents();
                 Thread.Sleep(10);
             }
         }
@@ -64,6 +65,7 @@ namespace FxNet.Dll
 #if SINGLE_THREAD
                 FxNetInterface.ProcSingleThread();
 #endif
+                FxNetInterface.ProcessMessageEvents();
                 Thread.Sleep(10);
             }
         }

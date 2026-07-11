@@ -224,6 +224,13 @@ namespace FxNet.IO
 
                 // Connect UDP socket
                 NativeSocketHandle.Connect(address);
+
+                // UDP 无连接特性，连接设置完成后立即触发 OnConnected 事件
+                var connectedEvent = Session?.NewConnectedEvent();
+                if (connectedEvent != null)
+                {
+                    module?.PushMessageEvent(connectedEvent);
+                }
             }
             catch (Exception ex)
             {
