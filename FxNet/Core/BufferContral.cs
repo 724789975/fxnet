@@ -204,11 +204,15 @@ namespace FxNet.Core
             uint sendSize = 0;
             int offset = 0;
 
-            // 循环填充发送窗口，直到窗口满或数据写完
-            while (_sendWindow.FreeBufferId < SlidingWindow.WindowSize && size > 0)
-            {
-                // 拥塞控制：超出当前拥塞窗口则暂停
-                if (_sendWindow.End - _sendWindow.Begin > _sendWindowControl) break;
+            // 循环填充发送窗口，直到窗口满、拥塞窗口满或数据写完
+        while (_sendWindow.FreeBufferId < SlidingWindow.WindowSize && size > 0)
+        {
+            // 确认发送窗口有可发送空间（Begin..End 的槽位数恰好等于待发包数）
+            int availableWindow = (int)(_sendWindow.End - _sendWindow.Begin);
+            if (availableWindow >= SlidingWindow.WindowSize) break;
+
+            // 拥塞控制：超出当前拥塞窗口则暂停
+            if ((int)(_sendWindow.End - _sendWindow.Begin) >= (int)_sendWindowControl) break;
 
                 // 从空闲缓冲区链表分配一个缓冲区
                 byte id = (byte)(_sendWindow.End % SlidingWindow.WindowSize);
@@ -275,8 +279,8 @@ namespace FxNet.Core
             // === 拥塞控制（连接已建立时生效）===
             if (_status == (uint)ConnectionStatus.Established)
             {
-                // 重复 ACK 超过 3 次 → 触发快速重传/快速恢复
-                if (_ackSameCount > 3)
+                // 重复 ACK 超过等于 3 次 → 触发快速重传/快速恢复（TCP 标准：dupthresh=3）
+            if (_ackSameCount >= 3)
                 {
                     if (!_quickRetry)
                     {
@@ -350,10 +354,10 @@ namespace FxNet.Core
                         _sendWindow.Add2SendWindow(id, bufferId, (ushort)UDPPacketHeader.Size, time, _retryTime);
                     }
                     // 指数退避：间隔逐渐增大，上限 1.0 秒
-                    _sendEmptyDataFactor = 1 << _sendEmptyDataFactor;
                     double tempFreq = _sendEmptyDataFrequency * (1 << _sendEmptyDataFactor);
                     if (1.0 < tempFreq) tempFreq = 1.0;
                     _sendEmptyDataTime = time + tempFreq;
+                    if (_sendEmptyDataFactor < 30) _sendEmptyDataFactor++;
                 }
             }
             else

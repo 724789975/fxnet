@@ -92,7 +92,7 @@ namespace FxNet.IO
             public void Execute(byte[] buffer, ushort size, ErrorCode error, TextWriter? output)
             {
                 var session = _connector.Session;
-                if (session == null)
+                if (session == null || size == 0)
                 {
                     return;
                 }
@@ -112,12 +112,22 @@ namespace FxNet.IO
             }
         }
 
+        /// <summary>读流操作：每帧由 BufferContral.SendMessages 调用，将 sendBuff 数据搬入发送窗口</summary>
+        private sealed class ReadStreamOperator : IReadStreamOperator
+        {
+            private readonly UdpConnector _connector;
+            public ReadStreamOperator(UdpConnector connector) => _connector = connector;
+
+            public uint Execute(TextWriter? output) => _connector.TryMoveSendBuffToWindow();
+        }
+
         public UdpConnector(ISession? session) : base(session)
         {
             _bufferContral = new BufferContral();
             _bufferContral.SetRecvOperator(new RecvOperator(this));
             _bufferContral.SetSendOperator(new SendOperator(this));
             _bufferContral.SetOnRecvOperator(new OnRecvOperator(this));
+            _bufferContral.SetReadStreamOperator(new ReadStreamOperator(this));
         }
 
         public override string Name => "UdpConnector";
@@ -199,6 +209,11 @@ namespace FxNet.IO
                 NativeSocketHandle = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 NativeSocketHandle.Blocking = false;
 
+                // 与 C++ 对齐：socket 缓冲区 256KB + TTL 128，避免默认 8KB 缓冲区在跨公网高并发下内核丢包
+                NativeSocketHandle.ReceiveBufferSize = 256 * 1024;
+                NativeSocketHandle.SendBufferSize = 256 * 1024;
+                NativeSocketHandle.Ttl = 128;
+
                 _remoteEndPoint = address;
 
                 // 初始化 BufferContral 为 Established 状态
@@ -217,38 +232,34 @@ namespace FxNet.IO
             return this;
         }
 
-        /// <summary>发送消息：将数据写入 BufferContral 滑动窗口</summary>
+        /// <summary>发送消息：将 sendBuff 数据搬入 BufferContral 滑动窗口（只弹出已入窗口部分，背压）</summary>
         public override void SendMessage(ErrorCode error, TextWriter? output)
         {
             if ((NativeSocketHandle == null && _listenerSocket == null) || Session == null) return;
+            TryMoveSendBuffToWindow();
+        }
 
-            var sendBuff = Session.GetSendBuff();
-            if (sendBuff.GetSize() == 0) return;
+        /// <summary>
+        /// 将 sendBuff 数据搬入发送窗口。Send 只能入窗口容量内的数据，
+        /// 未入窗口的数据保留在 sendBuff，仅弹出已入窗口字节数（对齐 C++ ReadStreamOperator 背压语义）。
+        /// </summary>
+        private uint TryMoveSendBuffToWindow()
+        {
+            var sendBuff = Session?.GetSendBuff();
+            if (sendBuff == null || sendBuff.GetSize() == 0) return 0;
 
             int sendSize = sendBuff.GetSize();
             var data = ArrayPool<byte>.Shared.Rent(sendSize);
-            Array.Copy(sendBuff.GetData(), data, sendSize);
-            sendBuff.PopData(sendSize);
-
-            _bufferContral.Send(data, (uint)sendSize);
-        }
-
-        /// <summary>处理断线：注销 Socket、通知 Session</summary>
-        private void HandleDisconnect(ErrorCode error)
-        {
-            var module = IoModule.GetInstance(IOModuleIndex);
-            if (NativeSocketHandle != null)
+            try
             {
-                module?.DeregisterSocket(NativeSocketHandle);
-                try { NativeSocketHandle.Close(); } catch (Exception) { }
-                NativeSocketHandle = null;
+                Array.Copy(sendBuff.GetData(), data, sendSize);
+                uint sent = _bufferContral.Send(data, (uint)sendSize);
+                if (sent > 0) sendBuff.PopData((int)sent);
+                return sent;
             }
-
-            if (Session != null)
+            finally
             {
-                module?.PushMessageEvent(Session.NewErrorEvent(error));
-                module?.PushMessageEvent(Session.NewCloseEvent());
-                Session = null;
+                ArrayPool<byte>.Shared.Return(data);
             }
         }
 

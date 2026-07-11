@@ -85,6 +85,11 @@ STARTEOF
     echo ""
     echo "=== 启动服务器 ==="
     ssh_cmd "pkill -f FxNet.UdpServer" || true
+    # 等待端口完全释放（最多 10 秒）
+    for i in $(seq 1 10); do
+        if ! ssh_cmd "ss -ulnp | grep -q :${ListenPort:-9001}"; then break; fi
+        sleep 1
+    done
     sleep 1
     ssh_cmd "bash /tmp/_udp_start.sh" || true
     sleep 3
@@ -101,7 +106,14 @@ STARTEOF
         ssh_cmd "cat ${REMOTE_DIR}/ttt.txt" || echo "无日志"
         return 1
     fi
-    echo "服务器已启动 (PID: $PID)"
+
+    # 验证端口是否已绑定
+    if ! ssh_cmd "ss -ulnp | grep -q :${ListenPort:-9001}"; then
+        echo "服务器进程在运行 (PID: $PID) 但端口 ${ListenPort:-9001} 未绑定!"
+        ssh_cmd "cat ${REMOTE_DIR}/ttt.txt" || echo "无日志"
+        return 1
+    fi
+    echo "服务器已启动 (PID: $PID, 端口 ${ListenPort:-9001} 已绑定)"
     return 0
 }
 

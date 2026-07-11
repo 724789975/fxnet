@@ -40,12 +40,32 @@ namespace FxNet.Dll
 
         public void UdpConnect(string ip, ushort port)
         {
-            FxNetInterface.UdpConnect(0, ip, port, Session!, null);
+            uint ioIndex = FxNetInterface.GetFxIoModuleIndex();
+            FxNetInterface.PostEvent(ioIndex,
+                new FxNetInterface.UDPConnect(ip, port, ioIndex, Session!));
+
+            for (int i = 0; i < 100 && Session?.GetSocket() == null; i++)
+            {
+#if SINGLE_THREAD
+                FxNetInterface.ProcSingleThread();
+#endif
+                Thread.Sleep(10);
+            }
         }
 
         public void TcpConnect(string ip, ushort port)
         {
-            FxNetInterface.TcpConnect(0, ip, port, Session!, null);
+            uint ioIndex = FxNetInterface.GetFxIoModuleIndex();
+            FxNetInterface.PostEvent(ioIndex,
+                new FxNetInterface.TCPConnect(ip, port, ioIndex, Session!));
+
+            for (int i = 0; i < 100 && Session?.GetSocket() == null; i++)
+            {
+#if SINGLE_THREAD
+                FxNetInterface.ProcSingleThread();
+#endif
+                Thread.Sleep(10);
+            }
         }
 
         public void Send(byte[] data, int len)
@@ -55,7 +75,7 @@ namespace FxNet.Dll
 
         public void Close()
         {
-            Session?.GetSocket()?.Close(null);
+            Session?.Close(null);
         }
 
         public ISession? GetSession() => Session;
@@ -116,13 +136,17 @@ namespace FxNet.Dll
         public static void TcpListen(string ip, ushort port)
         {
             if (_defaultSessionMaker == null) return;
-            FxNetInterface.TcpListen(0, ip, port, _defaultSessionMaker, null);
+            uint ioIndex = FxNetInterface.GetFxIoModuleIndex();
+            FxNetInterface.PostEvent(ioIndex,
+                new FxNetInterface.TCPListen(ip, port, ioIndex, _defaultSessionMaker));
         }
 
         public static void UdpListen(string ip, ushort port)
         {
             if (_defaultSessionMaker == null) return;
-            FxNetInterface.UdpListen(0, ip, port, _defaultSessionMaker, null);
+            uint ioIndex = FxNetInterface.GetFxIoModuleIndex();
+            FxNetInterface.PostEvent(ioIndex,
+                new FxNetInterface.UDPListen(ip, port, ioIndex, _defaultSessionMaker));
         }
 
         public static void Send(Connector connector, byte[] data, int len)

@@ -48,6 +48,9 @@ class Program
     // === 多客户端 ===
     static readonly List<Connector> _extraConnectors = new();
 
+    // === 顺序验证 ===
+    static readonly List<int> _recvOrder = new();
+
     static void Main(string[] args)
     {
         // 支持通过命令行参数配置运行时间（秒）
@@ -87,6 +90,9 @@ class Program
         FxNetApi.UdpConnect(_connector, ServerIp, ServerPort);
         _connected = true;
 
+        // 先处理 IO 事件，确保 UDP socket 已创建（UdpConnect 是异步投递到 IO 线程的）
+        PumpEvents(500);
+
         // 发送初始握手
         SendText("UDP-CONNECT");
         PumpEvents(500);
@@ -122,6 +128,11 @@ class Program
         // 阶段3: 批量发送吞吐量测试
         Log("\n═══════ 阶段3: 批量发送吞吐量测试 ═══════");
         BatchSendTest(590);
+        if (TimeExpired()) return;
+
+        // 阶段3.5: 收发顺序验证
+        Log("\n═══════ 阶段3.5: 收发顺序验证 ═══════");
+        OrderVerificationTest(2000);
         if (TimeExpired()) return;
 
         // 阶段4: 服务器命令交互
@@ -283,6 +294,76 @@ class Program
             RecordPass($"批量发送 {count} 条回显 {batchRecv} 条 (丢包 {lossRate:F1}%)");
         else
             RecordFail($"批量发送 {count} 条无回显");
+    }
+
+    // ======================== 阶段3.5: 收发顺序验证 ========================
+
+    /// <summary>发送带序号的随机长度消息，验证回显顺序与发送一致</summary>
+    static void OrderVerificationTest(int count)
+    {
+        const int MinLen = 100, MaxLen = 1024;
+        var rng = new Random(42);
+        _recvOrder.Clear();
+        long totalBytes = 0;
+
+        Log($"  计划发送 {count} 条 (长度 {MinLen}-{MaxLen} 随机)");
+
+        for (int i = 0; i < count && _connected && _running; i++)
+        {
+            int msgLen = rng.Next(MinLen, MaxLen + 1);
+            byte[] sendData = new byte[msgLen];
+            byte[] header = Encoding.UTF8.GetBytes($"SEQ-{i:D04}");
+            Array.Copy(header, sendData, header.Length);
+
+            _connector?.Send(sendData, sendData.Length);
+            Interlocked.Increment(ref _totalSent);
+            Interlocked.Add(ref _totalBytesSent, sendData.Length);
+            totalBytes += sendData.Length;
+
+            // 每条发送后处理 IO，让可靠传输有机会工作
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+        }
+
+        Log($"  已发送 {count} 条 (共 {totalBytes / 1024} KB)，等待回显...");
+
+        // 等待所有回显到达
+        double waitEnd = GetNow() + 120.0;
+        while (_recvOrder.Count < count && _connected && _running && GetNow() < waitEnd)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
+        }
+
+        // 验证顺序
+        bool orderCorrect = true;
+        for (int i = 1; i < _recvOrder.Count; i++)
+        {
+            if (_recvOrder[i] <= _recvOrder[i - 1])
+            {
+                orderCorrect = false;
+                Log($"  [顺序异常] 位置 {i}: SEQ-{_recvOrder[i - 1]:D04} → SEQ-{_recvOrder[i]:D04}");
+                break;
+            }
+        }
+
+        Log($"  接收: {_recvOrder.Count}/{count}");
+        if (_recvOrder.Count > 0)
+            Log($"  首条: SEQ-{_recvOrder[0]:D04} 末条: SEQ-{_recvOrder[^1]:D04}");
+
+        if (orderCorrect && _recvOrder.Count == count)
+            RecordPass($"收发顺序正确 ({count} 条 × {MinLen}-{MaxLen} 随机字节)");
+        else if (orderCorrect && _recvOrder.Count > 0)
+            RecordPass($"收发顺序正确 (收到 {_recvOrder.Count}/{count})");
+        else if (!orderCorrect)
+            RecordFail("收发顺序异常");
+        else
+            RecordFail("无回显");
     }
 
     // ======================== 阶段4: 服务器命令交互 ========================
@@ -541,6 +622,20 @@ class Program
     {
         Interlocked.Increment(ref _totalRecv);
         Interlocked.Add(ref _totalBytesRecv, len);
+
+        // 顺序验证：检查 SEQ- 前缀（从原始字节提取，避免 null 字符干扰）
+        if (len >= 8 && data[0] == (byte)'S' && data[1] == (byte)'E' &&
+            data[2] == (byte)'Q' && data[3] == (byte)'-')
+        {
+            // 解析序号 "SEQ-XXXX"
+            int seq = 0;
+            for (int j = 4; j < 8 && j < len; j++)
+            {
+                if (data[j] >= (byte)'0' && data[j] <= (byte)'9')
+                    seq = seq * 10 + (data[j] - (byte)'0');
+            }
+            _recvOrder.Add(seq);
+        }
 
         string message = Encoding.UTF8.GetString(data, 0, len);
 

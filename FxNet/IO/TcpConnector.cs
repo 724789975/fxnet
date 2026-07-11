@@ -38,12 +38,13 @@ namespace FxNet.IO
                 error.Set((int)UserError.CodeErrorNetSessionAlreadyConnected, "TcpConnector:Connect already connected");
                 return this;
             }
+            Socket? socket = null;
             try
             {
-                NativeSocketHandle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                NativeSocketHandle.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
-                NativeSocketHandle.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, new LingerOption(false, 0));
-                NativeSocketHandle.Blocking = false;
+                socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, new LingerOption(false, 0));
+                socket.Blocking = false;
 
                 _remoteEndPoint = address;
 
@@ -51,9 +52,11 @@ namespace FxNet.IO
                 if (module == null)
                 {
                     error.Set((int)UserError.CodeErrorNetErrorSocket, "TcpConnector:Connect no module");
+                    try { socket.Close(); } catch { }
                     return this;
                 }
 
+                NativeSocketHandle = socket;
                 module.RegisterSocket(NativeSocketHandle, this);
 
                 // Start async connect（完成后在回调中释放 SAEA）
@@ -69,6 +72,12 @@ namespace FxNet.IO
             }
             catch (Exception ex)
             {
+                // 失败时关闭已创建的 Socket，避免句柄泄漏
+                if (socket != null)
+                {
+                    try { socket.Close(); } catch { }
+                }
+                NativeSocketHandle = null;
                 error.Set(ex.HResult, $"TcpConnector:Connect {ex.Message}");
             }
             return this;

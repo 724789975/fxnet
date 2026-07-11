@@ -1,4 +1,5 @@
 using FxNet.Core;
+using FxNet.IO;
 using FxNet.Util;
 using System.Buffers.Binary;
 
@@ -7,6 +8,7 @@ namespace FxNet.Dll
     /// <summary>
     /// 文本协议会话实现，采用 4 字节大端长度头 + 数据体的消息格式。
     /// 实现 ISession 接口，负责数据的序列化/反序列化和事件生成。
+    /// Send/Close 均通过 PostEvent 投递到 IO 线程执行，与 C++ CTextSession 对齐。
     /// </summary>
     public class TextSession : ISession
     {
@@ -34,17 +36,28 @@ namespace FxNet.Dll
         public void SetSocket(ConnectorSocket? socket) => _socket = socket;
         public ConnectorSocket? GetSocket() => _socket;
 
-        /// <summary>发送数据：写入 4 字节长度头 + 数据体，然后触发底层发送</summary>
+        /// <summary>
+        /// 发送数据：创建 SendOperator 投递到 IO 线程，在 IO 线程中写入发送缓冲区并触发底层发送。
+        /// 对齐 C++ CTextSession::Send（创建 SendOperator → PostEvent → IO 线程执行 PushData + SendMessage）。
+        /// </summary>
         public ISession Send(byte[] data, int len, TextWriter? output)
         {
-            // Write length header + data
-            var header = new byte[4];
-            BinaryPrimitives.WriteInt32BigEndian(header, len);
-            _sendBuff.PushData(header, 4);
-            _sendBuff.PushData(data, len);
-
-            _socket?.SendMessage(new ErrorCode(), output);
+            if (_socket == null) return this;
+            var op = new SendOperator(_socket);
+            op.Package.WriteData(data, len);
+            FxNetInterface.PostEvent(_socket.GetIOModuleIndex(), op);
             return this;
+        }
+
+        /// <summary>
+        /// 关闭连接：创建 CloseOperator 投递到 IO 线程执行底层 Socket 关闭。
+        /// 对齐 C++ CTextSession::Close（创建 CloseOperator → PostEvent → IO 线程执行 socket.Close）。
+        /// </summary>
+        public void Close(TextWriter? output)
+        {
+            if (_socket == null) return;
+            var op = new CloseOperator(_socket);
+            FxNetInterface.PostEvent(_socket.GetIOModuleIndex(), op);
         }
 
         public ISession OnRecv(NetStreamPackage package, TextWriter? output)
@@ -98,7 +111,52 @@ namespace FxNet.Dll
             return new SessionOnSendEvent(this, len);
         }
 
-        // === 内部事件类，用于跨线程投递 ===
+        // === 内部 IO 事件类，用于向 IO 线程投递 Send/Close 操作 ===
+
+        /// <summary>发送操作事件，在 IO 线程中将数据写入发送缓冲区并触发底层发送（对齐 C++ SendOperator）</summary>
+        private class SendOperator : IOEventBase
+        {
+            private readonly ConnectorSocket _socket;
+            public NetStreamPackage Package { get; } = new NetStreamPackage();
+
+            public SendOperator(ConnectorSocket socket)
+            {
+                _socket = socket;
+            }
+
+            public override void Execute(TextWriter? output)
+            {
+                if (_socket.GetError() != 0) return;
+
+                // 写入 4 字节大端长度头 + 数据体（与 TextWorkStream 协议一致）
+                var sendBuff = _socket.GetSession()!.GetSendBuff();
+                int dataLen = Package.DataLength;
+                var header = new byte[4];
+                BinaryPrimitives.WriteInt32BigEndian(header, dataLen);
+                sendBuff.PushData(header, 4);
+                sendBuff.PushData(Package.GetData(), dataLen);
+                var error = new ErrorCode();
+                _socket.SendMessage(error, output);
+            }
+        }
+
+        /// <summary>关闭操作事件，在 IO 线程中执行底层 Socket 关闭（对齐 C++ CloseOperator）</summary>
+        private class CloseOperator : IOEventBase
+        {
+            private readonly ConnectorSocket _socket;
+
+            public CloseOperator(ConnectorSocket socket)
+            {
+                _socket = socket;
+            }
+
+            public override void Execute(TextWriter? output)
+            {
+                _socket.Close(output);
+            }
+        }
+
+        // === 内部消息事件类，用于跨线程投递 ===
 
         /// <summary>数据接收事件，在 IO 线程中调用 Session.OnRecv</summary>
         private class TextMessageEvent : MessageRecvEventBase

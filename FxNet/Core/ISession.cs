@@ -20,6 +20,9 @@ namespace FxNet.Core
         void OnError(ErrorCode error, TextWriter? output);
         void OnClose(TextWriter? output);
 
+        /// <summary>关闭连接（由上层调用，投递到 IO 线程执行）</summary>
+        void Close(TextWriter? output);
+
         /// <summary>获取发送/接收缓冲区</summary>
         NetWorkStream GetSendBuff();
         NetWorkStream GetRecvBuff();

@@ -192,7 +192,10 @@ namespace FxNet.IO
                     {
                         var sockHandle2 = sock.GetSocket();
                         if (sockHandle2 != null)
+                        {
                             DeregisterSocket(sockHandle2);
+                            try { sockHandle2.Close(); } catch (Exception) { }
+                        }
                         sock.OnError(error, output);
                         error.Set(0, "");
                     }

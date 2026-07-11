@@ -178,5 +178,97 @@ namespace FxNet
         {
             return LogModule.Instance?.GetLogStr() ?? "";
         }
+
+        #region IO 事件类（对齐 C++ fxnet_interface.h 中的 UDPConnect/TCPConnect/UDPListen/TCPListen）
+
+        /// <summary>UDP Connect 事件，投递到 IO 线程执行连接操作（对齐 C++ UDPConnect）</summary>
+        public class UDPConnect : IOEventBase
+        {
+            private readonly string _ip;
+            private readonly ushort _port;
+            private readonly uint _ioModuleIndex;
+            private readonly ISession _session;
+
+            public UDPConnect(string ip, ushort port, uint ioModuleIndex, ISession session)
+            {
+                _ip = ip;
+                _port = port;
+                _ioModuleIndex = ioModuleIndex;
+                _session = session;
+            }
+
+            public override void Execute(TextWriter? output)
+            {
+                FxNetInterface.UdpConnect(_ioModuleIndex, _ip, _port, _session, output);
+            }
+        }
+
+        /// <summary>TCP Connect 事件，投递到 IO 线程执行连接操作（对齐 C++ TCPConnect）</summary>
+        public class TCPConnect : IOEventBase
+        {
+            private readonly string _ip;
+            private readonly ushort _port;
+            private readonly uint _ioModuleIndex;
+            private readonly ISession _session;
+
+            public TCPConnect(string ip, ushort port, uint ioModuleIndex, ISession session)
+            {
+                _ip = ip;
+                _port = port;
+                _ioModuleIndex = ioModuleIndex;
+                _session = session;
+            }
+
+            public override void Execute(TextWriter? output)
+            {
+                FxNetInterface.TcpConnect(_ioModuleIndex, _ip, _port, _session, output);
+            }
+        }
+
+        /// <summary>UDP Listen 事件，投递到 IO 线程执行监听操作（对齐 C++ UDPListen）</summary>
+        public class UDPListen : IOEventBase
+        {
+            private readonly string _ip;
+            private readonly ushort _port;
+            private readonly uint _ioModuleIndex;
+            private readonly ISessionMaker _sessionMaker;
+
+            public UDPListen(string ip, ushort port, uint ioModuleIndex, ISessionMaker sessionMaker)
+            {
+                _ip = ip;
+                _port = port;
+                _ioModuleIndex = ioModuleIndex;
+                _sessionMaker = sessionMaker;
+            }
+
+            public override void Execute(TextWriter? output)
+            {
+                FxNetInterface.UdpListen(_ioModuleIndex, _ip, _port, _sessionMaker, output);
+            }
+        }
+
+        /// <summary>TCP Listen 事件，投递到 IO 线程执行监听操作（对齐 C++ TCPListen）</summary>
+        public class TCPListen : IOEventBase
+        {
+            private readonly string _ip;
+            private readonly ushort _port;
+            private readonly uint _ioModuleIndex;
+            private readonly ISessionMaker _sessionMaker;
+
+            public TCPListen(string ip, ushort port, uint ioModuleIndex, ISessionMaker sessionMaker)
+            {
+                _ip = ip;
+                _port = port;
+                _ioModuleIndex = ioModuleIndex;
+                _sessionMaker = sessionMaker;
+            }
+
+            public override void Execute(TextWriter? output)
+            {
+                FxNetInterface.TcpListen(_ioModuleIndex, _ip, _port, _sessionMaker, output);
+            }
+        }
+
+        #endregion
     }
 }

@@ -90,9 +90,8 @@ namespace FxNet.Core
         {
             if (UsedLength < HeaderLength) return;
             int pkgLen = BinaryPrimitives.ReadInt32BigEndian(Data);
-            if (UsedLength < HeaderLength + pkgLen) return;
+            if (pkgLen < 0 || pkgLen > 1024 * 1024 || UsedLength < HeaderLength + pkgLen) return;
 
-            // 跳过 4 字节长度头，只拷贝数据体
             package.WriteData(Data, HeaderLength, pkgLen);
             PopData(HeaderLength + pkgLen);
         }

@@ -74,8 +74,8 @@ class Program
         FxNetInterface.StartLogModule();
         FxNetInterface.StartIOModule();
 
-        FxNetInterface.UdpListen(0, ListenIp, ListenPort, new UdpSessionMaker());
-        Log("[启动] UDP 服务器已启动");
+        FxNetInterface.UdpListen(0, ListenIp, ListenPort, new UdpSessionMaker(), Console.Out);
+        Log($"[启动] UDP 服务器已启动 (端口 {ListenPort})");
 
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; _running = false; };
         _lastStatsTime = GetNow();
@@ -231,6 +231,13 @@ class Program
         public void OnError(ErrorCode error, TextWriter? output) { }
         public void OnClose(TextWriter? output) { }
 
+        public void Close(TextWriter? output)
+        {
+            if (_socket == null) return;
+            var op = new CloseOperator(_socket);
+            FxNetInterface.PostEvent(_socket.GetIOModuleIndex(), op);
+        }
+
         // === 事件创建 ===
         public MessageRecvEventBase NewRecvMessageEvent() => new UdpRecvEvent(this);
         public MessageEventBase NewConnectedEvent() => new ConnectedEvt(this);
@@ -268,6 +275,14 @@ class Program
         {
             public OnSendEvt(ISession session, int len) { }
             public override void Execute(TextWriter? output) { }
+        }
+
+        /// <summary>关闭操作事件，在 IO 线程中执行底层 Socket 关闭（对齐 C++ CloseOperator）</summary>
+        private class CloseOperator : IOEventBase
+        {
+            private readonly ConnectorSocket _socket;
+            public CloseOperator(ConnectorSocket socket) => _socket = socket;
+            public override void Execute(TextWriter? output) => _socket.Close(output);
         }
     }
 
