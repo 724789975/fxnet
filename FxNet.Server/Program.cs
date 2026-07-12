@@ -106,7 +106,10 @@ class Program
         // 主循环
         while (_running)
         {
+#if SINGLE_THREAD
             FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
 
             // 定期输出性能统计
             double now = GetNow();
@@ -203,19 +206,19 @@ class Program
         string echoText;
         byte[] echoData;
 
-        // 根据消息命令处理特殊指令
-        if (message.StartsWith("CMD:", StringComparison.OrdinalIgnoreCase))
-        {
-            HandleCommand(connector, message);
-            return;
-        }
-
-        // 心跳响应
+        // 心跳响应（必须在 CMD: 命令分发之前处理，否则 CMD:PING 会被 HandleCommand 拦截）
         if (message.Equals("CMD:PING", StringComparison.OrdinalIgnoreCase))
         {
             byte[] pongData = Encoding.UTF8.GetBytes("CMD:PONG");
             connector.Send(pongData, pongData.Length);
             Interlocked.Add(ref _totalBytesSent, pongData.Length);
+            return;
+        }
+
+        // 根据消息命令处理特殊指令
+        if (message.StartsWith("CMD:", StringComparison.OrdinalIgnoreCase))
+        {
+            HandleCommand(connector, message);
             return;
         }
 
@@ -238,7 +241,7 @@ class Program
                 echoData = Encoding.UTF8.GetBytes(echoText);
                 break;
             default: // Original
-                echoData = data;
+                echoData = Encoding.UTF8.GetBytes(message);
                 echoText = message;
                 break;
         }
@@ -294,6 +297,21 @@ class Program
             Volatile.Write(ref _echoModeIndex, newMode);
             response = $"[服务器] 回显模式已切换为: {EchoModeNames[newMode]}";
             Log($"[命令] 回显模式切换 → {EchoModeNames[newMode]}");
+        }
+        else if (cmd.StartsWith("CMD:SET_MODE:", StringComparison.OrdinalIgnoreCase))
+        {
+            // 直接设置回显模式: CMD:SET_MODE:0
+            if (int.TryParse(cmd.AsSpan("CMD:SET_MODE:".Length), out int mode) &&
+                mode >= 0 && mode < EchoModeNames.Length)
+            {
+                Volatile.Write(ref _echoModeIndex, mode);
+                response = $"[服务器] 回显模式已设置为: {EchoModeNames[mode]}";
+                Log($"[命令] 回显模式设置 → {EchoModeNames[mode]}");
+            }
+            else
+            {
+                response = $"[服务器] 无效模式，可选 0-{EchoModeNames.Length - 1}";
+            }
         }
         else if (cmd.Equals("CMD:STATS", StringComparison.OrdinalIgnoreCase))
         {

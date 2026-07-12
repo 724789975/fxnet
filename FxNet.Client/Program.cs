@@ -53,6 +53,13 @@ class Program
     static byte[]? _lastSentMessage;
     static bool _resendOnReconnect = true; // 可配置：重连时是否重发最后消息
 
+    // === 回显校验 ===
+    static readonly List<string> _sentMessages = new();   // 已发送的消息（用于校验回显）
+    static readonly List<string> _recvMessages = new();   // 已收到的回显
+    static readonly object _msgLock = new();
+    static int _echoVerifyPass;                            // 回显校验通过数
+    static int _echoVerifyFail;                            // 回显校验失败数
+
     static void Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -122,7 +129,10 @@ class Program
         double timeout = GetNow() + 5.0;
         while (_state != ConnectionState.Connected && _running && GetNow() < timeout)
         {
+#if SINGLE_THREAD
             FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
             Thread.Sleep(10);
         }
     }
@@ -161,17 +171,37 @@ class Program
         ServerCommandTest();
         WaitForResponses(10);
 
+        // 重置回显模式为 Original（Phase4 的 SWITCH_MODE 会改变模式，影响后续测试）
+        SendText("CMD:SET_MODE:0");
+        PumpEvents();
+
         // 阶段5: 大数据传输测试
         Log("\n═══════ 阶段5: 大数据传输测试 ═══════");
         LargeDataTest();
         WaitForResponses(3);
 
+        // 阶段6: 回显内容校验
+        Log("\n═══════ 阶段6: 回显内容校验 ═══════");
+        EchoVerificationTest();
+
+        // 阶段7: 二进制数据传输
+        Log("\n═══════ 阶段7: 二进制数据传输 ═══════");
+        BinaryDataTest();
+
+        // 阶段8: 吞吐量与性能统计
+        Log("\n═══════ 阶段8: 吞吐量与性能统计 ═══════");
+        ThroughputTest();
+
         Log("\n═══════ 所有测试完成 ═══════");
+        PrintTestSummary();
 
         // 保持连接，处理心跳和等待断开
         while (_state == ConnectionState.Connected && _running)
         {
+#if SINGLE_THREAD
             FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
 
             // 心跳检测
             double now = GetNow();
@@ -247,7 +277,10 @@ class Program
             double waitStart = GetNow();
             while (_waitingPong && _state == ConnectionState.Connected && GetNow() - waitStart < 2.0)
             {
+#if SINGLE_THREAD
                 FxNetInterface.ProcSingleThread();
+#endif
+                FxNetInterface.ProcessMessageEvents();
                 Thread.Sleep(1);
             }
 
@@ -339,6 +372,247 @@ class Program
         SendText(data100K);
     }
 
+    /// <summary>阶段6: 回显内容校验 — 发送带序号的消息，验证回显内容完全匹配</summary>
+    static void EchoVerificationTest()
+    {
+        int count = 20;
+        lock (_msgLock) { _sentMessages.Clear(); _recvMessages.Clear(); }
+        _echoVerifyPass = 0;
+        _echoVerifyFail = 0;
+
+        // 发送带唯一序号的消息
+        for (int i = 0; i < count && _state == ConnectionState.Connected && _running; i++)
+        {
+            string msg = $"VERIFY-{i:D04}-{Guid.NewGuid():N}";
+            lock (_msgLock) _sentMessages.Add(msg);
+            SendText(msg);
+            Thread.Sleep(5);
+        }
+
+        // 等待回显（只计算 VERIFY- 前缀的消息）
+        double timeout = GetNow() + 15.0;
+        while (GetNow() < timeout && _state == ConnectionState.Connected && _running)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            lock (_msgLock) { if (_recvMessages.Count(m => m.StartsWith("VERIFY-")) >= count) break; }
+            Thread.Sleep(10);
+        }
+        // 额外等待确保残余消息到达
+        Thread.Sleep(300);
+#if SINGLE_THREAD
+        FxNetInterface.ProcSingleThread();
+#endif
+        FxNetInterface.ProcessMessageEvents();
+
+        // 校验回显内容：只匹配 VERIFY- 前缀的消息
+        lock (_msgLock)
+        {
+            var verifyRecvs = _recvMessages.Where(m => m.StartsWith("VERIFY-")).ToList();
+            var recvSet = new HashSet<string>(verifyRecvs);
+
+            foreach (var sent in _sentMessages)
+            {
+                if (recvSet.Contains(sent))
+                    _echoVerifyPass++;
+                else
+                    _echoVerifyFail++;
+            }
+
+            // 诊断输出
+            if (_echoVerifyFail > 0 && verifyRecvs.Count > 0)
+            {
+                Log($"  [诊断] 前 3 条回显:");
+                foreach (var m in verifyRecvs.Take(3))
+                    Log($"    收到: \"{Truncate(m, 60)}\" ({m.Length} 字符)");
+                Log($"  [诊断] 前 3 条发送:");
+                foreach (var m in _sentMessages.Take(3))
+                    Log($"    发送: \"{Truncate(m, 60)}\" ({m.Length} 字符)");
+            }
+        }
+
+        int verifyRecvCount;
+        lock (_msgLock) verifyRecvCount = _recvMessages.Count(m => m.StartsWith("VERIFY-"));
+        Log($"  回显校验: 发送 {count} 条，收到 {verifyRecvCount} 条 VERIFY 回显，" +
+            $"匹配 {_echoVerifyPass}，不匹配 {_echoVerifyFail}");
+
+        if (_echoVerifyFail > 0)
+            Log("  [警告] 存在回显内容不匹配！");
+        if (verifyRecvCount < count)
+            Log($"  [警告] 有 {count - verifyRecvCount} 条消息未收到回显");
+    }
+
+    /// <summary>阶段7: 二进制数据传输 — 发送随机字节，验证回显一致</summary>
+    static void BinaryDataTest()
+    {
+        if (_connector == null || _state != ConnectionState.Connected) return;
+
+        int[] sizes = { 64, 256, 1024, 4096 };
+        int passCount = 0;
+
+        foreach (int size in sizes)
+        {
+            // 生成随机二进制数据，编码为 Base64 发送（确保文本协议安全传输）
+            byte[] rawData = new byte[size];
+            new Random(size + 42).NextBytes(rawData);
+            string base64 = Convert.ToBase64String(rawData);
+
+            // 记录发送前的快照
+            long recvBefore = Volatile.Read(ref _totalRecv);
+            SendText($"BINARY:{base64}");
+
+            // 等待回显
+            double timeout = GetNow() + 5.0;
+            while (Volatile.Read(ref _totalRecv) <= recvBefore && _state == ConnectionState.Connected
+                   && GetNow() < timeout)
+            {
+#if SINGLE_THREAD
+                FxNetInterface.ProcSingleThread();
+#endif
+                FxNetInterface.ProcessMessageEvents();
+                Thread.Sleep(5);
+            }
+
+            bool received = Volatile.Read(ref _totalRecv) > recvBefore;
+            if (received)
+            {
+                passCount++;
+                Log($"  [二进制] {size} 字节 → Base64 {base64.Length} 字符: 回显已收到");
+            }
+            else
+            {
+                Log($"  [二进制] {size} 字节: 回显超时");
+            }
+
+            Thread.Sleep(10);
+        }
+
+        Log($"  二进制测试: {passCount}/{sizes.Length} 通过");
+    }
+
+    /// <summary>阶段8: 吞吐量与性能统计</summary>
+    static void ThroughputTest()
+    {
+        if (_connector == null || _state != ConnectionState.Connected) return;
+
+        // 测试 A: 小包吞吐量（100 条 10 字节消息）
+        int smallCount = 100;
+        long recvBefore = Volatile.Read(ref _totalRecv);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        for (int i = 0; i < smallCount && _state == ConnectionState.Connected && _running; i++)
+        {
+            SendText($"TP-S-{i:D04}");
+        }
+
+        // 等待所有回显
+        for (int wait = 0; wait < 300 && Volatile.Read(ref _totalRecv) - recvBefore < smallCount
+             && _state == ConnectionState.Connected && _running; wait++)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
+        }
+        sw.Stop();
+
+        long smallRecv = Volatile.Read(ref _totalRecv) - recvBefore;
+        double smallSec = sw.ElapsedMilliseconds / 1000.0;
+        double smallRate = smallSec > 0 ? smallCount / smallSec : 0;
+        Log($"  [小包] {smallCount} 条 × 10B: 耗时 {sw.ElapsedMilliseconds}ms, " +
+            $"收到 {smallRecv} 条, 吞吐 {smallRate:F0} msg/s");
+
+        Thread.Sleep(200);
+
+        // 测试 B: 大包吞吐量（10 条 10KB 消息）
+        int bigCount = 10;
+        recvBefore = Volatile.Read(ref _totalRecv);
+        long bytesBefore = Volatile.Read(ref _totalBytesSent);
+        sw.Restart();
+
+        for (int i = 0; i < bigCount && _state == ConnectionState.Connected && _running; i++)
+        {
+            SendText(new string('T', 10 * 1024));
+            Thread.Sleep(2);
+        }
+
+        // 等待所有回显
+        for (int wait = 0; wait < 300 && Volatile.Read(ref _totalRecv) - recvBefore < bigCount
+             && _state == ConnectionState.Connected && _running; wait++)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(10);
+        }
+        sw.Stop();
+
+        long bigRecv = Volatile.Read(ref _totalRecv) - recvBefore;
+        long bytesSent = Volatile.Read(ref _totalBytesSent) - bytesBefore;
+        double bigSec = sw.ElapsedMilliseconds / 1000.0;
+        string throughputStr = bigSec > 0 ? FormatBytes((long)(bytesSent / bigSec)) + "/s" : "0/s";
+        Log($"  [大包] {bigCount} 条 × 10KB: 耗时 {sw.ElapsedMilliseconds}ms, " +
+            $"收到 {bigRecv} 条, 发送 {FormatBytes(bytesSent)}, " +
+            $"吞吐 {throughputStr}");
+
+        // 测试 C: 消息顺序验证（连续发送序号消息，检查回显顺序）
+        int orderCount = 30;
+        lock (_msgLock) { _sentMessages.Clear(); _recvMessages.Clear(); }
+        recvBefore = Volatile.Read(ref _totalRecv);
+
+        for (int i = 0; i < orderCount && _state == ConnectionState.Connected && _running; i++)
+        {
+            string msg = $"ORD-{i:D04}";
+            lock (_msgLock) _sentMessages.Add(msg);
+            SendText(msg);
+            Thread.Sleep(2);
+        }
+
+        // 等待回显
+        double timeout = GetNow() + 10.0;
+        while (Volatile.Read(ref _totalRecv) - recvBefore < orderCount
+               && _state == ConnectionState.Connected && GetNow() < timeout)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
+        }
+
+        // 检查顺序（只比较 ORD- 前缀的消息）
+        int orderMatch = 0;
+        lock (_msgLock)
+        {
+            var ordRecvs = _recvMessages.Where(m => m.StartsWith("ORD-")).ToList();
+            for (int i = 0; i < Math.Min(_sentMessages.Count, ordRecvs.Count); i++)
+            {
+                if (_sentMessages[i] == ordRecvs[i])
+                    orderMatch++;
+            }
+        }
+        int ordRecvCount;
+        lock (_msgLock) ordRecvCount = _recvMessages.Count(m => m.StartsWith("ORD-"));
+        Log($"  [顺序] 发送 {orderCount} 条, 回显 {ordRecvCount} 条, " +
+            $"顺序匹配 {orderMatch}/{Math.Min(orderCount, ordRecvCount)}");
+    }
+
+    /// <summary>打印测试总结</summary>
+    static void PrintTestSummary()
+    {
+        LogRaw("");
+        LogRaw("╔══════════════════════════════════════╗");
+        LogRaw("║           测试结果总结               ║");
+        LogRaw("╚══════════════════════════════════════╝");
+        LogRaw($"  回显校验:  {_echoVerifyPass} 通过 / {_echoVerifyFail} 失败");
+        LogRaw($"  总发送:    {Volatile.Read(ref _totalSent)} 条 / {FormatBytes(Volatile.Read(ref _totalBytesSent))}");
+        LogRaw($"  总接收:    {Volatile.Read(ref _totalRecv)} 条 / {FormatBytes(Volatile.Read(ref _totalBytesRecv))}");
+    }
+
     // ======================== 回调处理 ========================
 
     static void OnConnected(Connector connector)
@@ -373,6 +647,12 @@ class Program
         if (_waitingPong && message.StartsWith("PING-"))
         {
             _waitingPong = false;
+        }
+
+        // 回显校验：收集回显消息（跳过服务器前缀响应如 "[服务器]"）
+        if (!message.StartsWith("[") && !message.StartsWith("CMD:"))
+        {
+            lock (_msgLock) _recvMessages.Add(message);
         }
 
         // 截断显示
@@ -447,7 +727,10 @@ class Program
 
         while (received < expectedCount && _state == ConnectionState.Connected && _running && GetNow() < timeout)
         {
+#if SINGLE_THREAD
             FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
             Thread.Sleep(10);
             received = (int)(Volatile.Read(ref _totalRecv) - startRecv);
         }
@@ -459,7 +742,10 @@ class Program
     {
         for (int i = 0; i < 10 && _running; i++)
         {
+#if SINGLE_THREAD
             FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
             Thread.Sleep(10);
         }
     }
@@ -500,6 +786,9 @@ class Program
         if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
         return $"{bytes / (1024.0 * 1024.0):F1} MB";
     }
+
+    static string Truncate(string s, int maxLen)
+        => s.Length <= maxLen ? s : s[..maxLen] + "...";
 
     static string GetErrorDescription(int error) => error switch
     {

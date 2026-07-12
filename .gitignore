@@ -37,3 +37,7 @@ bld/
 ## Logs
 logs/
 udp_client.txt
+FxNet.Server/server.txt
+client.txt
+multiclient.txt
+server.txt

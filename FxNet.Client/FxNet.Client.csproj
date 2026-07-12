@@ -5,6 +5,8 @@
     <RootNamespace>FxNet.Client</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- 单线程模式：需与 FxNet.csproj 保持一致 -->
+    <DefineConstants>SINGLE_THREAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\FxNet\FxNet.csproj" />
