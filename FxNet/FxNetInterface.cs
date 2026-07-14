@@ -12,6 +12,7 @@ namespace FxNet
     public static class FxNetInterface
     {
         private static readonly MessageEventQueue _eventQueue = new MessageEventQueue(); // 全局消息事件队列
+        private static readonly List<MessageEventBase> _eventBuffer = new List<MessageEventBase>(256); // 复用的事件处理缓冲（仅主线程访问）
         private static uint _ioModuleIndex; // IO 模块索引分配器
         private static double _timeOffset;  // 时间偏移量（可通过 SetTimeOffset 调整）
 
@@ -74,12 +75,13 @@ namespace FxNet
         /// <summary>处理全局消息队列中的事件（主线程调用，对齐 C++ main.cpp 中 oQueue.SwapEvent）</summary>
         public static void ProcessMessageEvents(TextWriter? output = null)
         {
-            var events = new List<MessageEventBase>();
-            _eventQueue.SwapEvents(events);
-            foreach (var evt in events)
+            _eventBuffer.Clear();
+            _eventQueue.SwapEvents(_eventBuffer);
+            foreach (var evt in _eventBuffer)
             {
                 evt.Execute(output);
             }
+            _eventBuffer.Clear(); // 释放对事件对象的引用，避免延长其生命周期
         }
 
         /// <summary>向指定 IO 模块投递事件</summary>

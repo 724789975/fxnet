@@ -56,6 +56,14 @@ namespace FxNet.Core
             UsedLength += len;
         }
 
+        /// <summary>将 Span 数据推入缓冲区尾部（支持 stackalloc，避免临时数组分配）</summary>
+        public void PushData(ReadOnlySpan<byte> data)
+        {
+            Realloc(data.Length);
+            data.CopyTo(Data.AsSpan(UsedLength));
+            UsedLength += data.Length;
+        }
+
         /// <summary>预留 len 字节空间，返回写入起始位置</summary>
         public int PushData(int len)
         {

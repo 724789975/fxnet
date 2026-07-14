@@ -15,6 +15,10 @@ namespace FxNet.IO
         private IPEndPoint _remoteEndPoint = new IPEndPoint(IPAddress.Any, 0); // 远端地址
         private readonly byte[] _recvBuffer = new byte[8192]; // 接收缓冲区
         private SocketAsyncEventArgs? _recvArgs; // 复用的接收 SAEA
+        private SocketAsyncEventArgs? _sendArgs; // 复用的发送 SAEA
+        private bool _sendSubscribed;            // 发送 SAEA 的 Completed 是否已订阅（仅订阅一次）
+        private bool _sending;                   // 发送在途标志，串行化发送避免并发复用 _sendArgs
+        private readonly object _sendLock = new object(); // 保护发送路径与发送缓冲区的并发访问
 
         public TcpConnector(ISession? session) : base(session)
         {
@@ -206,66 +210,93 @@ namespace FxNet.IO
             connector.StartReceive();
         }
 
-        /// <summary>发送消息：将 Session 发送缓冲区的数据通过 Socket 异步发送（使用 ArrayPool 减少分配）</summary>
+        /// <summary>发送消息：复用同一个发送 SAEA，串行化发送，避免每次创建 SAEA。
+        /// 若已有发送在途，新追加到发送缓冲区的数据会在完成回调的循环中被继续发送。</summary>
         public override void SendMessage(ErrorCode error, TextWriter? output)
         {
             if (NativeSocketHandle == null || Session == null) return;
-
-            var sendBuff = Session.GetSendBuff();
-            if (sendBuff.GetSize() == 0) return;
-
-            int sendSize = sendBuff.GetSize();
-            var data = ArrayPool<byte>.Shared.Rent(sendSize);
-            Array.Copy(sendBuff.GetData(), data, sendSize);
-            sendBuff.PopData(sendSize);
-
-            var args = new SocketAsyncEventArgs();
-            args.SetBuffer(data, 0, sendSize);
-            args.Completed += OnSendCompleted;
-            args.UserToken = this;
-
-            try
+            lock (_sendLock)
             {
-                if (!NativeSocketHandle.SendAsync(args))
-                {
-                    OnSendCompleted(null, args);
-                }
-            }
-            catch (Exception ex)
-            {
-                ArrayPool<byte>.Shared.Return(data);
-                args.Dispose();
-                error.Set(ex.HResult, $"TcpConnector:SendMessage {ex.Message}");
+                if (_sending) return; // 已有发送在途，数据会在 OnSendCompleted 中被继续发送
+                BeginSend(error);
             }
         }
 
-        // 发送完成回调：继续发送剩余数据，完成后释放 SAEA 和 ArrayPool 缓冲区
-        private void OnSendCompleted(object? sender, SocketAsyncEventArgs e)
+        // 必须在持有 _sendLock 时调用：从发送缓冲区取出数据并发起一次异步发送（同步完成时循环发送，避免递归）。
+        private void BeginSend(ErrorCode error)
         {
-            var connector = (TcpConnector)e.UserToken!;
-
-            // 归还 ArrayPool 缓冲区
-            if (e.Buffer != null)
+            while (true)
             {
-                ArrayPool<byte>.Shared.Return(e.Buffer);
-            }
+                if (NativeSocketHandle == null || Session == null) { _sending = false; return; }
 
-            // 发送 SAEA 释放
-            e.Completed -= OnSendCompleted;
-            e.Dispose();
+                var sendBuff = Session.GetSendBuff();
+                int sendSize = sendBuff.GetSize();
+                if (sendSize == 0) { _sending = false; return; }
+
+                var data = ArrayPool<byte>.Shared.Rent(sendSize);
+                Array.Copy(sendBuff.GetData(), data, sendSize);
+                sendBuff.PopData(sendSize);
+
+                _sendArgs ??= new SocketAsyncEventArgs { UserToken = this };
+                if (!_sendSubscribed) { _sendArgs.Completed += OnSendCompleted; _sendSubscribed = true; }
+                _sendArgs.SetBuffer(data, 0, sendSize);
+                _sending = true;
+
+                bool pending;
+                try
+                {
+                    pending = NativeSocketHandle.SendAsync(_sendArgs);
+                }
+                catch (Exception ex)
+                {
+                    _sendArgs.SetBuffer(null, 0, 0);
+                    ArrayPool<byte>.Shared.Return(data);
+                    _sending = false;
+                    error.Set(ex.HResult, $"TcpConnector:SendMessage {ex.Message}");
+                    return;
+                }
+
+                if (pending) return; // 异步完成，OnSendCompleted 会继续发送剩余数据
+
+                // 同步完成：直接处理后循环发送剩余数据（避免递归）
+                if (!HandleSendCompletion(_sendArgs)) return; // 出错/断线，停止发送
+            }
+        }
+
+        // 处理一次发送完成：归还缓冲区、投递 OnSend 事件。返回 false 表示应停止发送。
+        // 调用方需持有 _sendLock。
+        private bool HandleSendCompletion(SocketAsyncEventArgs e)
+        {
+            var buffer = e.Buffer;
+            e.SetBuffer(null, 0, 0); // 清除对缓冲区的引用，便于复用与回收
+            if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
 
             if (e.SocketError != SocketError.Success)
             {
-                connector.HandleDisconnect(new ErrorCode((int)e.SocketError, "TcpConnector:OnSendCompleted"));
-                return;
+                _sending = false;
+                HandleDisconnect(new ErrorCode((int)e.SocketError, "TcpConnector:OnSendCompleted"));
+                return false;
             }
 
-            var module = IoModule.GetInstance(connector.IOModuleIndex);
-            module?.PushMessageEvent(connector.Session!.NewOnSendEvent(e.BytesTransferred));
+            var session = Session;
+            if (session != null)
+            {
+                var module = IoModule.GetInstance(IOModuleIndex);
+                module?.PushMessageEvent(session.NewOnSendEvent(e.BytesTransferred));
+            }
+            return true;
+        }
 
-            // Send remaining data
-            var error = new ErrorCode();
-            connector.SendMessage(error, null);
+        // 异步发送完成回调（线程池线程）：处理完成并继续发送剩余数据
+        private void OnSendCompleted(object? sender, SocketAsyncEventArgs e)
+        {
+            var connector = (TcpConnector)e.UserToken!;
+            lock (connector._sendLock)
+            {
+                if (!connector.HandleSendCompletion(e)) return;
+                var error = new ErrorCode();
+                connector.BeginSend(error); // 继续发送剩余数据
+            }
         }
 
         /// <summary>处理断线：注销 Socket、通知 Session 错误和关闭</summary>
@@ -308,11 +339,13 @@ namespace FxNet.IO
             LogUtility.Log(output, LogLevel.Info, $"TcpConnector {NativeSocketHandle?.Handle} closed");
         }
 
-        /// <summary>释放接收 SAEA 和 Socket 资源</summary>
+        /// <summary>释放接收/发送 SAEA 和 Socket 资源</summary>
         public override void Dispose()
         {
             _recvArgs?.Dispose();
             _recvArgs = null;
+            _sendArgs?.Dispose();
+            _sendArgs = null;
             base.Dispose();
         }
     }

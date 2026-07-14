@@ -1,6 +1,7 @@
 using FxNet.Core;
 using FxNet.Util;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace FxNet.IO
 {
@@ -11,11 +12,9 @@ namespace FxNet.IO
     /// 3. 处理消息事件队列（从全局队列和本地 PostEvent 队列中取出事件并执行）
     /// 4. 在独立后台线程中运行 IO 循环
     /// </summary>
-    public class IoModule : IFxThread, IDisposable
+    public class IoModule : IDisposable
     {
-        private const int MaxEventNum = 256;
-
-        private FxThread? _thread;        // 后台 IO 线程
+        private Thread? _thread;             // 后台 IO 线程
         private volatile bool _stop;      // 停止标志
         private double _currentTime;      // 当前时间戳
         private double _lastUpdateTime;   // 上次更新时间戳（用于周期性 UDP 更新）
@@ -23,7 +22,7 @@ namespace FxNet.IO
         private uint _ioModuleIndex;      // 本模块索引
         // Socket 注册表（Socket 句柄 → SocketBase 对象）
         private readonly Dictionary<Socket, SocketBase> _sockets = new();
-        // 预分配缓冲区：避免 DealFunction 每次 new List（线程本地，避免并发访问）
+        // 预分配缓冲区：DealFunction 中锁内填充、锁外遍历，避免每次 new List
         private readonly List<SocketBase> _socketsBuffer = new(256);
         // 本地 PostEvent 队列（从外部线程投递到 IO 线程的事件）—— 双缓冲
         private List<MessageEventBase> _pendingEvents = new();
@@ -36,16 +35,10 @@ namespace FxNet.IO
 
         public IoModule()
         {
-            _currentTime = 0;
-            _lastUpdateTime = 0;
         }
 
-        /// <summary>获取指定索引的 IO 模块实例</summary>
-        public static IoModule? GetInstance(uint index)
-        {
-            if (index >= _instances.Length) return _instances[0];
-            return _instances[index];
-        }
+        /// <summary>获取 IO 模块实例（始终只有 1 个）</summary>
+        public static IoModule? GetInstance(uint index) => _instances[0];
 
         public static uint GetModuleCount() => (uint)_instances.Length;
 
@@ -62,12 +55,8 @@ namespace FxNet.IO
             // 单线程模式不创建后台线程，由主线程通过 ProcSingleThread 调用 DealFunction
             _stop = false;
 #if !SINGLE_THREAD
-            _thread = new FxThread(this);
-            if (!_thread.Start())
-            {
-                output?.WriteLine($"[IoModule] 后台线程启动失败!");
-                return false;
-            }
+            _thread = new Thread(() => ThreadFunc()) { IsBackground = true };
+            _thread.Start();
 #endif
 
             return true;
@@ -139,18 +128,17 @@ namespace FxNet.IO
         /// </summary>
         public void ThreadFunc()
         {
-            try
+            while (!_stop)
             {
-                while (!_stop)
+                try
                 {
                     DealFunction(null);
                     Thread.Sleep(1);
                 }
-            }
-            catch (Exception ex)
-            {
-                // 后台线程不应崩溃，记录异常后继续
-                Console.Error.WriteLine($"[IoModule:{_ioModuleIndex}] ThreadFunc 异常: {ex}");
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"[IoModule:{_ioModuleIndex}] ThreadFunc 异常: {ex}");
+                }
             }
         }
 
@@ -187,16 +175,14 @@ namespace FxNet.IO
                 var error = new ErrorCode();
                 _lastUpdateTime = _currentTime;
 
-                List<SocketBase> snapshot;
                 lock (_sockets)
                 {
                     _socketsBuffer.Clear();
                     _socketsBuffer.EnsureCapacity(_sockets.Count);
                     foreach (var kvp in _sockets) _socketsBuffer.Add(kvp.Value);
-                    snapshot = new List<SocketBase>(_socketsBuffer);
                 }
 
-                foreach (var sock in snapshot)
+                foreach (var sock in _socketsBuffer)
                 {
                     sock.Update(_currentTime, error, output);
                     if (error)
@@ -221,13 +207,13 @@ namespace FxNet.IO
         {
             _stop = true;
 #if !SINGLE_THREAD
-            _thread?.Stop();
+            _thread?.Join(3000);
             _thread = null;
 #endif
         }
 
         public void SetStoped() => _stop = true;
-        public uint GetThreadId() => _thread?.ThreadId ?? 0;
+        public uint GetThreadId() => _thread != null ? (uint)_thread.ManagedThreadId : 0;
 
         /// <summary>释放资源：停止 IO 线程并关闭所有 Socket</summary>
         public void Dispose()

@@ -16,6 +16,8 @@ namespace FxNet.IO
         private readonly ISessionMaker _sessionMaker;
         private readonly Dictionary<IPEndPoint, UdpConnector> _clients = new();
         private readonly byte[] _recvBuffer = new byte[SlidingWindow.BuffSize];
+        // 复用的发送方端点（ReceiveFrom 每次会重新赋值为新对象，此字段仅作为模板，避免每包 new）
+        private EndPoint _recvRemoteEp = new IPEndPoint(IPAddress.Any, 0);
 
         public UdpListener(ISessionMaker sessionMaker)
         {
@@ -33,14 +35,13 @@ namespace FxNet.IO
                 {
                     try
                     {
-                        EndPoint remoteEp = new IPEndPoint(IPAddress.Any, 0);
                         int received = NativeSocketHandle.ReceiveFrom(_recvBuffer, 0, _recvBuffer.Length,
-                            SocketFlags.None, ref remoteEp);
+                            SocketFlags.None, ref _recvRemoteEp);
                         if (received <= 0) break;
 
                         var data = ArrayPool<byte>.Shared.Rent(received);
                         Array.Copy(_recvBuffer, data, received);
-                        var clientEp = (IPEndPoint)remoteEp;
+                        var clientEp = (IPEndPoint)_recvRemoteEp;
 
                         // 查找或创建客户端连接器
                         if (!_clients.TryGetValue(clientEp, out var client))

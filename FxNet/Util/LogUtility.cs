@@ -66,9 +66,8 @@ namespace FxNet.Util
     {
         private Thread? _thread;
         private volatile bool _stop;
-        private readonly CasLock _lock = new CasLock();
+        private readonly object _lock = new object();
         private readonly StringBuilder _stream = new StringBuilder();
-        private readonly StringBuilder _logBuffer = new StringBuilder();
 
         public void Init()
         {
@@ -87,7 +86,7 @@ namespace FxNet.Util
         public void PushLog(StringBuilder stream)
         {
             if (stream.Length == 0) return;
-            using (new LockScope(_lock))
+            lock (_lock)
             {
                 _stream.Append(stream);
             }
@@ -96,7 +95,7 @@ namespace FxNet.Util
 
         public string GetLogStr()
         {
-            using (new LockScope(_lock))
+            lock (_lock)
             {
                 var result = _stream.ToString();
                 _stream.Clear();

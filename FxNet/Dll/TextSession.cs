@@ -131,9 +131,9 @@ namespace FxNet.Dll
                 // 写入 4 字节大端长度头 + 数据体（与 TextWorkStream 协议一致）
                 var sendBuff = _socket.GetSession()!.GetSendBuff();
                 int dataLen = Package.DataLength;
-                var header = new byte[4];
+                Span<byte> header = stackalloc byte[4];
                 BinaryPrimitives.WriteInt32BigEndian(header, dataLen);
-                sendBuff.PushData(header, 4);
+                sendBuff.PushData(header);
                 sendBuff.PushData(Package.GetData(), dataLen);
                 var error = new ErrorCode();
                 _socket.SendMessage(error, output);

@@ -1,7 +1,6 @@
 using FxNet.Core;
 using FxNet.Util;
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
@@ -23,11 +22,13 @@ namespace FxNet.IO
         private Socket? _listenerSocket;
 
         // 待处理接收数据队列（服务端模式由 UdpListener 入队，客户端模式由 Update 轮询入队）
-        private readonly ConcurrentQueue<PendingRecvData> _pendingRecvQueue = new();
+        // 入队/出队均在同一 IO 线程的 DealFunction 路径中完成，无跨线程访问，故用普通 Queue
+        private readonly Queue<PendingRecvData> _pendingRecvQueue = new();
 
-        private sealed class PendingRecvData
+        // 值类型，入队时不产生堆分配（内联存储于 Queue 内部数组）
+        private struct PendingRecvData
         {
-            public byte[] Data = null!;
+            public byte[] Data;
             public int Length;
         }
 
