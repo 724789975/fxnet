@@ -1,5 +1,6 @@
 using FxNet.Core;
 using FxNet.Util;
+using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
 
@@ -37,7 +38,7 @@ namespace FxNet.IO
                             SocketFlags.None, ref remoteEp);
                         if (received <= 0) break;
 
-                        var data = new byte[received];
+                        var data = ArrayPool<byte>.Shared.Rent(received);
                         Array.Copy(_recvBuffer, data, received);
                         var clientEp = (IPEndPoint)remoteEp;
 

@@ -73,7 +73,7 @@ class Program
 #if SINGLE_THREAD
         LogRaw("[配置] 线程模式: 单线程 (SINGLE_THREAD)");
 #else
-        LogRaw("[配置] 线程模式: 多线程 (IO模块=3)");
+        LogRaw("[配置] 线程模式: 多线程 (IO模块=1)");
 #endif
         LogRaw("");
 

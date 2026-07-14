@@ -9,7 +9,7 @@ namespace FxNet.Core
     /// </summary>
     public interface IOnRecvOperator
     {
-        void Execute(byte[] buffer, ushort size, ErrorCode error, TextWriter? output);
+        void Execute(byte[] buffer, int offset, ushort size, ErrorCode error, TextWriter? output);
     }
 
     /// <summary>
@@ -128,6 +128,9 @@ namespace FxNet.Core
         private byte _ackLast;         // 上一次发送的 ACK 序号
         private byte _synLast;         // 上一次接收的 SYN 序号
         private double _ackOutTime = 5.0; // ACK 超时判定时间（秒）
+
+        // 预分配 ACK 包缓冲区，避免每次发送纯 ACK 时 new byte[]
+        private readonly byte[] _ackPacketBuf = new byte[UDPPacketHeader.Size];
 
         public BufferContral() { }
 
@@ -416,16 +419,15 @@ namespace FxNet.Core
             // === 发送纯 ACK 包（无数据载荷，仅确认对端数据）===
             if (_sendAck)
             {
-                byte[] packetBuf = new byte[UDPPacketHeader.Size];
                 var ackPacket = new UDPPacketHeader
                 {
                     Status = (byte)_status,
                     Syn = (byte)(_sendWindow.Begin - 1),
                     Ack = (byte)(_recvWindow.Begin - 1)
                 };
-                ackPacket.WriteTo(packetBuf, 0);
+                ackPacket.WriteTo(_ackPacketBuf, 0);
 
-                _sendOperator.Execute(packetBuf, (ushort)UDPPacketHeader.Size, out _, error, output);
+                _sendOperator.Execute(_ackPacketBuf, (ushort)UDPPacketHeader.Size, out _, error, output);
                 if (error) return;
 
                 _sendTime = time + _sendFrequency;
@@ -583,15 +585,32 @@ namespace FxNet.Core
                 {
                     byte rid = (byte)(packet.Syn % SlidingWindow.WindowSize);
 
-                    // 该序号位置尚未有数据，存入接收窗口
+                    // 该序号位置尚未被占用
                     if (_recvWindow.SeqBufferId[rid] >= SlidingWindow.WindowSize)
                     {
-                        _recvWindow.SeqBufferId[rid] = bufferId;
-                        _recvWindow.SeqSize[rid] = (ushort)len;
-                        packetReceived = true; // 标记收到了新的有序数据
+                        if (len > UDPPacketHeader.Size)
+                        {
+                            // 有有效载荷的数据包：存入接收窗口
+                            _recvWindow.SeqBufferId[rid] = bufferId;
+                            _recvWindow.SeqSize[rid] = (ushort)len;
+                            packetReceived = true;
 
-                        if (_recvWindow.FreeBufferId >= SlidingWindow.WindowSize) break; // 缓冲区耗尽
-                        else continue; // 继续读取下一个包
+                            if (_recvWindow.FreeBufferId >= SlidingWindow.WindowSize) break;
+                            else continue;
+                        }
+                        else
+                        {
+                            // 纯 ACK/保活空包：标记序号位置已占用（无有效载荷），
+                            // 避免在接收窗口中形成空洞阻塞后续数据交付
+                            _recvWindow.SeqBufferId[rid] = (byte)(SlidingWindow.WindowSize - 1);
+                            _recvWindow.SeqSize[rid] = 0;
+                            packetReceived = true;
+
+                            // 回收缓冲区（空包不需要存储）
+                            buffer[0] = _recvWindow.FreeBufferId;
+                            _recvWindow.FreeBufferId = bufferId;
+                            continue;
+                        }
                     }
                 }
 
@@ -626,24 +645,31 @@ namespace FxNet.Core
                     {
                         byte rid = (byte)(_recvWindow.Begin % SlidingWindow.WindowSize);
                         byte rBufId = _recvWindow.SeqBufferId[rid];
-                        byte[] rBuffer = _recvWindow.Buffers[rBufId];
-                        ushort rSize = (ushort)(_recvWindow.SeqSize[rid] - UDPPacketHeader.Size); // 去掉包头
+                        ushort rawSize = _recvWindow.SeqSize[rid];
 
-                        // 回调上层交付数据（跳过 3 字节包头）
-                        _onRecvOperator?.Execute(
-                            rBuffer.AsSpan(UDPPacketHeader.Size, rSize).ToArray(),
-                            rSize, error, output);
-                        if (error) return;
+                        if (rawSize > UDPPacketHeader.Size)
+                        {
+                            // 有有效载荷的数据包：交付给上层
+                            byte[] rBuffer = _recvWindow.Buffers[rBufId];
+                            ushort rSize = (ushort)(rawSize - UDPPacketHeader.Size);
 
-                        // 回收缓冲区并前移接收窗口
-                        _recvWindow.Buffers[rBufId][0] = _recvWindow.FreeBufferId;
-                        _recvWindow.FreeBufferId = rBufId;
+                            _onRecvOperator?.Execute(
+                                rBuffer, UDPPacketHeader.Size, rSize, error, output);
+                            if (error) return;
+
+                            // 回收缓冲区
+                            _recvWindow.Buffers[rBufId][0] = _recvWindow.FreeBufferId;
+                            _recvWindow.FreeBufferId = rBufId;
+                        }
+                        // else: 保活空包（SeqSize=0），无需交付，无需回收缓冲区
+
+                        // 前移接收窗口
                         _recvWindow.SeqSize[rid] = 0;
                         _recvWindow.SeqBufferId[rid] = SlidingWindow.WindowSize;
                         _recvWindow.Begin++;
                         _recvWindow.End++;
 
-                        _sendAck = true; // 需要发送 ACK 确认
+                        _sendAck = true;
                     }
                 }
 

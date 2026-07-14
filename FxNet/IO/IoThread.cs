@@ -21,19 +21,18 @@ namespace FxNet.IO
         private double _lastUpdateTime;   // 上次更新时间戳（用于周期性 UDP 更新）
         private MessageEventQueue? _eventQueue; // 全局消息事件队列
         private uint _ioModuleIndex;      // 本模块索引
-
         // Socket 注册表（Socket 句柄 → SocketBase 对象）
         private readonly Dictionary<Socket, SocketBase> _sockets = new();
-        // 本地 PostEvent 队列（从外部线程投递到 IO 线程的事件）
-        private readonly List<MessageEventBase> _pendingEvents = new();
+        // 预分配缓冲区：避免 DealFunction 每次 new List（线程本地，避免并发访问）
+        private readonly List<SocketBase> _socketsBuffer = new(256);
+        // 本地 PostEvent 队列（从外部线程投递到 IO 线程的事件）—— 双缓冲
+        private List<MessageEventBase> _pendingEvents = new();
+        private List<MessageEventBase> _processingEvents = new();
         private readonly object _eventLock = new object(); // 事件队列锁
 
-        // 单例数组：单线程模式 1 个 IO 模块，多线程模式 3 个（与 C++ FXNET_AOI_THREAD_NUM 对齐）
-#if SINGLE_THREAD
+        // 单例数组：始终 1 个 IO 模块（与 C++ FXNET_AOI_THREAD_NUM=1 对齐）
+        // SINGLE_THREAD 只影响是否创建后台线程，不影响模块数量
         private static readonly IoModule[] _instances = new IoModule[1];
-#else
-        private static readonly IoModule[] _instances = new IoModule[3];
-#endif
 
         public IoModule()
         {
@@ -59,16 +58,18 @@ namespace FxNet.IO
             if (_instances[index] == null)
                 _instances[index] = this;
 
-#if SINGLE_THREAD
-            // 单线程模式：不创建后台线程，由主线程调用 DealFunction
-#else
+            // 创建后台 IO 线程（对齐 C++ FxIoModule::Start）
+            // 单线程模式不创建后台线程，由主线程通过 ProcSingleThread 调用 DealFunction
+            _stop = false;
+#if !SINGLE_THREAD
             _thread = new FxThread(this);
             if (!_thread.Start())
             {
-                LogUtility.Log(output, LogLevel.Error, "IoModule start thread failed");
+                output?.WriteLine($"[IoModule] 后台线程启动失败!");
                 return false;
             }
 #endif
+
             return true;
         }
 
@@ -138,28 +139,35 @@ namespace FxNet.IO
         /// </summary>
         public void ThreadFunc()
         {
-            while (!_stop)
+            try
             {
-                DealFunction(null);
-                Thread.Sleep(1);
+                while (!_stop)
+                {
+                    DealFunction(null);
+                    Thread.Sleep(1);
+                }
+            }
+            catch (Exception ex)
+            {
+                // 后台线程不应崩溃，记录异常后继续
+                Console.Error.WriteLine($"[IoModule:{_ioModuleIndex}] ThreadFunc 异常: {ex}");
             }
         }
 
-        /// <summary>处理从外部线程 PostEvent 投递的事件</summary>
+        /// <summary>处理从外部线程 PostEvent 投递的事件（双缓冲：交换列表避免每次分配）</summary>
         private void ProcessPendingEvents(TextWriter? output)
         {
-            List<MessageEventBase> events;
             lock (_eventLock)
             {
                 if (_pendingEvents.Count == 0) return;
-                events = new List<MessageEventBase>(_pendingEvents);
-                _pendingEvents.Clear();
+                (_pendingEvents, _processingEvents) = (_processingEvents, _pendingEvents);
             }
 
-            foreach (var evt in events)
+            foreach (var evt in _processingEvents)
             {
                 evt.Execute(output);
             }
+            _processingEvents.Clear();
         }
 
         /// <summary>
@@ -179,13 +187,16 @@ namespace FxNet.IO
                 var error = new ErrorCode();
                 _lastUpdateTime = _currentTime;
 
-                List<SocketBase> socketsCopy;
+                List<SocketBase> snapshot;
                 lock (_sockets)
                 {
-                    socketsCopy = new List<SocketBase>(_sockets.Values);
+                    _socketsBuffer.Clear();
+                    _socketsBuffer.EnsureCapacity(_sockets.Count);
+                    foreach (var kvp in _sockets) _socketsBuffer.Add(kvp.Value);
+                    snapshot = new List<SocketBase>(_socketsBuffer);
                 }
 
-                foreach (var sock in socketsCopy)
+                foreach (var sock in snapshot)
                 {
                     sock.Update(_currentTime, error, output);
                     if (error)

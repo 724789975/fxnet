@@ -47,6 +47,8 @@ namespace FxNet.IO
                     int copyLen = Math.Min(pending.Length, buffSize);
                     Array.Copy(pending.Data, 0, buffer, 0, copyLen);
                     recvSize = copyLen;
+                    // 归还 ArrayPool 缓冲区
+                    ArrayPool<byte>.Shared.Return(pending.Data);
                 }
                 else
                 {
@@ -89,16 +91,13 @@ namespace FxNet.IO
             private readonly UdpConnector _connector;
             public OnRecvOperator(UdpConnector connector) => _connector = connector;
 
-            public void Execute(byte[] buffer, ushort size, ErrorCode error, TextWriter? output)
+            public void Execute(byte[] buffer, int offset, ushort size, ErrorCode error, TextWriter? output)
             {
                 var session = _connector.Session;
-                if (session == null || size == 0)
-                {
-                    return;
-                }
+                if (session == null || size == 0) return;
 
                 var recvBuff = session.GetRecvBuff();
-                recvBuff.PushData(buffer, size);
+                recvBuff.PushData(buffer, offset, size);
 
                 while (recvBuff.CheckPackage())
                 {
@@ -166,7 +165,7 @@ namespace FxNet.IO
                             SocketFlags.None);
                         if (received <= 0) break;
 
-                        var data = new byte[received];
+                        var data = ArrayPool<byte>.Shared.Rent(received);
                         Array.Copy(_recvBuffer, data, received);
                         _pendingRecvQueue.Enqueue(new PendingRecvData { Data = data, Length = received });
                     }

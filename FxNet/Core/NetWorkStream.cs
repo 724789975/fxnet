@@ -48,6 +48,14 @@ namespace FxNet.Core
             UsedLength += len;
         }
 
+        /// <summary>将数据从指定偏移处推入缓冲区尾部</summary>
+        public void PushData(byte[] data, int offset, int len)
+        {
+            Realloc(len);
+            Array.Copy(data, offset, Data, UsedLength, len);
+            UsedLength += len;
+        }
+
         /// <summary>预留 len 字节空间，返回写入起始位置</summary>
         public int PushData(int len)
         {

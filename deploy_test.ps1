@@ -6,4 +6,4 @@
 param(
     [int]$ClientTimeout = 60
 )
-wsl -d Ubuntu-24.04 -- bash -c "cd '/mnt/f/share/fxnet/fxnet_c#' && sed -i 's/\r`$//' deploy_test.sh && bash deploy_test.sh $ClientTimeout"
+wsl -d Ubuntu-24.04 -- bash -c "cd '/mnt/d/fxnet/c#' && sed -i 's/\r`$//' deploy_test.sh && bash deploy_test.sh $ClientTimeout"

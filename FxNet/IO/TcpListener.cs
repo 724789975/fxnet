@@ -11,7 +11,8 @@ namespace FxNet.IO
     /// </summary>
     public class TcpListener : ListenSocket
     {
-        private readonly ISessionMaker _sessionMaker; // 会话工厂，用于为新连接创建 Session
+        private readonly ISessionMaker _sessionMaker;
+        private SocketAsyncEventArgs? _acceptArgs;
 
         public TcpListener(ISessionMaker sessionMaker)
         {
@@ -56,22 +57,25 @@ namespace FxNet.IO
             return this;
         }
 
-        /// <summary>启动异步 Accept 循环</summary>
+        /// <summary>启动异步 Accept 循环（复用同一个 SAEA 实例）</summary>
         private void StartAccept(TextWriter? output)
         {
             if (NativeSocketHandle == null) return;
 
-            var args = new SocketAsyncEventArgs();
-            args.Completed += OnAcceptCompleted;
-            args.UserToken = this;
-            // 必须设置 RemoteEndPoint 占位符，否则 AcceptAsync 后 RemoteEndPoint 为 null
-            args.RemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+            _acceptArgs ??= new SocketAsyncEventArgs();
+            if (_acceptArgs.AcceptSocket != null) _acceptArgs.AcceptSocket = null;
+            if (_acceptArgs.Buffer == null)
+            {
+                _acceptArgs.Completed += OnAcceptCompleted;
+                _acceptArgs.UserToken = this;
+                _acceptArgs.RemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+            }
 
             try
             {
-                if (!NativeSocketHandle.AcceptAsync(args))
+                if (!NativeSocketHandle.AcceptAsync(_acceptArgs))
                 {
-                    OnAcceptCompleted(null, args);
+                    OnAcceptCompleted(null, _acceptArgs);
                 }
             }
             catch (Exception ex)
