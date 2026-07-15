@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.fxnet.network": {
+      "version": "file:com.fxnet.network",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.collab-proxy": {
       "version": "2.12.4",
       "depth": 0,

@@ -1,0 +1,16 @@
+{
+    "name": "FxNet.Samples.UdpTest",
+    "rootNamespace": "FxNet.UdpTest",
+    "references": [
+        "FxNet"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
