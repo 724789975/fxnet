@@ -1,0 +1,4 @@
+build_unity.log
+logs/*
+network/.vsconfig
+publish/*

@@ -1,0 +1,65 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+
+# Memory Profiler snapshots
+MemoryCaptures/
+
+# Recordings
+[Rr]ecordings/
+
+# Asset Store download
+AssetStoreTools*
+
+# IDE
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user
+*.unityproj
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated file
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics
+crashlytics-build.properties
+
+# Packed Addressables
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# Texture atlas
+/[Aa]ssets/[Ss]treamingAssets/[Tt]exture[Aa]tlas/
+
+# Plastic SCM
+*.ignore
+*.orig
+
+# OS generated
+[Dd]esktop.ini
+[Tt]humbs.db
+.DS_Store
