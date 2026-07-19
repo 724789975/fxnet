@@ -7,7 +7,7 @@
 在目标工程的 `Packages/manifest.json` 的 `dependencies` 中添加：
 
 ```json
-"com.fxnet.network": "https://github.com/724789975/fxnet.git?path=/unity/network/Packages/com.fxnet.network"
+"com.fxnet.network": "https://github.com/724789975/fxnet.git?path=/network/Packages/com.fxnet.network#unity"
 ```
 
 或在 Package Manager 窗口中选择 **Add package from git URL** / **Add package from disk**（选中本包的 `package.json`）。

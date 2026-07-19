@@ -5,8 +5,8 @@
   "description": "纯 C# 实现的 TCP/UDP 网络库，支持可靠 UDP、滑动窗口、消息队列与多线程 IO。可直接在其他 Unity 工程中通过 UPM 引用复用。",
   "unity": "2022.3",
   "documentationUrl": "https://github.com/724789975/fxnet",
-  "changelogUrl": "https://github.com/724789975/fxnet/blob/main/CHANGELOG.md",
-  "licensesUrl": "https://github.com/724789975/fxnet/blob/main/LICENSE.md",
+  "changelogUrl": "https://github.com/724789975/fxnet/blob/unity/CHANGELOG.md",
+  "licensesUrl": "https://github.com/724789975/fxnet/blob/unity/LICENSE.md",
   "dependencies": {},
   "keywords": [
     "network",
