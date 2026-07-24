@@ -284,6 +284,17 @@ namespace FxNet.IO
         public override void OnError(ErrorCode error, TextWriter? output)
         {
             LogUtility.Log(output, LogLevel.Error, $"UdpConnector error: {error.GetWhat()}");
+
+            // 对齐 C++ UDPConnectorIOErrorOperation：断线（含 ACK 超时）时向上层推送
+            // 错误与关闭事件，驱动 Session.OnClose（唯一重连驱动）。否则 UDP 掉线后底层
+            // socket 已关闭但上层永不感知，导致「假死」、无法自动重连。
+            // Session 已被置空说明已处理过，直接返回避免重复投递。
+            if (Session == null) return;
+
+            var module = IoModule.GetInstance(IOModuleIndex);
+            module?.PushMessageEvent(Session.NewErrorEvent(error));
+            module?.PushMessageEvent(Session.NewCloseEvent());
+            Session = null;
         }
 
         public override void OnClose(TextWriter? output)

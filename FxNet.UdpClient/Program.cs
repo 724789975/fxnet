@@ -159,6 +159,10 @@ class Program
         Log("\n═══════ 阶段8: 错误处理 ═══════");
         ErrorHandlingTest();
 
+        // 阶段9: 断线感知与自动重连
+        Log("\n═══════ 阶段9: 断线感知与自动重连 ═══════");
+        ReconnectTest();
+
         Log("\n═══════ 所有测试阶段完成 ═══════");
     }
 
@@ -510,6 +514,89 @@ class Program
             RecordPass("关闭后发送不崩溃");
         else
             RecordFail($"关闭后发送异常: {caught.Message}");
+    }
+
+    // ======================== 阶段9: 断线感知与自动重连 ========================
+
+    /// <summary>
+    /// 验证 UDP 断线感知与自动重连契约：
+    /// 1) 连接到无响应端口，制造 ACK 超时（默认 5s），期望触发 OnClose 回调
+    ///    （修复前 UDP 超时只关 socket、不回调 OnClose，上层「假死」无法重连）；
+    /// 2) 在 OnClose 后重连到真实服务器，验证收发恢复正常。
+    /// </summary>
+    static void ReconnectTest()
+    {
+        ushort deadPort = (ushort)(ServerPort + 1); // 无监听端口，制造对端无响应
+        bool closed = false;
+
+        Log($"  连接到无响应端口 {ServerIp}:{deadPort}，制造 ACK 超时（约 5s）...");
+        var deadConn = FxNetApi.CreateConnector(
+            onRecv: (_, _, _) => { },
+            onConnected: _ => { },
+            onError: (_, _) => { },
+            onClose: _ => { closed = true; });
+        FxNetApi.UdpConnect(deadConn, ServerIp, deadPort);
+
+        // 持续发送探测包并抽取事件，等待 ACK 超时触发 OnClose（超时 5s + 余量）
+        double waitEnd = GetNow() + 9.0;
+        double nextSend = 0;
+        byte[] probe = Encoding.UTF8.GetBytes("PROBE");
+        while (!closed && _running && GetNow() < waitEnd)
+        {
+            if (GetNow() >= nextSend)
+            {
+                try { deadConn.Send(probe, probe.Length); } catch { }
+                nextSend = GetNow() + 0.5;
+            }
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
+        }
+
+        if (closed)
+        {
+            RecordPass("UDP 断线感知: ACK 超时触发 OnClose 回调");
+        }
+        else
+        {
+            RecordFail("UDP 断线未触发 OnClose (重连驱动缺失)");
+            try { deadConn.Close(); } catch { }
+            return;
+        }
+        try { deadConn.Close(); } catch { }
+
+        // 自动重连: OnClose 后新建连接到真实服务器并验证收发恢复
+        Log("  OnClose 已触发，重连到真实服务器验证收发恢复...");
+        bool reGotEcho = false;
+        var reConn = FxNetApi.CreateConnector(
+            onRecv: (_, _, len) => { if (len > 0) reGotEcho = true; },
+            onConnected: _ => { },
+            onError: (_, _) => { },
+            onClose: _ => { });
+        FxNetApi.UdpConnect(reConn, ServerIp, ServerPort);
+        PumpEvents(300);
+
+        byte[] hello = Encoding.UTF8.GetBytes("RECONNECT-OK");
+        reConn.Send(hello, hello.Length);
+
+        double reEnd = GetNow() + 10.0;
+        while (!reGotEcho && _running && GetNow() < reEnd)
+        {
+#if SINGLE_THREAD
+            FxNetInterface.ProcSingleThread();
+#endif
+            FxNetInterface.ProcessMessageEvents();
+            Thread.Sleep(5);
+        }
+
+        if (reGotEcho)
+            RecordPass("自动重连成功: 重连后收发恢复正常");
+        else
+            RecordFail("自动重连失败: 重连后未收到回显");
+
+        try { reConn.Close(); } catch { }
     }
 
     // ======================== 核心验证方法 ========================
