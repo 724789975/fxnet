@@ -1,6 +1,6 @@
 {
   "name": "com.fxnet.network",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "displayName": "FxNet",
   "description": "纯 C# 实现的 TCP/UDP 网络库，支持可靠 UDP、滑动窗口、消息队列与多线程 IO。可直接在其他 Unity 工程中通过 UPM 引用复用。",
   "unity": "2022.3",

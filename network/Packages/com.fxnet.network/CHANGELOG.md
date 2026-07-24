@@ -5,6 +5,14 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] - 2026-07-25
+
+### Fixed
+- UDP 断线感知：ACK 超时等连接异常时，`UdpConnector.OnError` 现会向上层推送 Error + Close 事件，驱动 `Session.OnClose` 回调。修复此前 UDP 掉线后底层 socket 已关闭但上层永不感知的「假死」问题，使自动重连得以触发（对齐 C++ `UDPConnectorIOErrorOperation` 行为）。
+
+### Added
+- Samples/UDP Echo Test：新增「阶段9 断线感知与自动重连」测试场景，复现 ACK 超时触发 OnClose 并验证重连后收发恢复。
+
 ## [1.0.0] - 2026-07-16
 
 ### Added
